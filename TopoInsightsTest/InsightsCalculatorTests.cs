@@ -200,6 +200,27 @@ namespace TopoInsightsTest
         }
 
         [TestMethod]
+        public void PeakAwardSIAAndCourseFollowTerrain()
+        {
+            var settings = new InsightsSettings();
+            var oneArea = new YouthRecord { MemberId = "a", Progress = new WallchartItemModel { SIAEnvironment = 6 } };
+            var twoAreas = new YouthRecord { MemberId = "b", Progress = new WallchartItemModel { SIAEnvironment = 4, SIAArtsLiterature = 2 } };
+
+            var cubSia = InsightsCalculator.PeakAwardTasks(oneArea, settings.RulesFor("cub"), new List<OASRequirementStatus>()).Single(t => t.Key == "sia");
+            Assert.AreEqual("6 SIA projects across 2 areas", cubSia.Title);
+            Assert.IsFalse(cubSia.Done, "Six projects in one area isn't enough for the Grey Wolf Award");
+            Assert.AreEqual("6 of 6 projects, 1 of 2 areas", cubSia.Detail);
+            Assert.IsTrue(InsightsCalculator.PeakAwardTasks(twoAreas, settings.RulesFor("cub"), new List<OASRequirementStatus>()).Single(t => t.Key == "sia").Done);
+            Assert.IsFalse(InsightsCalculator.PeakAwardTasks(twoAreas, settings.RulesFor("scout"), new List<OASRequirementStatus>()).Single(t => t.Key == "sia").Done, "Scouts need 3 areas");
+
+            Assert.AreEqual((6, 4), (settings.RulesFor("rover").SIAProjectsRequired, settings.RulesFor("rover").SIAAreasRequired));
+            Assert.IsFalse(InsightsCalculator.PeakAwardTasks(oneArea, settings.RulesFor("joey"), new List<OASRequirementStatus>()).Any(t => t.Key == "peak:course"), "Joeys have no leadership course");
+            Assert.IsTrue(InsightsCalculator.PeakAwardTasks(oneArea, settings.RulesFor("cub"), new List<OASRequirementStatus>()).Any(t => t.Key == "peak:course"));
+            Assert.AreEqual("Joey Scout Challenge Award", settings.RulesFor("joey").PeakAwardName);
+            Assert.AreEqual("King's Scout Award", settings.RulesFor("venturer").PeakAwardName);
+        }
+
+        [TestMethod]
         public void FocusYouthAreTreatedAsPriority()
         {
             var youth = YouthFromWallchart();

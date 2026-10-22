@@ -72,7 +72,7 @@ namespace TopoInsightsTest
         {
             var prompt = PlanPromptBuilder.Build(Insights(), "Zimo", "Gu", false, "Scouts", Today, false, "Camp on 14 November.");
 
-            StringAssert.Contains(prompt, "## Australian Scout Medallion");
+            StringAssert.Contains(prompt, "## Australian Scout Award");
             StringAssert.Contains(prompt, "- Adventurous Journey");
             StringAssert.Contains(prompt, "Outdoors participates: 4 of 5");
             StringAssert.Contains(prompt, "Core OAS (Bushcraft, Bushwalking, Camping)");

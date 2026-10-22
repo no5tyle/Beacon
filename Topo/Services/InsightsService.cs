@@ -245,8 +245,15 @@ namespace Topo.Services
                 .Select(o => o.Stage)
                 .ToList();
 
-            // Only the total matters for the peak award check
-            item.SIAAdventureSport = progress.SIASummaries.Count(s => s.Status == "Awarded");
+            // SIA areas come back title cased from the area key, e.g. "sia_art_literature" -> "Art Literature"
+            var awardedSia = progress.SIASummaries.Where(s => s.Status == "Awarded").ToList();
+            int SiaCount(string area) => awardedSia.Count(s => s.Area.Equals(area, StringComparison.OrdinalIgnoreCase));
+            item.SIAAdventureSport = SiaCount("Adventure Sport");
+            item.SIAArtsLiterature = SiaCount("Art Literature");
+            item.SIAEnvironment = SiaCount("Environment");
+            item.SIAStemInnovation = SiaCount("Stem Innovation");
+            item.SIAGrowthDevelopment = SiaCount("Growth Development");
+            item.SIACreatingABetterWorld = SiaCount("Better World");
             return item;
         }
 

@@ -108,6 +108,10 @@
                         <InputNumber id="siaRequired" class="form-control" @bind-Value="model.SectionRules.SIAProjectsRequired" />
                     </div>
                     <div class="col-sm-3">
+                        <label class="form-label" for="siaAreas">SIA areas for peak award</label>
+                        <InputNumber id="siaAreas" class="form-control" @bind-Value="model.SectionRules.SIAAreasRequired" />
+                    </div>
+                    <div class="col-sm-3">
                         <label class="form-label" for="lowestStage">Lowest OAS stage shown</label>
                         <InputNumber id="lowestStage" class="form-control" @bind-Value="model.SectionRules.LowestStageShown" />
                     </div>
@@ -124,7 +128,7 @@
                         <InputNumber id="nights" class="form-control" @bind-Value="model.Settings.SuggestedNights" />
                     </div>
                 </div>
-                <small class="text-muted">OAS peak award defaults follow the wording in Terrain. SIA and move up age defaults are a starting point; check them against the current Scouts Australia requirements for @(string.IsNullOrEmpty(model.SectionRules.SectionDisplay) ? "your section" : model.SectionRules.SectionDisplay).</small>
+                <small class="text-muted">Peak award OAS and SIA defaults follow the wording in Terrain. Move up age defaults are a starting point; check them against the current Scouts Australia requirements for @(string.IsNullOrEmpty(model.SectionRules.SectionDisplay) ? "your section" : model.SectionRules.SectionDisplay).</small>
             </div>
         </div>
     }

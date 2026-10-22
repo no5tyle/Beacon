@@ -357,19 +357,21 @@ namespace Topo.Model.Insights
             }
 
             var siaCount = p.SIAAdventureSport + p.SIAArtsLiterature + p.SIAEnvironment + p.SIAStemInnovation + p.SIAGrowthDevelopment + p.SIACreatingABetterWorld;
+            var siaAreas = new[] { p.SIAAdventureSport, p.SIAArtsLiterature, p.SIAEnvironment, p.SIAStemInnovation, p.SIAGrowthDevelopment, p.SIACreatingABetterWorld }.Count(c => c > 0);
             if (rules.SIAProjectsRequired > 0)
             {
                 tasks.Add(new PriorityTask
                 {
                     Category = TaskCategory.SIA,
                     Key = "sia",
-                    Title = $"{rules.SIAProjectsRequired} SIA projects",
-                    Done = siaCount >= rules.SIAProjectsRequired,
-                    Detail = $"{siaCount} of {rules.SIAProjectsRequired}"
+                    Title = rules.SIAAreasRequired > 1 ? $"{rules.SIAProjectsRequired} SIA projects across {rules.SIAAreasRequired} areas" : $"{rules.SIAProjectsRequired} SIA projects",
+                    Done = siaCount >= rules.SIAProjectsRequired && siaAreas >= rules.SIAAreasRequired,
+                    Detail = $"{siaCount} of {rules.SIAProjectsRequired} projects, {siaAreas} of {rules.SIAAreasRequired} areas"
                 });
             }
 
-            tasks.Add(new PriorityTask { Category = TaskCategory.PeakAward, Key = "peak:course", Title = "Leadership course", Done = p.LeadershipCourse.HasValue });
+            if (rules.LeadershipCourseRequired)
+                tasks.Add(new PriorityTask { Category = TaskCategory.PeakAward, Key = "peak:course", Title = "Leadership course", Done = p.LeadershipCourse.HasValue });
             tasks.Add(new PriorityTask { Category = TaskCategory.PeakAward, Key = "peak:aj", Title = "Adventurous Journey", Done = p.AdventurousJourney.HasValue });
             tasks.Add(new PriorityTask { Category = TaskCategory.PeakAward, Key = "peak:reflection", Title = "Personal Reflection", Done = p.PersonalReflection.HasValue, UnitNightSuitable = true });
             return tasks;

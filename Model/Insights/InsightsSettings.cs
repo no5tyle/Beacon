@@ -45,21 +45,25 @@ namespace Topo.Model.Insights
         public int OASHighStageProgressionsRequired { get; set; }
         public int OASHighStage { get; set; }
         public int SIAProjectsRequired { get; set; }
+        // SIA projects must cover at least this many different Special Interest Areas
+        public int SIAAreasRequired { get; set; }
+        // Joeys have no leadership / personal development course
+        public bool LeadershipCourseRequired { get; set; } = true;
         // OAS stages insights show when limited to the section's usual stages
         public int LowestStageShown { get; set; } = 1;
         public int HighestStageShown { get; set; } = 9;
 
-        // OAS requirements follow the peak award wording in Terrain. SIA and move up age defaults are
-        // a starting point only and are editable on the Insights page.
+        // Peak award names, OAS and SIA requirements follow the peak award wording in Terrain. The move up
+        // age defaults are a starting point only and are editable on the Insights page.
         public static List<SectionRules> Defaults()
         {
             return new List<SectionRules>
             {
-                new SectionRules { Section = "joey", SectionDisplay = "Joey Scouts", PeakAwardName = "Joey Scout Award", MoveUpAgeYears = 8, OASStageProgressionsRequired = 0, CoreStageRequired = 1, SIAProjectsRequired = 1, LowestStageShown = 1, HighestStageShown = 1 },
-                new SectionRules { Section = "cub", SectionDisplay = "Cub Scouts", PeakAwardName = "Grey Wolf Award", MoveUpAgeYears = 11, OASStageProgressionsRequired = 8, CoreStageRequired = 3, SIAProjectsRequired = 2, LowestStageShown = 2, HighestStageShown = 3 },
-                new SectionRules { Section = "scout", SectionDisplay = "Scouts", PeakAwardName = "Australian Scout Medallion", MoveUpAgeYears = 15, OASStageProgressionsRequired = 10, CoreStageRequired = 5, SIAProjectsRequired = 4, LowestStageShown = 4, HighestStageShown = 5 },
-                new SectionRules { Section = "venturer", SectionDisplay = "Venturer Scouts", PeakAwardName = "Queen's Scout Award", MoveUpAgeYears = 18, OASStageProgressionsRequired = 12, CoreStageRequired = 5, OASHighStageProgressionsRequired = 4, OASHighStage = 4, SIAProjectsRequired = 6, LowestStageShown = 5, HighestStageShown = 7 },
-                new SectionRules { Section = "rover", SectionDisplay = "Rover Scouts", PeakAwardName = "Baden-Powell Scout Award", MoveUpAgeYears = 26, OASStageProgressionsRequired = 14, CoreStageRequired = 5, OASHighStageProgressionsRequired = 6, OASHighStage = 4, SIAProjectsRequired = 8, LowestStageShown = 5, HighestStageShown = 9 },
+                new SectionRules { Section = "joey", SectionDisplay = "Joey Scouts", PeakAwardName = "Joey Scout Challenge Award", MoveUpAgeYears = 8, OASStageProgressionsRequired = 0, CoreStageRequired = 1, SIAProjectsRequired = 6, SIAAreasRequired = 2, LeadershipCourseRequired = false, LowestStageShown = 1, HighestStageShown = 1 },
+                new SectionRules { Section = "cub", SectionDisplay = "Cub Scouts", PeakAwardName = "Grey Wolf Award", MoveUpAgeYears = 11, OASStageProgressionsRequired = 8, CoreStageRequired = 3, SIAProjectsRequired = 6, SIAAreasRequired = 2, LowestStageShown = 2, HighestStageShown = 3 },
+                new SectionRules { Section = "scout", SectionDisplay = "Scouts", PeakAwardName = "Australian Scout Award", MoveUpAgeYears = 15, OASStageProgressionsRequired = 10, CoreStageRequired = 5, SIAProjectsRequired = 6, SIAAreasRequired = 3, LowestStageShown = 4, HighestStageShown = 5 },
+                new SectionRules { Section = "venturer", SectionDisplay = "Venturer Scouts", PeakAwardName = "King's Scout Award", MoveUpAgeYears = 18, OASStageProgressionsRequired = 12, CoreStageRequired = 5, OASHighStageProgressionsRequired = 4, OASHighStage = 4, SIAProjectsRequired = 6, SIAAreasRequired = 3, LowestStageShown = 5, HighestStageShown = 7 },
+                new SectionRules { Section = "rover", SectionDisplay = "Rover Scouts", PeakAwardName = "Baden-Powell Scout Award", MoveUpAgeYears = 26, OASStageProgressionsRequired = 14, CoreStageRequired = 5, OASHighStageProgressionsRequired = 6, OASHighStage = 4, SIAProjectsRequired = 6, SIAAreasRequired = 4, LowestStageShown = 5, HighestStageShown = 9 },
             };
         }
     }
