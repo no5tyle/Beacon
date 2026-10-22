@@ -129,7 +129,7 @@ namespace Topo.Services
 
         public bool LogToQueue { get; set; }
 
-        // Filled in by the deploy workflow from the latest release tag and the commit being deployed
+        // Filled in by the deploy workflow with the short hash of the commit being deployed
 #if DEBUG
         public string Version = "dev";
 #else

@@ -19,19 +19,15 @@ jobs:
     # uses GitHub's checkout action to checkout code form the master branch
     - name: Checkout main
       uses: actions/checkout@v2
-      with:
-        # Full history and tags so the version can be worked out
-        fetch-depth: 0
     # Install .NET SDKs
     - name: Setup .NET 10.0
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: 10.0.x
-    # Set the version shown in the app from the latest release tag and this commit, e.g. 2026.10.15 (ddc53a8)
+    # Set the version shown in the app to the short hash of the commit being deployed, e.g. ddc53a8
     - name: Set version
       run: |
-        TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "untagged")
-        VERSION="${TAG#v} ($(git rev-parse --short HEAD))"
+        VERSION=$(git rev-parse --short HEAD)
         echo "Version: $VERSION"
         sed -i "s@__VERSION__@$VERSION@g" ./Topo/Services/StorageService.cs
     # Replace Syncfusion key
