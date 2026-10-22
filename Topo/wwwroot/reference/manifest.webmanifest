@@ -1,0 +1,14 @@
+{
+  "name": "Topo Reference",
+  "short_name": "Topo Reference",
+  "description": "Every OAS I statement with Terrain's full explanation, filterable by stream, stage and skill.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#052767",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

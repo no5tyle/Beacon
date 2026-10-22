@@ -10,6 +10,13 @@ namespace Topo.Controller
         [Inject]
         public IOASReferenceService _referenceService { get; set; }
 
+        [Inject]
+        public NavigationManager NavigationManager { get; set; }
+
+        // True for the installable Topo Reference app, which shows the filters behind a menu button
+        [Parameter]
+        public bool AppMode { get; set; }
+
         public const string CoreStreams = "core";
         public const string AllStreams = "all";
         // Showing thousands of statements at once makes the page slow, so the list is capped
@@ -23,6 +30,7 @@ namespace Topo.Controller
         public string search = "";
         public string loadingMessage = "";
         public HashSet<string> expanded = new HashSet<string>();
+        public bool filtersOpen;
 
         protected override async Task OnInitializedAsync()
         {
@@ -100,6 +108,22 @@ namespace Topo.Controller
                 expanded.UnionWith(shown.Select(s => s.Key));
             else
                 expanded.Clear();
+        }
+
+        // Filters set away from their defaults, shown on the app's menu button
+        internal int ActiveFilterCount => new[]
+        {
+            streamChoice != CoreStreams,
+            stages.Any(),
+            !string.IsNullOrEmpty(part),
+            !string.IsNullOrEmpty(theme),
+            where != OASReferenceWhere.Any
+        }.Count(f => f);
+
+        // A full page load, so the browser picks up the app's name, icon and home screen support
+        internal void OpenApp()
+        {
+            NavigationManager.NavigateTo("reference/", forceLoad: true);
         }
 
         internal void ClearFilters()
