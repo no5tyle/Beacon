@@ -2,18 +2,18 @@
 
 Topo is a helper application to assist scout leaders in getting meaningful reports out of the Scouts Australia Terrain application.
 
-Topo now runs as a Blazor Webassembly app in the browser and doesn't need to be installed.
+Topo runs as a Blazor WebAssembly app in the browser and doesn't need to be installed.
 
-The project can be found at https://github.com/NomisNostab/Topo-Blazor.
+This is a fork of [NomisNostab/Topo-Blazor](https://github.com/NomisNostab/Topo-Blazor) that adds:
 
-To run Topo just go to https://nomisnostab.github.io/Topo-Blazor/ and it will download and start, be patient while it downloads.
-
-All new development will be done against the Topo-Blazor project, not this one.
+- **Insights**: unit OAS completion, the most common missing OAS requirements, priority youth (moving up soon plus focus youth) with weighted peak award progress, and programming help.
+- **Personal Progress insights**: what each youth is missing, recurring skill themes, and activity ideas for anything they're close to completing.
+- **Record OAS**: tick a youth's I statements and submit the stage for Unit Council review on their behalf.
 
 ## Installation
 ### Browser
-To run Topo just go to https://nomisnostab.github.io/Topo-Blazor/ and it will download and start, be patient while it downloads.
+To run Topo just go to https://no5tyle.github.io/Topo-Blazor/ and it will download and start, be patient while it downloads.
 
 ## Documentation
 
-Please view the [wiki](https://github.com/NomisNostab/Topo-Blazor/wiki) on how to use Topo.
+The original project's [wiki](https://github.com/NomisNostab/Topo-Blazor/wiki) covers how to use Topo's standard features. The features added in this fork are described above.
