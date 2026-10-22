@@ -1,0 +1,15 @@
+.statement {
+    cursor: pointer;
+}
+
+.statement.open {
+    background: #f8fbfc;
+}
+
+.statement-detail {
+    white-space: pre-line;
+    font-size: 0.85rem;
+    color: #495057;
+    margin-top: 0.4rem;
+    padding-left: 0.25rem;
+}

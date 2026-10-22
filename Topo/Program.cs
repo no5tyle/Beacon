@@ -27,6 +27,7 @@ builder.Services.AddScoped<IApprovalsService, ApprovalsService>();
 builder.Services.AddScoped<IProgressService, ProgressService>();
 builder.Services.AddScoped<IInsightsService, InsightsService>();
 builder.Services.AddScoped<IOASRecordingService, OASRecordingService>();
+builder.Services.AddSingleton<IOASReferenceService, OASReferenceService>();
 
 builder.Services.AddScoped<SpinnerService>();
 builder.Services.AddScoped<DisplaySpinnerAutomaticallyHttpMessageHandler>();

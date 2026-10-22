@@ -21,6 +21,7 @@
     <None Include="../TopoReportFunctionTestUnix/ReportData/Wallchart.json" Link="ReportData/Wallchart.json" CopyToOutputDirectory="Always" />
     <None Include="../TopoReportFunctionTestUnix/ReportData/OAS.json" Link="ReportData/OAS.json" CopyToOutputDirectory="Always" />
     <None Include="ReportData/oas-bushwalking-3-template.json" CopyToOutputDirectory="Always" />
+    <None Include="ReportData/oas-alpine-tree.json" CopyToOutputDirectory="Always" />
   </ItemGroup>
 
 </Project>
