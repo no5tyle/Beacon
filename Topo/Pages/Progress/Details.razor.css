@@ -1,0 +1,108 @@
+.insights-card {
+    border-top: 4px solid #4fb3bd;
+}
+
+.highlights {
+    padding-left: 1.2rem;
+}
+
+.highlights li {
+    margin-bottom: 0.2rem;
+}
+
+.activity-card {
+    border: 1px solid #dee2e6;
+    border-left: 4px solid #4fb3bd;
+    border-radius: 0.4rem;
+    padding: 0.75rem 0.9rem;
+}
+
+.need-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.35rem;
+}
+
+.need-label {
+    flex: 0 0 120px;
+    font-size: 0.9rem;
+}
+
+.need-track {
+    flex: 1 1 auto;
+    background: #f1f3f5;
+    border-radius: 4px;
+    height: 14px;
+    overflow: hidden;
+}
+
+.need-fill {
+    background: #7b61b5;
+    height: 100%;
+}
+
+.need-fill.need-done {
+    background: #198754;
+}
+
+.need-value {
+    flex: 0 0 50px;
+    font-size: 0.85rem;
+    text-align: right;
+}
+
+.task-chip {
+    font-weight: normal;
+    font-size: 0.85rem;
+    margin: 0 0.3rem 0.3rem 0;
+    padding: 0.4rem 0.6rem;
+}
+
+.chip-done {
+    background: #e8f5ee;
+    color: #146c43;
+}
+
+.chip-todo {
+    background: #fbeaea;
+    color: #b02a37;
+}
+
+.stage-detail {
+    border-bottom: 1px solid #eee;
+    padding: 0.4rem 0;
+}
+
+.stage-detail summary {
+    cursor: pointer;
+}
+
+.mini-track {
+    background: #f1f3f5;
+    border-radius: 3px;
+    height: 6px;
+    width: 120px;
+    overflow: hidden;
+}
+
+.mini-fill {
+    background: #198754;
+    height: 100%;
+}
+
+.ai-prompt {
+    border-top: 1px solid #dee2e6;
+    padding-top: 0.75rem;
+}
+
+.prompt-preview {
+    white-space: pre-wrap;
+    font-size: 0.8rem;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 0.3rem;
+    padding: 0.75rem;
+    max-height: 400px;
+    overflow-y: auto;
+}

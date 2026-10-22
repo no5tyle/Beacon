@@ -150,6 +150,12 @@ namespace Topo.Services
                     }
                 }
                 wallchartItem.OASStageProgressions = oasResults.results.Where(o => o.status == "awarded" && o.section == _storageService.Section).Count();
+                wallchartItem.OASSectionStagesAwarded = oasResults.results.Where(o => o.status == "awarded" && o.section == _storageService.Section).Select(o => o.achievement_meta.stage).ToList();
+                wallchartItem.OASStagesInProgress = oasResults.results
+                    .Where(o => o.status == "in_progress" || o.status == "draft_review" || o.status == "feedback_review")
+                    .Select(o => $"{o.achievement_meta.stream}/{o.achievement_meta.stage}")
+                    .Distinct()
+                    .ToList();
                 // Double Count OAS Stage Progressions for stages 7 and above.
                 wallchartItem.OASStageProgressions += oasResults.results.Where(o => o.achievement_meta.stage >=7 && o.status == "awarded" && o.section == _storageService.Section).Count();
                 // Member

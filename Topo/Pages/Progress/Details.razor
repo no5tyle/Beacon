@@ -9,6 +9,187 @@
         <h2>Progress Details for @model.Member.first_name @model.Member.last_name</h2>
     </div>
 
+    <div class="card mt-3 mb-3 insights-card">
+        <div class="card-header d-flex justify-content-between">
+            <span><span class="oi oi-graph" aria-hidden="true"></span> Insights</span>
+            <span>
+                <input id="showLower" type="checkbox" class="form-check-input" checked="@showLowerStages" @onchange="ToggleLowerStages" />
+                <label class="form-check-label small me-3" for="showLower">Include lower stages</label>
+                <input id="showNonCore" type="checkbox" class="form-check-input" checked="@showNonCoreOAS" @onchange="ToggleNonCoreOAS" />
+                <label class="form-check-label small" for="showNonCore">Include non-core OAS</label>
+            </span>
+        </div>
+        <div class="card-body">
+            @if (insightsLoading)
+            {
+                <p class="text-muted mb-0">Working out what @model.Member.first_name is missing...</p>
+            }
+            else if (!string.IsNullOrEmpty(insightsError))
+            {
+                <p class="validation-message mb-0">@insightsError</p>
+            }
+            else if (insights != null)
+            {
+                @if (insights.Highlights.Any())
+                {
+                    <ul class="highlights mb-3">
+                        @foreach (var highlight in insights.Highlights)
+                        {
+                            <li>@highlight</li>
+                        }
+                    </ul>
+                }
+
+                @if (insights.CloseToComplete.Any())
+                {
+                    <h5>Close to completing</h5>
+                    <div class="row g-3 mb-3">
+                        @foreach (var activity in insights.CloseToComplete)
+                        {
+                            <div class="col-lg-6">
+                                <div class="activity-card h-100">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <strong>@activity.Title</strong>
+                                        <span class="badge @(activity.CoversAll ? "bg-success" : "bg-warning text-dark")">@(activity.CoversAll ? "one activity" : "needs more")</span>
+                                    </div>
+                                    <div class="small text-muted mb-2">@activity.Summary</div>
+                                    @foreach (var step in activity.Steps)
+                                    {
+                                        <div class="small fw-bold">@step.Phase</div>
+                                        <ul class="small mb-2">
+                                            @foreach (var item in step.Items)
+                                            {
+                                                <li>@item</li>
+                                            }
+                                        </ul>
+                                    }
+                                    @foreach (var note in activity.Notes)
+                                    {
+                                        <div class="small text-muted"><span class="oi oi-info" aria-hidden="true"></span> @note</div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+
+                <div class="row g-3 mb-3">
+                    @if (insights.Milestone != null)
+                    {
+                        <div class="col-lg-6">
+                            <h5>Milestone @insights.Milestone.Number</h5>
+                            @foreach (var need in insights.Milestone.Participates.Append(insights.Milestone.LeadAssist))
+                            {
+                                <div class="need-row">
+                                    <div class="need-label">@need.ChallengeArea</div>
+                                    <div class="need-track">
+                                        <div class="need-fill @(need.Remaining == 0 ? "need-done" : "")" style="width:@(need.Need == 0 ? "100" : Math.Min(100, 100.0 * need.Have / need.Need).ToString("0"))%"></div>
+                                    </div>
+                                    <div class="need-value">@Math.Min(need.Have, need.Need) / @need.Need</div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    <div class="col-lg-6">
+                        <h5>@insights.Rules.PeakAwardName</h5>
+                        <div>
+                            @foreach (var task in insights.PeakAwardTasks.OrderBy(t => t.Done))
+                            {
+                                <span class="badge task-chip @(task.Done ? "chip-done" : "chip-todo")" title="@task.Detail">
+                                    <span class="oi @(task.Done ? "oi-check" : "oi-x")" aria-hidden="true"></span> @task.Title
+                                </span>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                @if (insights.Themes.Any())
+                {
+                    <h5>Themes in what's missing</h5>
+                    <div class="table-responsive mb-3">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Theme</th>
+                                    <th class="text-end">Requirements</th>
+                                    <th>Stages</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var theme in insights.Themes)
+                                {
+                                    <tr>
+                                        <td><strong>@theme.Theme</strong><br /><small class="text-muted">@theme.Description</small></td>
+                                        <td class="text-end">@theme.Count</td>
+                                        <td>@string.Join(", ", theme.Stages)</td>
+                                        <td>
+                                            @if (theme.UnitNightSuitable)
+                                            {
+                                                <span class="badge bg-success">unit night</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+
+                @if (insights.Stages.Any())
+                {
+                    <h5>Outstanding OAS requirements</h5>
+                    @foreach (var stage in insights.Stages)
+                    {
+                        <details class="stage-detail" open="@stage.IsClose">
+                            <summary>
+                                <strong>@stage.StreamDisplay @stage.Stage</strong>
+                                <span class="text-muted">@(stage.Started ? $"{stage.Done}/{stage.Total} done" : "not started")</span>
+                                @if (!_storageService.IsYouthMember)
+                                {
+                                    <a href="progress/record-oas/@MemberId?stream=@stage.Stream&stage=@stage.Stage" class="small ms-2">Record statements</a>
+                                }
+                                <span class="mini-track d-inline-block align-middle ms-2"><span class="mini-fill d-block" style="width:@((stage.PercentDone * 100).ToString("0"))%"></span></span>
+                            </summary>
+                            <ul class="small mt-2">
+                                @foreach (var requirement in stage.Remaining)
+                                {
+                                    <li>
+                                        <span class="text-muted">@requirement.InputGroup:</span> @requirement.InputLabel
+                                        <span class="badge bg-info text-dark">@requirement.Theme</span>
+                                    </li>
+                                }
+                            </ul>
+                        </details>
+                    }
+                }
+
+                <div class="ai-prompt mt-3">
+                    <h5>Plan with AI</h5>
+                    <p class="small text-muted mb-2">
+                        Copies a prompt with @model.Member.first_name's outstanding requirements to paste into an AI chat tool. Only their initials are included, no names, member number or date of birth. Names typed into the extra context are swapped for initials too.
+                        Check your Scouts branch's privacy rules before sharing youth information with an AI service.
+                    </p>
+                    <div class="mb-2">
+                        <input id="promptLeaveOutInitials" type="checkbox" class="form-check-input" @bind="promptLeaveOutInitials" />
+                        <label class="form-check-label small" for="promptLeaveOutInitials">Leave out initials</label>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small" for="promptNotes">Extra context for the AI (optional), e.g. upcoming camps or dates</label>
+                        <textarea id="promptNotes" class="form-control form-control-sm" rows="2" @bind="promptNotes" @bind:event="oninput"></textarea>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-primary" @onclick="CopyPromptClick">Copy AI prompt</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="() => promptPreview = !promptPreview">@(promptPreview ? "Hide prompt" : "Show prompt")</button>
+                    <span class="small text-success ms-2">@promptStatus</span>
+                    @if (promptPreview)
+                    {
+                        <pre class="prompt-preview mt-2">@BuildPrompt()</pre>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
     <div class="card mt-3 mb-3">
         <div class="card-header">
             <span>Member</span>
@@ -144,6 +325,14 @@
     <div class="card mt-3 mb-3">
         <div class="card-header">
             <span>Outdoor Adventure Skills</span>
+            @if (!_storageService.IsYouthMember)
+            {
+                <a href="progress/record-oas/@MemberId" class="btn btn-sm btn-outline-primary ms-2">Record OAS</a>
+            }
+            @if (!showNonCoreOAS)
+            {
+                <small class="text-muted">&nbsp;(core streams; tick "Include non-core OAS" above to see all)</small>
+            }
         </div>
         <div class="card-body">
             <div class="row header">
@@ -210,72 +399,90 @@
                     </div>
                 }
             </div>
-            <div class="row striped">
-                <div class="col-sm-2">
-                    <span>Alpine:</span>
-                </div>
-                @for (int i = 1; i <= 9; i++)
-                {
-                    <div class="col-sm-1">
-                        @FormatOAS("alpine", i)
+            @if (showNonCoreOAS)
+            {
+                <div class="row striped">
+                    <div class="col-sm-2">
+                        <span>Alpine:</span>
                     </div>
-                }
-            </div>
-            <div class="row striped">
-                <div class="col-sm-2">
-                    <span>Cycling:</span>
+                    @for (int i = 1; i <= 9; i++)
+                    {
+                        <div class="col-sm-1">
+                            @FormatOAS("alpine", i)
+                        </div>
+                    }
                 </div>
-                @for (int i = 1; i <= 9; i++)
-                {
-                    <div class="col-sm-1">
-                        @FormatOAS("cycling", i)
+            }
+            @if (showNonCoreOAS)
+            {
+                <div class="row striped">
+                    <div class="col-sm-2">
+                        <span>Cycling:</span>
                     </div>
-                }
-            </div>
-            <div class="row striped">
-                <div class="col-sm-2">
-                    <span>Vertical:</span>
+                    @for (int i = 1; i <= 9; i++)
+                    {
+                        <div class="col-sm-1">
+                            @FormatOAS("cycling", i)
+                        </div>
+                    }
                 </div>
-                @for (int i = 1; i <= 9; i++)
-                {
-                    <div class="col-sm-1">
-                        @FormatOAS("vertical", i)
+            }
+            @if (showNonCoreOAS)
+            {
+                <div class="row striped">
+                    <div class="col-sm-2">
+                        <span>Vertical:</span>
                     </div>
-                }
-            </div>
-            <div class="row striped">
-                <div class="col-sm-2">
-                    <span>Aquatics:</span>
+                    @for (int i = 1; i <= 9; i++)
+                    {
+                        <div class="col-sm-1">
+                            @FormatOAS("vertical", i)
+                        </div>
+                    }
                 </div>
-                @for (int i = 1; i <= 9; i++)
-                {
-                    <div class="col-sm-1">
-                        @FormatOAS("aquatics", i)
+            }
+            @if (showNonCoreOAS)
+            {
+                <div class="row striped">
+                    <div class="col-sm-2">
+                        <span>Aquatics:</span>
                     </div>
-                }
-            </div>
-            <div class="row striped">
-                <div class="col-sm-2">
-                    <span>Boating:</span>
+                    @for (int i = 1; i <= 9; i++)
+                    {
+                        <div class="col-sm-1">
+                            @FormatOAS("aquatics", i)
+                        </div>
+                    }
                 </div>
-                @for (int i = 1; i <= 9; i++)
-                {
-                    <div class="col-sm-1">
-                        @FormatOAS("boating", i)
+            }
+            @if (showNonCoreOAS)
+            {
+                <div class="row striped">
+                    <div class="col-sm-2">
+                        <span>Boating:</span>
                     </div>
-                }
-            </div>
-            <div class="row striped">
-                <div class="col-sm-2">
-                    <span>Paddling:</span>
+                    @for (int i = 1; i <= 9; i++)
+                    {
+                        <div class="col-sm-1">
+                            @FormatOAS("boating", i)
+                        </div>
+                    }
                 </div>
-                @for (int i = 1; i <= 9; i++)
-                {
-                    <div class="col-sm-1">
-                        @FormatOAS("paddling", i)
+            }
+            @if (showNonCoreOAS)
+            {
+                <div class="row striped">
+                    <div class="col-sm-2">
+                        <span>Paddling:</span>
                     </div>
-                }
-            </div>
+                    @for (int i = 1; i <= 9; i++)
+                    {
+                        <div class="col-sm-1">
+                            @FormatOAS("paddling", i)
+                        </div>
+                    }
+                </div>
+            }
         </div>
     </div>
 

@@ -1,0 +1,492 @@
+@page "/insights"
+@inherits Controller.InsightsController
+@using Topo.Model.Insights
+
+<PageTitle>Topo / Insights</PageTitle>
+
+<EditForm Model="@model">
+    <DataAnnotationsValidator />
+    <div class="mt-3 mb-3 row">
+        <h2>Unit Insights @model.GroupName</h2>
+        <p class="text-muted mb-0">OAS gaps, youth moving up soon, and skills to programme into unit nights.</p>
+    </div>
+
+    <div class="form-group mb-3 row">
+        <label for="unit" class="col-sm-2 col-form-label">
+            Select Unit
+        </label>
+        <div class="col-sm-3">
+            <select id="unit" class="form-select" value="@model.UnitId" @onchange="UnitChange">
+                <option value="">Select unit</option>
+                @foreach (var unit in model.Units)
+                {
+                    <option value="@unit.Key">@unit.Value</option>
+                }
+            </select>
+            <ValidationMessage For="@(() => model.UnitId)" />
+        </div>
+        <div class="col-sm-7">
+        </div>
+    </div>
+
+    <div class="mt-3 mb-3 row">
+        <div class="col-sm-3">
+            <InputCheckbox id="suppressLastName" class="form-check-input"
+                           @bind-Value="model.SuppressLastName" />
+            <label class="form-check-label" for="suppressLastName">
+                Suppress Last Name
+            </label>
+        </div>
+        <div class="col-sm-3">
+            <InputCheckbox id="includeNonCore" class="form-check-input"
+                           @bind-Value="model.Settings.IncludeNonCoreOAS" />
+            <label class="form-check-label" for="includeNonCore">
+                Include non-core OAS streams
+            </label>
+        </div>
+        <div class="col-sm-3">
+            <InputCheckbox id="hideLower" class="form-check-input"
+                           @bind-Value="model.Settings.HideLowerStages" />
+            <label class="form-check-label" for="hideLower">
+                Hide stages below @(model.SectionRules.LowestStageShown > 1 ? $"Stage {model.SectionRules.LowestStageShown}" : "the section")
+            </label>
+        </div>
+        <div class="col-sm-3">
+            <InputCheckbox id="showSettings" class="form-check-input"
+                           @bind-Value="model.ShowSettings" />
+            <label class="form-check-label" for="showSettings">
+                Show settings
+            </label>
+        </div>
+    </div>
+
+    @if (model.ShowSettings)
+    {
+        <div class="card mb-3 settings-card">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-sm-3">
+                        <label class="form-label" for="window">Moving up window (months)</label>
+                        <InputNumber id="window" class="form-control" @bind-Value="model.Settings.MoveUpWindowMonths" />
+                    </div>
+                    <div class="col-sm-3">
+                        <label class="form-label" for="moveUpAge">Move up age (years)</label>
+                        <InputNumber id="moveUpAge" class="form-control" @bind-Value="model.SectionRules.MoveUpAgeYears" />
+                    </div>
+                    <div class="col-sm-3">
+                        <label class="form-label" for="oasRequired">OAS stage progressions for peak award</label>
+                        <InputNumber id="oasRequired" class="form-control" @bind-Value="model.SectionRules.OASStageProgressionsRequired" />
+                    </div>
+                    <div class="col-sm-3">
+                        <label class="form-label" for="coreStage">Minimum stage in core OAS</label>
+                        <InputNumber id="coreStage" class="form-control" @bind-Value="model.SectionRules.CoreStageRequired" />
+                    </div>
+                    <div class="col-sm-3">
+                        <label class="form-label" for="siaRequired">SIA projects for peak award</label>
+                        <InputNumber id="siaRequired" class="form-control" @bind-Value="model.SectionRules.SIAProjectsRequired" />
+                    </div>
+                    <div class="col-sm-3">
+                        <label class="form-label" for="lowestStage">Lowest OAS stage shown</label>
+                        <InputNumber id="lowestStage" class="form-control" @bind-Value="model.SectionRules.LowestStageShown" />
+                    </div>
+                    <div class="col-sm-3">
+                        <label class="form-label" for="maxStages">OAS stages to analyse in detail</label>
+                        <InputNumber id="maxStages" class="form-control" @bind-Value="model.Settings.MaxGapStages" />
+                    </div>
+                    <div class="col-sm-3">
+                        <label class="form-label" for="nights">Unit nights to suggest</label>
+                        <InputNumber id="nights" class="form-control" @bind-Value="model.Settings.SuggestedNights" />
+                    </div>
+                </div>
+                <small class="text-muted">OAS peak award defaults follow the wording in Terrain. SIA and move up age defaults are a starting point; check them against the current Scouts Australia requirements for @(string.IsNullOrEmpty(model.SectionRules.SectionDisplay) ? "your section" : model.SectionRules.SectionDisplay).</small>
+            </div>
+        </div>
+    }
+
+    <div class="mt-3 mb-3 row">
+        <div class="col-sm">
+            <button type="submit" name="button" @onclick="AnalyseClick" class="btn btn-primary">Analyse unit</button>
+            <small class="text-muted ms-2">Uses the same Terrain data as the Wallchart, so the first run for a unit can take a few minutes.</small>
+        </div>
+    </div>
+
+    <div class="mt-3 mb-3 row">
+        <label class="col-form-label validation-message">@model.ErrorMessage</label>
+    </div>
+</EditForm>
+
+@if (model.Report != null && model.Report.YouthCount > 0)
+{
+    var report = model.Report;
+    var topArea = report.ChallengeAreaDeficits.FirstOrDefault(d => d.ChallengeArea != "Lead / Assist");
+    var maxDemand = Math.Max(1, report.NextStageDemand.Select(d => d.Count).DefaultIfEmpty(1).Max());
+    var maxDeficit = Math.Max(1, report.ChallengeAreaDeficits.Select(d => d.ParticipatesShort).DefaultIfEmpty(1).Max());
+
+    <div class="row g-3 mb-3">
+        <div class="col-sm-6">
+            <div class="stat-tile">
+                <div class="stat-label">Youth analysed</div>
+                <div class="stat-value">@report.YouthCount</div>
+            </div>
+        </div>
+        <div class="col-sm-6">
+            <div class="stat-tile">
+                <div class="stat-label">Moving up within @model.Settings.MoveUpWindowMonths months</div>
+                <div class="stat-value">@report.MoveUpCandidates.Count</div>
+                <div class="stat-note">@report.MoveUpCandidates.Count(c => c.Urgency == Urgency.High) within 3 months</div>
+            </div>
+        </div>
+    </div>
+
+    <ul class="nav nav-tabs mb-3">
+        <li class="nav-item">
+            <button class="nav-link @(model.SelectedTab == InsightsTab.OASGaps ? "active" : "")" @onclick="() => SelectTab(InsightsTab.OASGaps)">OAS gaps</button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link @(model.SelectedTab == InsightsTab.MovingUp ? "active" : "")" @onclick="() => SelectTab(InsightsTab.MovingUp)">
+                Moving up <span class="badge bg-danger">@report.MoveUpCandidates.Count</span>
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link @(model.SelectedTab == InsightsTab.Programme ? "active" : "")" @onclick="() => SelectTab(InsightsTab.Programme)">Programme ideas</button>
+        </li>
+    </ul>
+
+    @if (model.SelectedTab == InsightsTab.OASGaps)
+    {
+        <h4>Unit completion</h4>
+        <p class="text-muted">How many youth have completed each stage, out of @report.YouthCount youth. Click a stream to list each youth under the lowest stage they haven't completed. Pale rows are streams the unit is lacking.@(report.StreamCoverage.All(s => s.IsCore) ? " Core streams only; tick \"Include non-core OAS streams\" and analyse again to see the others." : "")</p>
+        <div class="table-responsive mb-4">
+            <table class="table table-sm heatmap">
+                <thead>
+                    <tr>
+                        <th>Stream</th>
+                        @for (int stage = 1; stage <= 9; stage++)
+                        {
+                            <th class="text-center">Stage @stage</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var stream in report.StreamCoverage)
+                    {
+                        var expanded = model.ExpandedStreams.Contains(stream.Stream);
+                        <tr>
+                            <td>
+                                <button type="button" class="btn btn-link btn-sm p-0 stream-toggle" @onclick="() => ToggleStream(stream.Stream)" title="Show youth by the lowest stage they haven't completed">
+                                    @stream.StreamDisplay @(expanded ? "\u25B4" : "\u25BE")
+                                </button>
+                                @if (stream.IsCore && !report.StreamCoverage.All(s => s.IsCore)) { <span class="badge bg-light text-dark border">core</span> }
+                            </td>
+                            @for (int stage = 1; stage <= 9; stage++)
+                            {
+                                var completed = stream.ReachedStage[stage];
+                                <td class="text-center @HeatClass(completed, report.YouthCount)" title="@completed of @report.YouthCount youth have completed @stream.StreamDisplay Stage @stage">@completed/@report.YouthCount</td>
+                            }
+                        </tr>
+                        @if (expanded)
+                        {
+                            <tr class="stage-youth-row">
+                                <td class="small text-muted">Next stage for</td>
+                                @for (int stage = 1; stage <= 9; stage++)
+                                {
+                                    var nextFor = stream.NextStageMemberIds[stage];
+                                    <td>
+                                        <ul class="list-unstyled mb-0">
+                                            @foreach (var memberId in nextFor.OrderBy(MemberName))
+                                            {
+                                                <li>@MemberName(memberId)</li>
+                                            }
+                                        </ul>
+                                    </td>
+                                }
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <h4>Most common missing requirements</h4>
+        <p class="text-muted small">
+            <strong>Working on it</strong>: youth who have started that stage in Terrain.
+            <strong>All eligible</strong>: everyone who would benefit from an activity on that stage. That's youth who have already completed it, counted as done, plus youth who haven't and could get credit for it. Youth can work on several stages at once: Stages 1 to 3 any time, and higher stages once the stage three below is complete.
+        </p>
+        @if (!report.RequirementGaps.Any())
+        {
+            <p class="text-muted">No requirement detail was found for the most needed stages.</p>
+        }
+        else
+        {
+            var gapGroups = new[]
+            {
+                (Title: "Unit night", Note: "Can be done at a regular meeting.", Gaps: report.RequirementGaps.Where(g => g.UnitNightSuitable).ToList()),
+                (Title: "Overnight activity required", Note: "Needs an outing such as a hike or camp, including some day outings.", Gaps: report.RequirementGaps.Where(g => !g.UnitNightSuitable).ToList())
+            };
+            @foreach (var group in gapGroups)
+            {
+                <h5 class="mt-3 mb-1">@group.Title <span class="badge bg-secondary">@group.Gaps.Count</span></h5>
+                <p class="small text-muted mb-2">@group.Note</p>
+                @if (!group.Gaps.Any())
+                {
+                    <p class="text-muted small">None outstanding.</p>
+                }
+                else
+                {
+                    <div class="table-responsive mb-3">
+                        <table class="table table-sm table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Stage</th>
+                                    <th>Part</th>
+                                    <th>Requirement</th>
+                                    <th>Theme</th>
+                                    <th style="min-width:290px">Still needed</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var gap in SortByStreamAndStage(group.Gaps))
+                                {
+                                    <tr>
+                                        <td class="text-nowrap">@gap.StreamDisplay @gap.Stage</td>
+                                        <td>@gap.InputGroup</td>
+                                        <td>@gap.InputLabel</td>
+                                        <td><span class="badge bg-info text-dark">@gap.Theme</span></td>
+                                        <td>
+                                            <details class="missing-youth">
+                                                <summary>
+                                                    <div class="count-line">
+                                                        <span class="count-label">Working on it</span>
+                                                        <div class="mini-track"><div class="mini-fill mini-fill-active" style="width:@((gap.ActiveOutstandingPercent * 100).ToString("0"))%"></div></div>
+                                                        <small>@(gap.ActiveCandidateCount == 0 ? "none started" : $"{gap.ActiveOutstandingCount} of {gap.ActiveCandidateCount}")</small>
+                                                    </div>
+                                                    <div class="count-line">
+                                                        <span class="count-label">All eligible</span>
+                                                        <div class="mini-track"><div class="mini-fill" style="width:@((gap.OutstandingPercent * 100).ToString("0"))%"></div></div>
+                                                        <small title="@gap.CompletedCount already completed this stage">@gap.OutstandingCount of @gap.CandidateCount@(gap.PriorityMemberCount > 0 ? $", {gap.PriorityMemberCount} moving up" : "")</small>
+                                                    </div>
+                                                </summary>
+                                                <ul class="list-unstyled small mb-0 mt-1">
+                                                    @foreach (var memberId in gap.OutstandingMemberIds.OrderByDescending(IsMovingUp).ThenBy(MemberName))
+                                                    {
+                                                        <li>
+                                                            @MemberName(memberId)
+                                                            @if (IsMovingUp(memberId))
+                                                            {
+                                                                <span class="badge bg-danger ms-1">moving up</span>
+                                                            }
+                                                        </li>
+                                                    }
+                                                </ul>
+                                            </details>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            }
+        }
+    }
+
+    @if (model.SelectedTab == InsightsTab.MovingUp)
+    {
+        @if (!report.MoveUpCandidates.Any())
+        {
+            <p class="text-muted">No youth reach the move up age of @report.Rules.MoveUpAgeYears in the next @model.Settings.MoveUpWindowMonths months.</p>
+        }
+        else
+        {
+            <h4>@report.Rules.PeakAwardName: high priority tasks</h4>
+            <p class="text-muted">Outstanding items for youth moving up within @model.Settings.MoveUpWindowMonths months, most urgent first.</p>
+            <div class="row g-3 mb-4">
+                @foreach (var task in report.PriorityTaskBoard)
+                {
+                    <div class="col-sm-6 col-lg-4">
+                        <div class="task-card @(task.HighUrgencyCount > 0 ? "task-urgent" : "")">
+                            <div class="d-flex justify-content-between">
+                                <strong>@task.Title</strong>
+                                <span class="badge bg-dark">@task.MemberNames.Count</span>
+                            </div>
+                            <div class="small text-muted mb-1">
+                                @CategoryDisplay(task.Category)
+                                @if (task.HighUrgencyCount > 0)
+                                {
+                                    <span class="text-danger"> · @task.HighUrgencyCount within 3 months</span>
+                                }
+                                @if (task.UnitNightSuitable)
+                                {
+                                    <span class="text-success"> · can be done at a unit night</span>
+                                }
+                            </div>
+                            <div class="small">@string.Join(", ", task.MemberNames)</div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <h4>Youth moving up</h4>
+            <div class="row g-3 mb-4">
+                @foreach (var candidate in report.MoveUpCandidates)
+                {
+                    <div class="col-md-6">
+                        <div class="card candidate-card h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h5 class="mb-0">@candidate.MemberName</h5>
+                                        <small class="text-muted">@candidate.Patrol · @candidate.AgeDisplay · moves up @candidate.MoveUpDate.ToString("MMM yyyy")</small>
+                                    </div>
+                                    <span class="badge @UrgencyClass(candidate.Urgency)">@MonthsDisplay(candidate.MonthsRemaining)</span>
+                                </div>
+                                <div class="progress my-2" style="height:8px">
+                                    <div class="progress-bar bg-success" style="width:@((candidate.CompletionPercent * 100).ToString("0"))%"></div>
+                                </div>
+                                <small class="text-muted">@((candidate.CompletionPercent * 100).ToString("0"))% of @report.Rules.PeakAwardName items complete, @candidate.OutstandingCount outstanding</small>
+                                <ul class="list-unstyled task-list mt-2 mb-0">
+                                    @foreach (var task in candidate.Tasks.OrderBy(t => t.Done))
+                                    {
+                                        <li class="@(task.Done ? "done" : "todo")">
+                                            <span class="oi @(task.Done ? "oi-check" : "oi-x")" aria-hidden="true"></span>
+                                            @task.Title
+                                            @if (!task.Done && !string.IsNullOrEmpty(task.Detail))
+                                            {
+                                                <small class="text-muted"> - @task.Detail</small>
+                                            }
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    }
+
+    @if (model.SelectedTab == InsightsTab.Programme)
+    {
+        <div class="card ai-prompt-card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">Plan a night with AI</h5>
+                <p class="small text-muted mb-2">
+                    Copies a prompt asking an AI chat tool to plan one high value, OAS focused unit night from the outstanding requirements below. It uses unit counts only, no youth names. Any youth named in the extra context is swapped for their initials.
+                </p>
+                <div class="row g-2 mb-2">
+                    <div class="col-sm-3">
+                        <label class="form-label small" for="nightMinutes">Night length (minutes)</label>
+                        <input id="nightMinutes" type="number" min="30" step="15" class="form-control form-control-sm" @bind="nightPromptMinutes" />
+                    </div>
+                    <div class="col-sm-9">
+                        <label class="form-label small" for="nightNotes">Extra context for the AI (optional), e.g. venue, numbers, gear, leaders available</label>
+                        <textarea id="nightNotes" class="form-control form-control-sm" rows="2" @bind="nightPromptNotes" @bind:event="oninput"></textarea>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-sm btn-primary" @onclick="CopyNightPromptClick">Copy AI prompt</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="() => nightPromptPreview = !nightPromptPreview">@(nightPromptPreview ? "Hide prompt" : "Show prompt")</button>
+                <span class="small text-success ms-2">@nightPromptStatus</span>
+                @if (nightPromptPreview)
+                {
+                    <pre class="prompt-preview mt-2">@BuildNightPrompt()</pre>
+                }
+            </div>
+        </div>
+
+        <h4>Suggested unit nights</h4>
+        <p class="text-muted">Built from outstanding OAS requirements that suit a regular meeting, weighted towards youth moving up soon.</p>
+        @if (!report.SuggestedNights.Any())
+        {
+            <p class="text-muted">Not enough outstanding requirement data to suggest nights.</p>
+        }
+        <div class="row g-3 mb-4">
+            @foreach (var night in report.SuggestedNights)
+            {
+                <div class="col-md-6">
+                    <div class="card night-card h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <h5>Night @night.Number: @night.Title</h5>
+                                <span class="badge bg-light text-dark border">@night.ChallengeArea</span>
+                            </div>
+                            <p class="mb-2">@night.Focus</p>
+                            @if (night.Covers.Any())
+                            {
+                                <div class="small fw-bold">Requirements it covers</div>
+                                <ul class="small mb-2">
+                                    @foreach (var cover in night.Covers)
+                                    {
+                                        <li>@cover</li>
+                                    }
+                                </ul>
+                            }
+                            @if (night.MemberNames.Any())
+                            {
+                                <div class="small text-muted">
+                                    Helps @night.MemberNames.Count youth@(night.PriorityMemberCount > 0 ? $" ({night.PriorityMemberCount} moving up)" : ""): @string.Join(", ", night.MemberNames)
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <h4>Skill themes across outstanding requirements</h4>
+        <div class="table-responsive mb-4">
+            <table class="table table-sm align-middle">
+                <thead>
+                    <tr>
+                        <th>Theme</th>
+                        <th class="text-end">Working on it</th>
+                        <th class="text-end">All eligible still needing</th>
+                        <th class="text-end">Moving up</th>
+                        <th class="text-end">Requirements</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var theme in report.SkillThemes)
+                    {
+                        <tr>
+                            <td><strong>@theme.Name</strong><br /><small class="text-muted">@theme.Description</small></td>
+                            <td class="text-end">@theme.ActiveMemberIds.Count</td>
+                            <td class="text-end">@theme.MemberIds.Count</td>
+                            <td class="text-end">@theme.PriorityMemberCount</td>
+                            <td class="text-end">@theme.OutstandingRequirements</td>
+                            <td class="text-end"><button class="btn btn-sm btn-outline-secondary" @onclick="() => ToggleTheme(theme.Name)">@(model.ExpandedThemes.Contains(theme.Name) ? "Hide" : "Show")</button></td>
+                        </tr>
+                        @if (model.ExpandedThemes.Contains(theme.Name))
+                        {
+                            <tr>
+                                <td colspan="6">
+                                    <ul class="small mb-0">
+                                        @foreach (var requirement in theme.Requirements)
+                                        {
+                                            <li>@requirement.StreamDisplay @requirement.Stage (@requirement.InputGroup): @requirement.InputLabel <span class="text-muted">- @requirement.ActiveOutstandingCount working on it, @requirement.OutstandingCount eligible</span></li>
+                                        }
+                                    </ul>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <h4>Milestone challenge area balance</h4>
+        <p class="text-muted">Participates still needed for each youth's current milestone@(topArea != null && topArea.ParticipatesShort > 0 ? $". Programme more {topArea.ChallengeArea} activities." : ".")</p>
+        <div class="mb-4">
+            @foreach (var deficit in report.ChallengeAreaDeficits)
+            {
+                <div class="bar-row">
+                    <div class="bar-label">@deficit.ChallengeArea</div>
+                    <div class="bar-track">
+                        <div class="bar-fill bar-fill-area" style="width:@((100.0 * deficit.ParticipatesShort / maxDeficit).ToString("0"))%"></div>
+                    </div>
+                    <div class="bar-value">@deficit.ParticipatesShort short across @deficit.YouthShort youth</div>
+                </div>
+            }
+        </div>
+    }
+}

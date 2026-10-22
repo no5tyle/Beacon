@@ -69,6 +69,7 @@ namespace Topo.Services
                             first_name = m.first_name,
                             last_name = m.last_name,
                             age = GetAgeFromBirthdate(m.date_of_birth),
+                            date_of_birth = ParseBirthdate(m.date_of_birth),
                             unit_council = m.unit.unit_council,
                             patrol_name = m.patrol == null ? "" : m.patrol.name,
                             patrol_duty = GetPatrolDuty(m.unit.duty, m.patrol?.duty ?? ""),
@@ -131,6 +132,13 @@ namespace Topo.Services
             {
                 return member.last_name;
             }
+        }
+
+        private DateTime? ParseBirthdate(string dateOfBirth)
+        {
+            if (DateTime.TryParseExact(dateOfBirth, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var birthday))
+                return birthday;
+            return null;
         }
 
         private string GetAgeFromBirthdate(string dateOfBirth)

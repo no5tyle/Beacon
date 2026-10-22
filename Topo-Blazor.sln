@@ -24,6 +24,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TopoReportFunctionTestVSUnix", "TopoReportFunctionTestUnix\TopoReportFunctionTestVSUnix.csproj", "{E542261F-CB1F-4B95-8552-39F8DDAD46BD}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TopoInsightsTest", "TopoInsightsTest\TopoInsightsTest.csproj", "{1257B8E5-0F60-4693-BC5C-DA75594CDC0B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -106,6 +108,18 @@ Global
 		{E542261F-CB1F-4B95-8552-39F8DDAD46BD}.Release|x64.Build.0 = Release|Any CPU
 		{E542261F-CB1F-4B95-8552-39F8DDAD46BD}.Release|x86.ActiveCfg = Release|Any CPU
 		{E542261F-CB1F-4B95-8552-39F8DDAD46BD}.Release|x86.Build.0 = Release|Any CPU
+		{1257B8E5-0F60-4693-BC5C-DA75594CDC0B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1257B8E5-0F60-4693-BC5C-DA75594CDC0B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1257B8E5-0F60-4693-BC5C-DA75594CDC0B}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{1257B8E5-0F60-4693-BC5C-DA75594CDC0B}.Debug|x64.Build.0 = Debug|Any CPU
+		{1257B8E5-0F60-4693-BC5C-DA75594CDC0B}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{1257B8E5-0F60-4693-BC5C-DA75594CDC0B}.Debug|x86.Build.0 = Debug|Any CPU
+		{1257B8E5-0F60-4693-BC5C-DA75594CDC0B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1257B8E5-0F60-4693-BC5C-DA75594CDC0B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1257B8E5-0F60-4693-BC5C-DA75594CDC0B}.Release|x64.ActiveCfg = Release|Any CPU
+		{1257B8E5-0F60-4693-BC5C-DA75594CDC0B}.Release|x64.Build.0 = Release|Any CPU
+		{1257B8E5-0F60-4693-BC5C-DA75594CDC0B}.Release|x86.ActiveCfg = Release|Any CPU
+		{1257B8E5-0F60-4693-BC5C-DA75594CDC0B}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

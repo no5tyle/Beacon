@@ -1,5 +1,7 @@
 ﻿using Newtonsoft.Json;
+using System.Net;
 using System.Text;
+using System.Text.Json.Nodes;
 using Topo.Model.Logbook;
 using Topo.Model.Login;
 using Topo.Model.Members;
@@ -48,6 +50,10 @@ namespace Topo.Services
         public Task<GetPeakAwardsResultsModel> GetCourseReflectionResultsForMember(string memberId);
         public Task<GetPeakAwardsResultsModel> GetPersonalReflectionResultsForMember(string memberId);
         public Task<GetPeakAwardsResultsModel> GetPeakAwardResultsForMember(string memberId);
+        public Task<JsonArray> GetOASAchievementsRawForMember(string memberId);
+        public Task<TerrainWriteResult> CreateAchievementForMember(string memberId, JsonObject body);
+        public Task<TerrainWriteResult> UpdateAchievementForMember(string memberId, string achievementId, JsonObject body);
+        public Task<TerrainWriteResult> SubmitAchievementOnBehalf(string memberId, string achievementId, JsonObject body);
     }
 
     public class TerrainAPIService : ITerrainAPIService
@@ -549,6 +555,63 @@ namespace Topo.Services
                 _logger.LogError($"Version: {_storageService.Version}; Date: {DateTime.Now.ToString("dd/MM/yyyy : HH:mm:ss")}; Exception message: {ex.Message}");
             }
             return JsonConvert.DeserializeObject<T>("");
+        }
+
+        // OAS achievements as Terrain returns them, untouched, so a save can send back every field it was given
+        public async Task<JsonArray> GetOASAchievementsRawForMember(string memberId)
+        {
+            await RefreshTokenAsync();
+
+            string requestUri = $"{achievementsAddress}members/{memberId}/achievements?type=outdoor_adventure_skill";
+            var result = await SendRequest(HttpMethod.Get, requestUri);
+            var parsed = string.IsNullOrEmpty(result) ? null : JsonNode.Parse(result);
+            return parsed?["results"] as JsonArray ?? new JsonArray();
+        }
+
+        public async Task<TerrainWriteResult> CreateAchievementForMember(string memberId, JsonObject body)
+        {
+            await RefreshTokenAsync();
+
+            string requestUri = $"{achievementsAddress}members/{memberId}/achievements";
+            return await SendWriteRequest(HttpMethod.Post, requestUri, body, HttpStatusCode.OK);
+        }
+
+        public async Task<TerrainWriteResult> UpdateAchievementForMember(string memberId, string achievementId, JsonObject body)
+        {
+            await RefreshTokenAsync();
+
+            string requestUri = $"{achievementsAddress}members/{memberId}/achievements/{achievementId}";
+            return await SendWriteRequest(HttpMethod.Put, requestUri, body, HttpStatusCode.OK);
+        }
+
+        public async Task<TerrainWriteResult> SubmitAchievementOnBehalf(string memberId, string achievementId, JsonObject body)
+        {
+            await RefreshTokenAsync();
+
+            string requestUri = $"{achievementsAddress}members/{memberId}/achievements/{achievementId}/submit-on-behalf";
+            return await SendWriteRequest(HttpMethod.Post, requestUri, body, HttpStatusCode.NoContent);
+        }
+
+        // Unlike SendRequest, reports the status code so callers know whether Terrain accepted the change
+        private async Task<TerrainWriteResult> SendWriteRequest(HttpMethod httpMethod, string requestUri, JsonObject body, HttpStatusCode expectedStatus)
+        {
+            HttpRequestMessage httpRequest = new HttpRequestMessage(httpMethod, requestUri);
+            httpRequest.Content = new StringContent(body.ToJsonString(), Encoding.UTF8, "application/json");
+            httpRequest.Headers.Add("authorization", _storageService?.AuthenticationResult?.IdToken);
+            httpRequest.Headers.Add("accept", "application/json, text/plain, */*");
+            try
+            {
+                var response = await _httpClient.SendAsync(httpRequest);
+                var result = await response.Content.ReadAsStringAsync();
+                _logger.LogInformation($"Version: {_storageService.Version}; Date: {DateTime.Now.ToString("dd/MM/yyyy : HH:mm:ss")}; Request: {httpMethod} {requestUri}; StatusCode: {response.StatusCode}");
+                _logger.LogInformation($"Version: {_storageService.Version}; Date: {DateTime.Now.ToString("dd/MM/yyyy : HH:mm:ss")}; Response: {result}");
+                return new TerrainWriteResult { Success = response.StatusCode == expectedStatus, StatusCode = (int)response.StatusCode, Body = result };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogInformation($"Version: {_storageService.Version}; Date: {DateTime.Now.ToString("dd/MM/yyyy : HH:mm:ss")}; Request: {httpMethod} {requestUri}; Exception: {ex}");
+                return new TerrainWriteResult { Success = false, Body = ex.Message };
+            }
         }
 
         private string RemoveFileUploaderFromContent(string responseContentResult)

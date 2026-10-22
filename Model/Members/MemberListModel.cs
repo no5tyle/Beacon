@@ -14,6 +14,7 @@ namespace Topo.Model.Members
         public string last_name { get; set; } = string.Empty;
         public string status { get; set; } = string.Empty;
         public string age { get; set; } = string.Empty;
+        public DateTime? date_of_birth { get; set; }
         [Display(Name = "Unit Council")]
         public bool unit_council { get; set; }
         [Display(Name = "Patrol")]

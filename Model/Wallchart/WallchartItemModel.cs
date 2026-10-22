@@ -44,6 +44,10 @@
         public int NightsCampedInSection { get; set; }
         public int KMsHiked { get; set; }
         public int OASStageProgressions { get; set; }
+        // Stage numbers of each OAS stage awarded while in the current section
+        public List<int> OASSectionStagesAwarded { get; set; } = new List<int>();
+        // OAS stages started in Terrain but not yet submitted, as "stream/stage" e.g. "bushwalking/3"
+        public List<string> OASStagesInProgress { get; set; } = new List<string>();
         public int SIAAdventureSport { get; set; }
         public int SIAArtsLiterature { get; set; }
         public int SIAEnvironment { get; set; }

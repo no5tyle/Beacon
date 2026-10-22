@@ -1,0 +1,19 @@
+.statement-list li {
+    padding: 0.3rem 0;
+    border-bottom: 1px solid #f1f3f5;
+}
+
+.statement-list li .form-check-input {
+    margin-right: 0.5rem;
+}
+
+.statement-list li.done label {
+    color: #6c757d;
+}
+
+.confirm-box {
+    border: 1px solid #ffc107;
+    background: #fffbea;
+    border-radius: 0.4rem;
+    padding: 0.75rem 0.9rem;
+}

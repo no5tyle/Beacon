@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MSTest" />
+    <PackageReference Include="Newtonsoft.Json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Model/Model.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="../TopoReportFunctionTestUnix/ReportData/Wallchart.json" Link="ReportData/Wallchart.json" CopyToOutputDirectory="Always" />
+    <None Include="../TopoReportFunctionTestUnix/ReportData/OAS.json" Link="ReportData/OAS.json" CopyToOutputDirectory="Always" />
+    <None Include="ReportData/oas-bushwalking-3-template.json" CopyToOutputDirectory="Always" />
+  </ItemGroup>
+
+</Project>
