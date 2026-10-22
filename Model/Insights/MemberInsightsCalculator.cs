@@ -32,10 +32,10 @@ namespace Topo.Model.Insights
         // Phrases that mean one activity cannot satisfy the requirement
         private static readonly string[] RepeatPhrases = new[] { "at least two", "at least three", "at least 2", "at least 3", "two or more", "nights", "several" };
 
-        public static MemberInsightsReport Build(YouthRecord youth, List<OASRequirementStatus> requirements, HashSet<(string Stream, int Stage)> startedStages, SectionRules rules, DateTime today, bool includeNonCoreOAS = false, int minStage = 1)
+        public static MemberInsightsReport Build(YouthRecord youth, List<OASRequirementStatus> requirements, HashSet<(string Stream, int Stage)> startedStages, SectionRules rules, DateTime today, bool includeNonCoreOAS = false, int minStage = 1, int highestStage = InsightsCalculator.MaxStage)
         {
-            requirements = requirements.Where(r => r.Stage >= minStage).ToList();
-            startedStages = startedStages.Where(s => s.Stage >= minStage).ToHashSet();
+            requirements = requirements.Where(r => r.Stage >= minStage && r.Stage <= highestStage).ToList();
+            startedStages = startedStages.Where(s => s.Stage >= minStage && s.Stage <= highestStage).ToHashSet();
             if (!includeNonCoreOAS)
             {
                 requirements = requirements.Where(r => InsightsCalculator.IsCoreStream(r.Stream)).ToList();

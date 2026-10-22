@@ -48,7 +48,7 @@ namespace Topo.Controller
         // Non-core OAS streams are hidden unless the leader asks for them
         public bool showNonCoreOAS;
         // Stages below where the section typically works are hidden unless asked for
-        public bool showLowerStages;
+        public bool showAllStages;
 
         // AI plan prompt: initials only by default, nothing else that identifies the youth
         public bool promptLeaveOutInitials;
@@ -79,9 +79,9 @@ namespace Topo.Controller
             await LoadInsights();
         }
 
-        internal async Task ToggleLowerStages(ChangeEventArgs e)
+        internal async Task ToggleAllStages(ChangeEventArgs e)
         {
-            showLowerStages = e.Value is bool value && value;
+            showAllStages = e.Value is bool value && value;
             await LoadInsights();
         }
 
@@ -91,7 +91,7 @@ namespace Topo.Controller
             insightsError = "";
             try
             {
-                insights = await _insightsService.GetMemberInsights(model, new InsightsSettings { IncludeNonCoreOAS = showNonCoreOAS, HideLowerStages = !showLowerStages });
+                insights = await _insightsService.GetMemberInsights(model, new InsightsSettings { IncludeNonCoreOAS = showNonCoreOAS, SectionStagesOnly = !showAllStages });
             }
             catch (Exception ex)
             {

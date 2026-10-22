@@ -70,9 +70,10 @@ namespace Topo.Model.Insights
         {
             var rules = settings.RulesFor(section);
             var minStage = settings.MinimumStage(section);
+            var highestStage = settings.MaximumStage(section);
             if (!settings.IncludeNonCoreOAS)
                 requirements = requirements.Where(r => IsCoreStream(r.Stream)).ToList();
-            requirements = requirements.Where(r => r.Stage >= minStage).ToList();
+            requirements = requirements.Where(r => r.Stage >= minStage && r.Stage <= highestStage).ToList();
             var candidates = MoveUpCandidates(youth, rules, settings, today, requirements);
             var priorityIds = candidates.Select(c => c.MemberId).ToHashSet();
             var names = youth.ToDictionary(y => y.MemberId, y => y.MemberName);
@@ -88,9 +89,10 @@ namespace Topo.Model.Insights
                 Rules = rules,
                 YouthCount = youth.Count,
                 MinimumStage = minStage,
+                MaximumStage = highestStage,
                 MemberNames = names,
                 StreamCoverage = StreamCoverage(youth, settings.IncludeNonCoreOAS),
-                NextStageDemand = NextStageDemand(youth, priorityIds, settings.IncludeNonCoreOAS, minStage),
+                NextStageDemand = NextStageDemand(youth, priorityIds, settings.IncludeNonCoreOAS, minStage, highestStage),
                 RequirementGaps = gaps,
                 MoveUpCandidates = candidates,
                 PriorityTaskBoard = PriorityTaskBoard(candidates),
@@ -130,7 +132,7 @@ namespace Topo.Model.Insights
 
         // The stage each youth would work on next, grouped. Core streams always count,
         // optional streams only once a youth has started them.
-        public static List<StageDemand> NextStageDemand(List<YouthRecord> youth, HashSet<string> priorityIds, bool includeNonCore = false, int minStage = 1)
+        public static List<StageDemand> NextStageDemand(List<YouthRecord> youth, HashSet<string> priorityIds, bool includeNonCore = false, int minStage = 1, int highestStage = MaxStage)
         {
             var demand = new Dictionary<(string, int), StageDemand>();
             foreach (var member in youth)
@@ -138,7 +140,7 @@ namespace Topo.Model.Insights
                 foreach (var stream in Streams.Where(s => includeNonCore || s.IsCore))
                 {
                     var current = StageFor(member.Progress, stream.Key);
-                    if (current >= MaxStage || current + 1 < minStage || (!stream.IsCore && current == 0))
+                    if (current >= MaxStage || current + 1 < minStage || current + 1 > highestStage || (!stream.IsCore && current == 0))
                         continue;
                     var key = (stream.Key, current + 1);
                     if (!demand.TryGetValue(key, out var item))
@@ -160,19 +162,19 @@ namespace Topo.Model.Insights
         // Which stream/stages are worth fetching requirement detail for: stages youth are actively
         // working on and the most common next stages, plus every next core stage and started stage
         // of youth moving up soon.
-        public static List<(string Stream, int Stage)> StagesForDetail(List<StageDemand> demand, List<MoveUpCandidate> candidates, List<YouthRecord> youth, int maxStages, bool includeNonCore = false, int minStage = 1)
+        public static List<(string Stream, int Stage)> StagesForDetail(List<StageDemand> demand, List<MoveUpCandidate> candidates, List<YouthRecord> youth, int maxStages, bool includeNonCore = false, int minStage = 1, int highestStage = MaxStage)
         {
             var scores = new Dictionary<(string, int), int>();
             foreach (var d in demand)
                 scores[(d.Stream, d.Stage)] = d.Count;
             foreach (var stage in youth.SelectMany(y => y.Progress.OASStagesInProgress).Select(ParseStageKey).Where(k => k.HasValue).Select(k => k!.Value))
             {
-                if ((!includeNonCore && !IsCoreStream(stage.Stream)) || stage.Stage < minStage)
+                if ((!includeNonCore && !IsCoreStream(stage.Stream)) || stage.Stage < minStage || stage.Stage > highestStage)
                     continue;
                 scores[stage] = scores.GetValueOrDefault(stage) + 3;
             }
 
-            var selected = scores.Where(s => s.Key.Item2 >= minStage).OrderByDescending(s => s.Value).ThenBy(s => s.Key.Item2).Take(maxStages).Select(s => s.Key).ToList();
+            var selected = scores.Where(s => s.Key.Item2 >= minStage && s.Key.Item2 <= highestStage).OrderByDescending(s => s.Value).ThenBy(s => s.Key.Item2).Take(maxStages).Select(s => s.Key).ToList();
             var candidateIds = candidates.Select(c => c.MemberId).ToHashSet();
             foreach (var member in youth.Where(y => candidateIds.Contains(y.MemberId)))
             {
@@ -181,7 +183,7 @@ namespace Topo.Model.Insights
                     .Where(s => s.Item2 <= MaxStage)
                     .Concat(member.Progress.OASStagesInProgress.Select(ParseStageKey).Where(k => k.HasValue).Select(k => k!.Value))
                     .Where(s => includeNonCore || IsCoreStream(s.Item1))
-                    .Where(s => s.Item2 >= minStage);
+                    .Where(s => s.Item2 >= minStage && s.Item2 <= highestStage);
                 foreach (var stage in stages)
                 {
                     if (!selected.Contains(stage))

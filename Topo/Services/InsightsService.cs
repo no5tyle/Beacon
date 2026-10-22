@@ -55,8 +55,9 @@ namespace Topo.Services
 
             var candidates = InsightsCalculator.MoveUpCandidates(youth, rules, settings, today);
             var minStage = settings.MinimumStage(section);
-            var demand = InsightsCalculator.NextStageDemand(youth, candidates.Select(c => c.MemberId).ToHashSet(), settings.IncludeNonCoreOAS, minStage);
-            var stagesForDetail = InsightsCalculator.StagesForDetail(demand, candidates, youth, settings.MaxGapStages, settings.IncludeNonCoreOAS, minStage);
+            var highestStage = settings.MaximumStage(section);
+            var demand = InsightsCalculator.NextStageDemand(youth, candidates.Select(c => c.MemberId).ToHashSet(), settings.IncludeNonCoreOAS, minStage, highestStage);
+            var stagesForDetail = InsightsCalculator.StagesForDetail(demand, candidates, youth, settings.MaxGapStages, settings.IncludeNonCoreOAS, minStage, highestStage);
 
             var requirements = new List<OASRequirementStatus>();
             var stages = await _oasService.GetOASStagesList();
@@ -95,6 +96,7 @@ namespace Topo.Services
         {
             var rules = settings.RulesFor(_storageService.Section);
             var minStage = settings.MinimumStage(_storageService.Section);
+            var highestStage = settings.MaximumStage(_storageService.Section);
             var youth = new YouthRecord
             {
                 MemberId = progress.Member.id,
@@ -108,14 +110,14 @@ namespace Topo.Services
             var startedStages = progress.OASSummaries
                 .Where(o => o.Awarded == DateTime.MinValue && o.Approved == DateTime.MinValue)
                 .Where(o => settings.IncludeNonCoreOAS || InsightsCalculator.IsCoreStream(o.Stream))
-                .Where(o => o.Stage >= minStage)
+                .Where(o => o.Stage >= minStage && o.Stage <= highestStage)
                 .Select(o => (o.Stream, o.Stage))
                 .ToHashSet();
             var stagesForDetail = startedStages.ToList();
             foreach (var stream in InsightsCalculator.Streams.Where(s => s.IsCore))
             {
                 var next = InsightsCalculator.StageFor(youth.Progress, stream.Key) + 1;
-                if (next <= InsightsCalculator.MaxStage && next >= minStage && !stagesForDetail.Any(s => s.Stream == stream.Key))
+                if (next <= InsightsCalculator.MaxStage && next >= minStage && next <= highestStage && !stagesForDetail.Any(s => s.Stream == stream.Key))
                     stagesForDetail.Add((stream.Key, next));
             }
 
@@ -151,7 +153,7 @@ namespace Topo.Services
                 }
             }
 
-            return MemberInsightsCalculator.Build(youth, requirements, startedStages, rules, DateTime.Today, settings.IncludeNonCoreOAS, minStage);
+            return MemberInsightsCalculator.Build(youth, requirements, startedStages, rules, DateTime.Today, settings.IncludeNonCoreOAS, minStage, highestStage);
         }
 
         // Shape the personal progress data like a wallchart row so the unit level calculations can be reused

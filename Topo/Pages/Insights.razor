@@ -46,9 +46,9 @@
         </div>
         <div class="col-sm-3">
             <InputCheckbox id="hideLower" class="form-check-input"
-                           @bind-Value="model.Settings.HideLowerStages" />
+                           @bind-Value="model.Settings.SectionStagesOnly" />
             <label class="form-check-label" for="hideLower">
-                Hide stages below @(model.SectionRules.LowestStageShown > 1 ? $"Stage {model.SectionRules.LowestStageShown}" : "the section")
+                Only show the section's stages (@StageRangeDisplay(model.SectionRules))
             </label>
         </div>
         <div class="col-sm-3">
@@ -88,6 +88,10 @@
                     <div class="col-sm-3">
                         <label class="form-label" for="lowestStage">Lowest OAS stage shown</label>
                         <InputNumber id="lowestStage" class="form-control" @bind-Value="model.SectionRules.LowestStageShown" />
+                    </div>
+                    <div class="col-sm-3">
+                        <label class="form-label" for="highestStage">Highest OAS stage shown</label>
+                        <InputNumber id="highestStage" class="form-control" @bind-Value="model.SectionRules.HighestStageShown" />
                     </div>
                     <div class="col-sm-3">
                         <label class="form-label" for="maxStages">OAS stages to analyse in detail</label>
@@ -225,8 +229,8 @@
             };
             @foreach (var group in gapGroups)
             {
-                <h5 class="mt-3 mb-1">@group.Title <span class="badge bg-secondary">@group.Gaps.Count</span></h5>
-                <p class="small text-muted mb-2">@group.Note</p>
+                <h5 class="mt-3 mb-1">@group.Title <span class="badge bg-secondary">@Math.Min(group.Gaps.Count, MostCommonLimit)</span></h5>
+                <p class="small text-muted mb-2">@group.Note@(group.Gaps.Count > MostCommonLimit ? $" Showing the {MostCommonLimit} most needed of {group.Gaps.Count}." : "")</p>
                 @if (!group.Gaps.Any())
                 {
                     <p class="text-muted small">None outstanding.</p>
@@ -245,7 +249,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach (var gap in SortByStreamAndStage(group.Gaps))
+                                @foreach (var gap in SortByStreamAndStage(group.Gaps.Take(MostCommonLimit)))
                                 {
                                     <tr>
                                         <td class="text-nowrap">@gap.StreamDisplay @gap.Stage</td>

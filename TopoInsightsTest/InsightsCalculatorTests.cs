@@ -123,8 +123,8 @@ namespace TopoInsightsTest
             youth.ForEach(y => y.Progress.OASAquaticsStage = 2);
             requirements.AddRange(youth.Select(y => new OASRequirementStatus { Stream = "aquatics", Stage = 3, InputGroup = "Do", InputLabel = "I can perform a rescue using a throw bag.", MemberId = y.MemberId }));
 
-            var coreOnly = InsightsCalculator.Build("scout", youth, requirements, new InsightsSettings { HideLowerStages = false }, Today);
-            var all = InsightsCalculator.Build("scout", youth, requirements, new InsightsSettings { IncludeNonCoreOAS = true, HideLowerStages = false }, Today);
+            var coreOnly = InsightsCalculator.Build("scout", youth, requirements, new InsightsSettings { SectionStagesOnly = false }, Today);
+            var all = InsightsCalculator.Build("scout", youth, requirements, new InsightsSettings { IncludeNonCoreOAS = true, SectionStagesOnly = false }, Today);
 
             Assert.IsFalse(coreOnly.RequirementGaps.Any(g => g.Stream == "aquatics"));
             Assert.IsFalse(coreOnly.SkillThemes.Any(t => t.Name == "Water Skills"));
@@ -297,7 +297,7 @@ namespace TopoInsightsTest
 
             var scouts = InsightsCalculator.Build("scout", youth, requirements, new InsightsSettings(), Today);
             var cubs = InsightsCalculator.Build("cub", youth, requirements, new InsightsSettings(), Today);
-            var shown = InsightsCalculator.Build("scout", youth, requirements, new InsightsSettings { HideLowerStages = false }, Today);
+            var shown = InsightsCalculator.Build("scout", youth, requirements, new InsightsSettings { SectionStagesOnly = false }, Today);
 
             Assert.AreEqual(4, scouts.MinimumStage);
             Assert.IsTrue(scouts.RequirementGaps.All(g => g.Stage >= 4), "Scouts hide Stage 3 and below");
@@ -307,6 +307,28 @@ namespace TopoInsightsTest
             Assert.IsTrue(cubs.RequirementGaps.Any(g => g.Stage == 3), "Cubs only hide Stage 1");
             Assert.AreEqual(1, shown.MinimumStage);
             Assert.IsTrue(shown.RequirementGaps.Any(g => g.Stage == 3));
+        }
+
+        [TestMethod]
+        public void StagesAboveSectionHidden()
+        {
+            var (youth, requirements) = BushwalkingStage3Unit();
+            youth.ForEach(y => y.Progress.OASBushwalkingStage = 3);
+            foreach (var stage in new[] { 4, 5, 6 })
+                requirements.AddRange(youth.Select(y => new OASRequirementStatus { Stream = "bushwalking", Stage = stage, InputGroup = "Do", InputLabel = $"Stage {stage} skill.", MemberId = y.MemberId }));
+
+            var scouts = InsightsCalculator.Build("scout", youth, requirements, new InsightsSettings(), Today);
+            var all = InsightsCalculator.Build("scout", youth, requirements, new InsightsSettings { SectionStagesOnly = false }, Today);
+
+            Assert.AreEqual(5, scouts.MaximumStage);
+            CollectionAssert.AreEquivalent(new[] { 4, 5 }, scouts.RequirementGaps.Select(g => g.Stage).Distinct().ToArray(), "Scouts see Stages 4 and 5 only");
+            Assert.IsTrue(all.RequirementGaps.Any(g => g.Stage == 6));
+
+            var settings = new InsightsSettings();
+            Assert.AreEqual((1, 1), (settings.MinimumStage("joey"), settings.MaximumStage("joey")));
+            Assert.AreEqual((2, 3), (settings.MinimumStage("cub"), settings.MaximumStage("cub")));
+            settings.SectionStagesOnly = false;
+            Assert.AreEqual((1, 9), (settings.MinimumStage("cub"), settings.MaximumStage("cub")));
         }
 
         [TestMethod]
@@ -326,7 +348,7 @@ namespace TopoInsightsTest
         {
             var (youth, requirements) = BushwalkingStage3Unit();
             youth[0].DateOfBirth = Today.AddYears(-15).AddMonths(2);
-            var settings = new InsightsSettings { SuggestedNights = 4, HideLowerStages = false };
+            var settings = new InsightsSettings { SuggestedNights = 4, SectionStagesOnly = false };
 
             var report = InsightsCalculator.Build("scout", youth, requirements, settings, Today);
 

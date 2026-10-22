@@ -32,6 +32,7 @@ namespace Topo.Model.Insights
         public int YouthCount { get; set; }
         // Lowest OAS stage shown; lower stages are left out of the report
         public int MinimumStage { get; set; } = 1;
+        public int MaximumStage { get; set; } = 9;
         public Dictionary<string, string> MemberNames { get; set; } = new Dictionary<string, string>();
         public List<StreamCoverage> StreamCoverage { get; set; } = new List<StreamCoverage>();
         public List<StageDemand> NextStageDemand { get; set; } = new List<StageDemand>();

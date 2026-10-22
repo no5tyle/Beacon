@@ -13,8 +13,8 @@
         <div class="card-header d-flex justify-content-between">
             <span><span class="oi oi-graph" aria-hidden="true"></span> Insights</span>
             <span>
-                <input id="showLower" type="checkbox" class="form-check-input" checked="@showLowerStages" @onchange="ToggleLowerStages" />
-                <label class="form-check-label small me-3" for="showLower">Include lower stages</label>
+                <input id="showLower" type="checkbox" class="form-check-input" checked="@showAllStages" @onchange="ToggleAllStages" />
+                <label class="form-check-label small me-3" for="showLower">Include all stages</label>
                 <input id="showNonCore" type="checkbox" class="form-check-input" checked="@showNonCoreOAS" @onchange="ToggleNonCoreOAS" />
                 <label class="form-check-label small" for="showNonCore">Include non-core OAS</label>
             </span>

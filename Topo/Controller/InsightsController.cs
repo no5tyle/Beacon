@@ -137,6 +137,16 @@ namespace Topo.Controller
             return memberId;
         }
 
+        // How many of the most needed requirements each missing requirements table shows
+        internal const int MostCommonLimit = 20;
+
+        internal static string StageRangeDisplay(SectionRules rules)
+        {
+            var low = Math.Max(1, rules.LowestStageShown);
+            var high = Math.Clamp(rules.HighestStageShown, low, 9);
+            return low == high ? $"Stage {low}" : $"Stages {low}-{high}";
+        }
+
         // Stream in the usual OAS order, then stage, then Plan > Do > Review, keeping the most needed first within that
         internal static IEnumerable<RequirementGap> SortByStreamAndStage(IEnumerable<RequirementGap> gaps)
         {

@@ -28,7 +28,7 @@ namespace TopoInsightsTest
             var requirements = answers
                 .Select(a => new OASRequirementStatus { Stream = "bushwalking", Stage = 3, InputGroup = a.InputTitle, InputLabel = a.InputLabel, MemberId = a.MemberId, Answered = a.Answered })
                 .ToList();
-            return (InsightsCalculator.Build("scout", youth, requirements, new InsightsSettings { HideLowerStages = false }, Today), answers);
+            return (InsightsCalculator.Build("scout", youth, requirements, new InsightsSettings { SectionStagesOnly = false }, Today), answers);
         }
 
         [TestMethod]
