@@ -200,6 +200,44 @@ namespace TopoInsightsTest
         }
 
         [TestMethod]
+        public void FocusYouthAreTreatedAsPriority()
+        {
+            var youth = YouthFromWallchart();
+            youth[0].DateOfBirth = Today.AddYears(-15).AddMonths(2);   // moving up
+            youth[1].DateOfBirth = Today.AddYears(-12);                // not moving up, picked as focus
+            youth[2].DateOfBirth = null;                               // no birth date, picked as focus
+            var focus = new[] { youth[1].MemberId, youth[2].MemberId };
+            var settings = new InsightsSettings();
+
+            var candidates = InsightsCalculator.MoveUpCandidates(youth, settings.RulesFor("scout"), settings, Today, null, focus);
+
+            Assert.AreEqual(3, candidates.Count);
+            var movingUp = candidates.Single(c => c.MemberId == youth[0].MemberId);
+            Assert.IsTrue(movingUp.IsMovingUp);
+            Assert.IsFalse(movingUp.IsFocus);
+            var picked = candidates.Single(c => c.MemberId == youth[1].MemberId);
+            Assert.IsTrue(picked.IsFocus);
+            Assert.IsFalse(picked.IsMovingUp);
+            Assert.AreEqual(Urgency.Medium, picked.Urgency);
+            var noBirthDate = candidates.Single(c => c.MemberId == youth[2].MemberId);
+            Assert.IsNull(noBirthDate.MoveUpDate);
+            Assert.IsTrue(noBirthDate.Tasks.Any());
+            Assert.AreEqual(youth[0].MemberId, candidates.First().MemberId, "Youth moving up within 3 months still come first");
+        }
+
+        [TestMethod]
+        public void FocusYouthWeightRequirementGaps()
+        {
+            var (youth, requirements) = BushwalkingStage3Unit();
+            var focusId = youth[0].MemberId;
+
+            var report = InsightsCalculator.Build("scout", youth, requirements, new InsightsSettings { SectionStagesOnly = false }, Today, new[] { focusId });
+
+            Assert.IsTrue(report.MoveUpCandidates.Single().IsFocus);
+            Assert.IsTrue(report.RequirementGaps.Where(g => g.OutstandingMemberIds.Contains(focusId)).All(g => g.PriorityMemberCount == 1));
+        }
+
+        [TestMethod]
         public void PriorityTaskBoardGroupsOutstandingTasks()
         {
             var youth = YouthFromWallchart();

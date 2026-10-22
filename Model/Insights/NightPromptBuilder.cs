@@ -24,8 +24,10 @@ namespace Topo.Model.Insights
             sb.AppendLine("## The unit");
             sb.AppendLine($"- Date: {today:d MMMM yyyy}");
             sb.AppendLine($"- Youth members: {report.YouthCount}");
-            if (report.MoveUpCandidates.Any())
-                sb.AppendLine($"- {report.MoveUpCandidates.Count} youth move up to the next section within the next few months, so requirements they still need matter most.");
+            var movingUp = report.MoveUpCandidates.Count(c => c.IsMovingUp);
+            var focus = report.MoveUpCandidates.Count(c => !c.IsMovingUp);
+            if (movingUp > 0 || focus > 0)
+                sb.AppendLine($"- {report.MoveUpCandidates.Count} priority youth: {movingUp} moving up to the next section within the next few months{(focus > 0 ? $" and {focus} the leaders want to focus on" : "")}. Requirements they still need matter most.");
             var demand = report.NextStageDemand.Take(6).ToList();
             if (demand.Any())
                 sb.AppendLine($"- Most common next stages: {string.Join(", ", demand.Select(d => $"{d.StreamDisplay} {d.Stage} ({d.Count} youth)"))}");
@@ -41,12 +43,12 @@ namespace Topo.Model.Insights
             {
                 foreach (var theme in themes)
                 {
-                    var priority = theme.PriorityMemberCount > 0 ? $", {theme.PriorityMemberCount} moving up soon" : "";
+                    var priority = theme.PriorityMemberCount > 0 ? $", {theme.PriorityMemberCount} priority" : "";
                     sb.AppendLine($"{theme.Name} ({theme.ActiveMemberIds.Count} youth working on these stages still need them, {theme.MemberIds.Count} eligible youth in total still need them{priority}):");
                     foreach (var requirement in theme.Requirements.Take(MaxRequirementsPerTheme))
                     {
-                        var movingUp = requirement.PriorityMemberCount > 0 ? $", {requirement.PriorityMemberCount} moving up soon" : "";
-                        sb.AppendLine($"- {requirement.StreamDisplay} Stage {requirement.Stage} [{requirement.InputGroup}] {requirement.InputLabel} (still needed by {requirement.ActiveOutstandingCount} youth working on this stage and {requirement.OutstandingCount} of {requirement.CandidateCount} eligible youth, {requirement.CompletedCount} have completed the stage{movingUp})");
+                        var priorityNote = requirement.PriorityMemberCount > 0 ? $", {requirement.PriorityMemberCount} priority" : "";
+                        sb.AppendLine($"- {requirement.StreamDisplay} Stage {requirement.Stage} [{requirement.InputGroup}] {requirement.InputLabel} (still needed by {requirement.ActiveOutstandingCount} youth working on this stage and {requirement.OutstandingCount} of {requirement.CandidateCount} eligible youth, {requirement.CompletedCount} have completed the stage{priorityNote})");
                     }
                 }
             }
@@ -75,7 +77,7 @@ namespace Topo.Model.Insights
             sb.AppendLine("## How to plan");
             sb.AppendLine("- Use only the requirements listed above. Don't invent, reword or change Scouts Australia requirements.");
             sb.AppendLine("- Youth can work on several OAS stages at once. \"Working on this stage\" means they've started it in Terrain; \"eligible\" means they've completed the stage or could get credit for it.");
-            sb.AppendLine("- Pick a focus that helps the most youth, favouring requirements needed by youth already working on that stage and youth moving up soon. One or two skill themes is better than trying to cover everything.");
+            sb.AppendLine("- Pick a focus that helps the most youth, favouring requirements needed by youth already working on that stage and priority youth. One or two skill themes is better than trying to cover everything.");
             sb.AppendLine("- Youth are on different stages, so give each activity a way for different stages to take part (for example older Scouts teaching or running a base for younger ones where a requirement asks for that).");
             sb.AppendLine("- Use the patrol system and keep it youth-led where possible, following Plan > Do > Review.");
             sb.AppendLine("- It must run at a normal meeting place in the time given, with gear a typical unit has or can easily get. No outings.");

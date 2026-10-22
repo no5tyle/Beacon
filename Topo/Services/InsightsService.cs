@@ -8,7 +8,8 @@ namespace Topo.Services
 {
     public interface IInsightsService
     {
-        public Task<InsightsReport> GetInsightsReport(string selectedUnitId, InsightsSettings settings);
+        public Task<InsightsReport> GetInsightsReport(string selectedUnitId, InsightsSettings settings, ICollection<string>? focusIds = null);
+        public InsightsReport? RebuildLastReport(string selectedUnitId, InsightsSettings settings, ICollection<string>? focusIds);
         public Task<MemberInsightsReport> GetMemberInsights(ProgressDetailsPageViewModel progress, InsightsSettings settings);
     }
 
@@ -20,6 +21,11 @@ namespace Topo.Services
         private readonly IOASService _oasService;
         private readonly ILogger<InsightsService> _logger;
 
+        // The last analysis, so the report can be rebuilt straight away when focus youth change
+        private string _lastUnitId = string.Empty;
+        private List<YouthRecord> _lastYouth = new List<YouthRecord>();
+        private List<OASRequirementStatus> _lastRequirements = new List<OASRequirementStatus>();
+
         public InsightsService(StorageService storageService, IMembersService membersService, IWallchartService wallchartService, IOASService oasService, ILogger<InsightsService> logger)
         {
             _storageService = storageService;
@@ -29,7 +35,7 @@ namespace Topo.Services
             _logger = logger;
         }
 
-        public async Task<InsightsReport> GetInsightsReport(string selectedUnitId, InsightsSettings settings)
+        public async Task<InsightsReport> GetInsightsReport(string selectedUnitId, InsightsSettings settings, ICollection<string>? focusIds = null)
         {
             var section = _storageService.Section;
             var rules = settings.RulesFor(section);
@@ -53,7 +59,7 @@ namespace Topo.Services
                 })
                 .ToList();
 
-            var candidates = InsightsCalculator.MoveUpCandidates(youth, rules, settings, today);
+            var candidates = InsightsCalculator.MoveUpCandidates(youth, rules, settings, today, null, focusIds);
             var minStage = settings.MinimumStage(section);
             var highestStage = settings.MaximumStage(section);
             var demand = InsightsCalculator.NextStageDemand(youth, candidates.Select(c => c.MemberId).ToHashSet(), settings.IncludeNonCoreOAS, minStage, highestStage);
@@ -89,7 +95,19 @@ namespace Topo.Services
                 }
             }
 
-            return InsightsCalculator.Build(section, youth, requirements, settings, today);
+            _lastUnitId = selectedUnitId;
+            _lastYouth = youth;
+            _lastRequirements = requirements;
+            return InsightsCalculator.Build(section, youth, requirements, settings, today, focusIds);
+        }
+
+        // Rebuilds from the last analysis without asking Terrain again. Stage detail for newly added
+        // focus youth only arrives with the next full analysis.
+        public InsightsReport? RebuildLastReport(string selectedUnitId, InsightsSettings settings, ICollection<string>? focusIds)
+        {
+            if (_lastUnitId != selectedUnitId || !_lastYouth.Any())
+                return null;
+            return InsightsCalculator.Build(_storageService.Section, _lastYouth, _lastRequirements, settings, DateTime.Today, focusIds);
         }
 
         public async Task<MemberInsightsReport> GetMemberInsights(ProgressDetailsPageViewModel progress, InsightsSettings settings)

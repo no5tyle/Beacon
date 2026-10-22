@@ -66,7 +66,7 @@ namespace Topo.Model.Insights
             return Streams.FirstOrDefault(s => s.Key == stream)?.Display ?? stream;
         }
 
-        public static InsightsReport Build(string section, List<YouthRecord> youth, List<OASRequirementStatus> requirements, InsightsSettings settings, DateTime today)
+        public static InsightsReport Build(string section, List<YouthRecord> youth, List<OASRequirementStatus> requirements, InsightsSettings settings, DateTime today, ICollection<string>? focusIds = null)
         {
             var rules = settings.RulesFor(section);
             var minStage = settings.MinimumStage(section);
@@ -74,7 +74,7 @@ namespace Topo.Model.Insights
             if (!settings.IncludeNonCoreOAS)
                 requirements = requirements.Where(r => IsCoreStream(r.Stream)).ToList();
             requirements = requirements.Where(r => r.Stage >= minStage && r.Stage <= highestStage).ToList();
-            var candidates = MoveUpCandidates(youth, rules, settings, today, requirements);
+            var candidates = MoveUpCandidates(youth, rules, settings, today, requirements, focusIds);
             var priorityIds = candidates.Select(c => c.MemberId).ToHashSet();
             var names = youth.ToDictionary(y => y.MemberId, y => y.MemberName);
 
@@ -266,14 +266,17 @@ namespace Topo.Model.Insights
             return dateOfBirth.AddMonths((int)Math.Round(rules.MoveUpAgeYears * 12));
         }
 
-        public static List<MoveUpCandidate> MoveUpCandidates(List<YouthRecord> youth, SectionRules rules, InsightsSettings settings, DateTime today, List<OASRequirementStatus>? requirements = null)
+        // Youth moving up within the window, plus any focus youth, who are weighted the same way
+        public static List<MoveUpCandidate> MoveUpCandidates(List<YouthRecord> youth, SectionRules rules, InsightsSettings settings, DateTime today, List<OASRequirementStatus>? requirements = null, ICollection<string>? focusIds = null)
         {
             var candidates = new List<MoveUpCandidate>();
-            foreach (var member in youth.Where(y => y.DateOfBirth.HasValue))
+            foreach (var member in youth)
             {
-                var moveUpDate = MoveUpDate(member.DateOfBirth!.Value, rules);
-                var monthsRemaining = (moveUpDate - today).TotalDays / 30.44;
-                if (monthsRemaining > settings.MoveUpWindowMonths)
+                DateTime? moveUpDate = member.DateOfBirth.HasValue ? MoveUpDate(member.DateOfBirth.Value, rules) : null;
+                double? monthsRemaining = moveUpDate.HasValue ? (moveUpDate.Value - today).TotalDays / 30.44 : null;
+                var isMovingUp = monthsRemaining.HasValue && monthsRemaining.Value <= settings.MoveUpWindowMonths;
+                var isFocus = focusIds != null && focusIds.Contains(member.MemberId);
+                if (!isMovingUp && !isFocus)
                     continue;
 
                 var candidate = new MoveUpCandidate
@@ -281,19 +284,23 @@ namespace Topo.Model.Insights
                     MemberId = member.MemberId,
                     MemberName = member.MemberName,
                     Patrol = member.Patrol,
-                    AgeDisplay = AgeDisplay(member.DateOfBirth.Value, today),
+                    AgeDisplay = member.DateOfBirth.HasValue ? AgeDisplay(member.DateOfBirth.Value, today) : "",
                     MoveUpDate = moveUpDate,
-                    MonthsRemaining = Math.Round(monthsRemaining, 1),
-                    Urgency = monthsRemaining <= 3 ? Urgency.High : monthsRemaining <= 6 ? Urgency.Medium : Urgency.Low,
+                    MonthsRemaining = monthsRemaining.HasValue ? Math.Round(monthsRemaining.Value, 1) : null,
+                    IsMovingUp = isMovingUp,
+                    IsFocus = isFocus,
+                    // Focus youth who aren't moving up soon sit alongside the medium urgency group
+                    Urgency = !isMovingUp ? Urgency.Medium : monthsRemaining <= 3 ? Urgency.High : monthsRemaining <= 6 ? Urgency.Medium : Urgency.Low,
                     Tasks = PeakAwardTasks(member, rules, requirements ?? new List<OASRequirementStatus>())
                 };
-                candidate.PriorityScore = Math.Round(OutstandingWeight(candidate.Tasks) / Math.Max(monthsRemaining, 0.5), 2);
+                var effectiveMonths = isMovingUp ? monthsRemaining!.Value : settings.MoveUpWindowMonths;
+                candidate.PriorityScore = Math.Round(OutstandingWeight(candidate.Tasks) / Math.Max(effectiveMonths, 0.5), 2);
                 candidates.Add(candidate);
             }
             return candidates
                 .OrderBy(c => c.Urgency)
                 .ThenByDescending(c => c.PriorityScore)
-                .ThenBy(c => c.MonthsRemaining)
+                .ThenBy(c => c.MonthsRemaining ?? double.MaxValue)
                 .ToList();
         }
 

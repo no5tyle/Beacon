@@ -116,8 +116,12 @@ namespace Topo.Model.Insights
         public string MemberName { get; set; } = string.Empty;
         public string Patrol { get; set; } = string.Empty;
         public string AgeDisplay { get; set; } = string.Empty;
-        public DateTime MoveUpDate { get; set; }
-        public double MonthsRemaining { get; set; }
+        // Unknown when Terrain has no date of birth for the youth
+        public DateTime? MoveUpDate { get; set; }
+        public double? MonthsRemaining { get; set; }
+        // Priority youth are those moving up soon plus any focus youth a leader picks
+        public bool IsMovingUp { get; set; }
+        public bool IsFocus { get; set; }
         public Urgency Urgency { get; set; }
         public double PriorityScore { get; set; }
         public List<PriorityTask> Tasks { get; set; } = new List<PriorityTask>();

@@ -1,3 +1,4 @@
+using Blazored.LocalStorage;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using Topo.Model.Insights;
@@ -22,6 +23,17 @@ namespace Topo.Controller
         [Inject]
         IJSRuntime JS { get; set; }
 
+        [Inject]
+        public IMembersService _membersService { get; set; }
+
+        [Inject]
+        public ILocalStorageService _localStorage { get; set; }
+
+        // Focus youth are treated like youth moving up soon. The picks are kept in this browser per unit.
+        public List<KeyValuePair<string, string>> unitYouth = new List<KeyValuePair<string, string>>();
+        public HashSet<string> focusIds = new HashSet<string>();
+        public bool showFocusPicker;
+
         public InsightsPageViewModel model = new InsightsPageViewModel();
 
         // AI prompt for planning one OAS focused unit night, built from unit level counts only
@@ -29,6 +41,12 @@ namespace Topo.Controller
         public string nightPromptNotes = "";
         public bool nightPromptPreview;
         public string nightPromptStatus = "";
+
+        protected override async Task OnInitializedAsync()
+        {
+            if (_storageService.IsAuthenticated && !string.IsNullOrEmpty(model.UnitId))
+                await LoadFocusYouth();
+        }
 
         protected override void OnInitialized()
         {
@@ -47,7 +65,7 @@ namespace Topo.Controller
             model.SuppressLastName = _storageService.SuppressLastName;
         }
 
-        internal void UnitChange(ChangeEventArgs e)
+        internal async Task UnitChange(ChangeEventArgs e)
         {
             var unitId = e.Value?.ToString() ?? "";
             _storageService.UnitId = unitId;
@@ -55,7 +73,62 @@ namespace Topo.Controller
             model.UnitName = _storageService.UnitName;
             model.Report = null;
             LoadSectionRules();
+            await LoadFocusYouth();
         }
+
+        private string FocusStorageKey => $"insights-focus-youth-{model.UnitId}";
+
+        private async Task LoadFocusYouth()
+        {
+            unitYouth.Clear();
+            focusIds.Clear();
+            if (string.IsNullOrEmpty(model.UnitId))
+                return;
+            try
+            {
+                var members = await _membersService.GetMembersAsync(model.UnitId);
+                unitYouth = members
+                    .Where(m => m.isAdultLeader == 0)
+                    .OrderBy(m => m.first_name).ThenBy(m => m.last_name)
+                    .Select(m => new KeyValuePair<string, string>(m.id, $"{m.first_name} {m.last_name}"))
+                    .ToList();
+                var saved = await _localStorage.GetItemAsync<List<string>>(FocusStorageKey) ?? new List<string>();
+                focusIds = saved.Where(id => unitYouth.Any(y => y.Key == id)).ToHashSet();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Insights: unable to load focus youth");
+            }
+        }
+
+        internal async Task ToggleFocus(string memberId)
+        {
+            if (!focusIds.Remove(memberId))
+                focusIds.Add(memberId);
+            await SaveFocusAndRebuild();
+        }
+
+        internal async Task ClearFocus()
+        {
+            focusIds.Clear();
+            await SaveFocusAndRebuild();
+        }
+
+        private async Task SaveFocusAndRebuild()
+        {
+            try
+            {
+                await _localStorage.SetItemAsync(FocusStorageKey, focusIds.ToList());
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Insights: unable to save focus youth");
+            }
+            if (model.Report != null)
+                model.Report = _insightsService.RebuildLastReport(model.UnitId, model.Settings, focusIds) ?? model.Report;
+        }
+
+        internal string FocusButtonText => focusIds.Count == 0 ? "None" : focusIds.Count == 1 ? unitYouth.FirstOrDefault(y => focusIds.Contains(y.Key)).Value ?? "1 youth" : $"{focusIds.Count} youth";
 
         private void LoadSectionRules()
         {
@@ -78,7 +151,7 @@ namespace Topo.Controller
             _storageService.SuppressLastName = model.SuppressLastName;
             try
             {
-                model.Report = await _insightsService.GetInsightsReport(model.UnitId, model.Settings);
+                model.Report = await _insightsService.GetInsightsReport(model.UnitId, model.Settings, focusIds);
                 if (model.Report.YouthCount == 0)
                     model.ErrorMessage = "No youth members found for this unit.";
             }
@@ -157,9 +230,18 @@ namespace Topo.Controller
                 .ThenBy(g => Array.IndexOf(groupOrder, g.InputGroup) is var i && i >= 0 ? i : groupOrder.Length);
         }
 
+        // Moving up soon or a focus youth
         internal bool IsMovingUp(string memberId)
         {
             return model.Report?.MoveUpCandidates.Any(c => c.MemberId == memberId) ?? false;
+        }
+
+        internal string PriorityBadge(string memberId)
+        {
+            var candidate = model.Report?.MoveUpCandidates.FirstOrDefault(c => c.MemberId == memberId);
+            if (candidate == null)
+                return "";
+            return candidate.IsMovingUp ? "moving up" : "focus";
         }
 
         internal static string HeatClass(int reached, int youthCount)
@@ -196,11 +278,13 @@ namespace Topo.Controller
             };
         }
 
-        internal static string MonthsDisplay(double months)
+        internal static string MonthsDisplay(double? months)
         {
+            if (!months.HasValue)
+                return "no birth date";
             if (months < 0)
-                return $"overdue {Math.Abs(months):0.#} mths";
-            return $"{months:0.#} mths";
+                return $"overdue {Math.Abs(months.Value):0.#} mths";
+            return $"{months.Value:0.#} mths";
         }
     }
 }

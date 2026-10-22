@@ -74,7 +74,7 @@ namespace TopoInsightsTest
             StringAssert.Contains(prompt, "Bushwalking Stage 3 [Do] I can identify the features of a topographical map.");
             Assert.IsFalse(prompt.Contains("I have attended a day bushwalk"), "Outing-only requirements are left out");
             Assert.IsFalse(prompt.Contains("My logbook is up to date"), "Logbook check is left out");
-            StringAssert.Contains(prompt, "1 youth move up to the next section");
+            StringAssert.Contains(prompt, "1 priority youth: 1 moving up to the next section");
             StringAssert.Contains(prompt, "Hall only, 24 Scouts, 4 leaders.");
             StringAssert.Contains(prompt, "A timed run sheet");
         }

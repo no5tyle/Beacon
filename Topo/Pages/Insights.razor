@@ -8,7 +8,7 @@
     <DataAnnotationsValidator />
     <div class="mt-3 mb-3 row">
         <h2>Unit Insights @model.GroupName</h2>
-        <p class="text-muted mb-0">OAS gaps, youth moving up soon, and skills to programme into unit nights.</p>
+        <p class="text-muted mb-0">OAS gaps, priority youth, and skills to programme into unit nights. Priority youth are those moving up soon plus any focus youth you pick.</p>
     </div>
 
     <div class="form-group mb-3 row">
@@ -25,7 +25,29 @@
             </select>
             <ValidationMessage For="@(() => model.UnitId)" />
         </div>
-        <div class="col-sm-7">
+        <label class="col-sm-2 col-form-label text-sm-end">Focus youth</label>
+        <div class="col-sm-5 focus-picker">
+            <button type="button" class="form-select text-start" @onclick="() => showFocusPicker = !showFocusPicker" disabled="@(!unitYouth.Any())">@FocusButtonText</button>
+            @if (showFocusPicker)
+            {
+                <div class="focus-panel">
+                    <div class="d-flex justify-content-between small mb-1">
+                        <span class="text-muted">Treated like youth moving up soon</span>
+                        <span>
+                            <button type="button" class="btn btn-link btn-sm p-0 me-2" @onclick="ClearFocus">Clear</button>
+                            <button type="button" class="btn btn-link btn-sm p-0" @onclick="() => showFocusPicker = false">Done</button>
+                        </span>
+                    </div>
+                    @foreach (var youthMember in unitYouth)
+                    {
+                        var id = $"focus-{youthMember.Key}";
+                        <div class="form-check">
+                            <input id="@id" type="checkbox" class="form-check-input" checked="@focusIds.Contains(youthMember.Key)" @onchange="() => ToggleFocus(youthMember.Key)" />
+                            <label class="form-check-label" for="@id">@youthMember.Value</label>
+                        </div>
+                    }
+                </div>
+            }
         </div>
     </div>
 
@@ -136,8 +158,8 @@
         <div class="col-sm-6">
             <div class="stat-tile">
                 <div class="stat-label">Moving up within @model.Settings.MoveUpWindowMonths months</div>
-                <div class="stat-value">@report.MoveUpCandidates.Count</div>
-                <div class="stat-note">@report.MoveUpCandidates.Count(c => c.Urgency == Urgency.High) within 3 months</div>
+                <div class="stat-value">@report.MoveUpCandidates.Count(c => c.IsMovingUp)</div>
+                <div class="stat-note">@report.MoveUpCandidates.Count(c => c.IsMovingUp && c.Urgency == Urgency.High) within 3 months@(report.MoveUpCandidates.Any(c => !c.IsMovingUp) ? $", plus {report.MoveUpCandidates.Count(c => !c.IsMovingUp)} focus youth" : "")</div>
             </div>
         </div>
     </div>
@@ -148,7 +170,7 @@
         </li>
         <li class="nav-item">
             <button class="nav-link @(model.SelectedTab == InsightsTab.MovingUp ? "active" : "")" @onclick="() => SelectTab(InsightsTab.MovingUp)">
-                Moving up <span class="badge bg-danger">@report.MoveUpCandidates.Count</span>
+                Priority youth <span class="badge bg-danger">@report.MoveUpCandidates.Count</span>
             </button>
         </li>
         <li class="nav-item">
@@ -267,7 +289,7 @@
                                                     <div class="count-line">
                                                         <span class="count-label">All eligible</span>
                                                         <div class="mini-track"><div class="mini-fill" style="width:@((gap.OutstandingPercent * 100).ToString("0"))%"></div></div>
-                                                        <small title="@gap.CompletedCount already completed this stage">@gap.OutstandingCount of @gap.CandidateCount@(gap.PriorityMemberCount > 0 ? $", {gap.PriorityMemberCount} moving up" : "")</small>
+                                                        <small title="@gap.CompletedCount already completed this stage">@gap.OutstandingCount of @gap.CandidateCount@(gap.PriorityMemberCount > 0 ? $", {gap.PriorityMemberCount} priority" : "")</small>
                                                     </div>
                                                 </summary>
                                                 <ul class="list-unstyled small mb-0 mt-1">
@@ -277,7 +299,7 @@
                                                             @MemberName(memberId)
                                                             @if (IsMovingUp(memberId))
                                                             {
-                                                                <span class="badge bg-danger ms-1">moving up</span>
+                                                                <span class="badge bg-danger ms-1">@PriorityBadge(memberId)</span>
                                                             }
                                                         </li>
                                                     }
@@ -298,12 +320,12 @@
     {
         @if (!report.MoveUpCandidates.Any())
         {
-            <p class="text-muted">No youth reach the move up age of @report.Rules.MoveUpAgeYears in the next @model.Settings.MoveUpWindowMonths months.</p>
+            <p class="text-muted">No youth reach the move up age of @report.Rules.MoveUpAgeYears in the next @model.Settings.MoveUpWindowMonths months. Pick focus youth above to track others here.</p>
         }
         else
         {
             <h4>@report.Rules.PeakAwardName: high priority tasks</h4>
-            <p class="text-muted">Outstanding items for youth moving up within @model.Settings.MoveUpWindowMonths months, most urgent first.</p>
+            <p class="text-muted">Outstanding items for youth moving up within @model.Settings.MoveUpWindowMonths months and focus youth, most urgent first.</p>
             <div class="row g-3 mb-4">
                 @foreach (var task in report.PriorityTaskBoard)
                 {
@@ -330,7 +352,7 @@
                 }
             </div>
 
-            <h4>Youth moving up</h4>
+            <h4>Priority youth</h4>
             <div class="row g-3 mb-4">
                 @foreach (var candidate in report.MoveUpCandidates)
                 {
@@ -339,10 +361,19 @@
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div>
-                                        <h5 class="mb-0">@candidate.MemberName</h5>
-                                        <small class="text-muted">@candidate.Patrol · @candidate.AgeDisplay · moves up @candidate.MoveUpDate.ToString("MMM yyyy")</small>
+                                        <h5 class="mb-0">
+                                            @candidate.MemberName
+                                            @if (candidate.IsFocus)
+                                            {
+                                                <span class="badge bg-info text-dark ms-1">focus</span>
+                                            }
+                                        </h5>
+                                        <small class="text-muted">@candidate.Patrol@(string.IsNullOrEmpty(candidate.AgeDisplay) ? "" : $" · {candidate.AgeDisplay}")@(candidate.MoveUpDate.HasValue ? $" · moves up {candidate.MoveUpDate.Value:MMM yyyy}" : "")</small>
                                     </div>
-                                    <span class="badge @UrgencyClass(candidate.Urgency)">@MonthsDisplay(candidate.MonthsRemaining)</span>
+                                    @if (candidate.IsMovingUp || !candidate.MonthsRemaining.HasValue)
+                                    {
+                                        <span class="badge @UrgencyClass(candidate.Urgency)">@MonthsDisplay(candidate.MonthsRemaining)</span>
+                                    }
                                 </div>
                                 <div class="progress my-2" style="height:8px">
                                     <div class="progress-bar bg-success" style="width:@((candidate.CompletionPercent * 100).ToString("0"))%"></div>
@@ -398,7 +429,7 @@
         </div>
 
         <h4>Suggested unit nights</h4>
-        <p class="text-muted">Built from outstanding OAS requirements that suit a regular meeting, weighted towards youth moving up soon.</p>
+        <p class="text-muted">Built from outstanding OAS requirements that suit a regular meeting, weighted towards priority youth.</p>
         @if (!report.SuggestedNights.Any())
         {
             <p class="text-muted">Not enough outstanding requirement data to suggest nights.</p>
@@ -427,7 +458,7 @@
                             @if (night.MemberNames.Any())
                             {
                                 <div class="small text-muted">
-                                    Helps @night.MemberNames.Count youth@(night.PriorityMemberCount > 0 ? $" ({night.PriorityMemberCount} moving up)" : ""): @string.Join(", ", night.MemberNames)
+                                    Helps @night.MemberNames.Count youth@(night.PriorityMemberCount > 0 ? $" ({night.PriorityMemberCount} priority)" : ""): @string.Join(", ", night.MemberNames)
                                 </div>
                             }
                         </div>
@@ -444,7 +475,7 @@
                         <th>Theme</th>
                         <th class="text-end">Working on it</th>
                         <th class="text-end">All eligible still needing</th>
-                        <th class="text-end">Moving up</th>
+                        <th class="text-end">Priority</th>
                         <th class="text-end">Requirements</th>
                         <th></th>
                     </tr>
