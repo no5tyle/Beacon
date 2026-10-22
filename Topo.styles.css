@@ -248,6 +248,22 @@
     max-height: 320px;
     overflow-y: auto;
 }
+/* /Pages/OASReferencePage.razor.rz.scp.css */
+.statement[b-nt978lnmwr] {
+    cursor: pointer;
+}
+
+.statement.open[b-nt978lnmwr] {
+    background: #f8fbfc;
+}
+
+.statement-detail[b-nt978lnmwr] {
+    white-space: pre-line;
+    font-size: 0.85rem;
+    color: #495057;
+    margin-top: 0.4rem;
+    padding-left: 0.25rem;
+}
 /* /Pages/Progress/Details.razor.rz.scp.css */
 .insights-card[b-wh3rgevjst] {
     border-top: 4px solid #4fb3bd;
