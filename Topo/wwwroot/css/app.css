@@ -79,3 +79,10 @@ a, .btn-link {
     z-index: 1;
 }
 
+
+/* Printing a page leaves out the sidebar and top bar */
+@media print {
+    .sidebar, .top-row {
+        display: none !important;
+    }
+}

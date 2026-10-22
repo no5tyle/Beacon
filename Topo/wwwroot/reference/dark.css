@@ -1,0 +1,61 @@
+/* Topo Reference follows the phone's light or dark setting on screen; printing always uses light. Only the app loads this file */
+:root {
+    color-scheme: light dark;
+}
+
+@media screen and (prefers-color-scheme: dark) {
+    :root {
+        --ref-surface: #1e2227;
+        --ref-border: #3a4048;
+        --ref-card-border: #3a4048;
+        --ref-open-bg: #232a33;
+        --ref-open-border: #4d7fc4;
+        --ref-detail-color: #c3c9d0;
+        --ref-muted: #9aa3ad;
+        --ref-highlight: #3a3320;
+    }
+
+    body {
+        background-color: #121417;
+        color: #e4e6e9;
+    }
+
+    .card, .list-group-item {
+        background-color: var(--ref-surface);
+        color: #e4e6e9;
+    }
+
+    .stage-group.as-cards .card-header,
+    .stage-group .card-header {
+        color: #e4e6e9;
+    }
+
+    .form-control, .form-select {
+        background-color: #1e2227;
+        border-color: var(--ref-border);
+        color: #e4e6e9;
+    }
+
+    .form-control::placeholder {
+        color: #8a939d;
+    }
+
+    .text-muted {
+        color: var(--ref-muted) !important;
+    }
+
+    .badge.bg-light {
+        background-color: #2c3239 !important;
+        color: #e4e6e9 !important;
+        border-color: var(--ref-border) !important;
+    }
+
+    .btn-outline-secondary {
+        color: #c3c9d0;
+        border-color: #59616b;
+    }
+
+    a, .btn-link {
+        color: #7fb0ff;
+    }
+}

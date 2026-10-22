@@ -3,13 +3,37 @@
 }
 
 .statement.open {
-    background: #f8fbfc;
+    background: var(--ref-open-bg, #f8fbfc);
+}
+
+.statement-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    align-self: stretch;
+    gap: 0.25rem;
+}
+
+.statement-actions {
+    display: inline-flex;
+    margin-left: auto;
+}
+
+.statement-action {
+    padding: 0 0.4rem;
+    line-height: 1.5;
+    font-size: 1.05rem;
+    color: var(--ref-muted, #6c757d);
+}
+
+.statement-action.is-starred {
+    color: #e0a800;
 }
 
 .statement-detail {
     white-space: pre-line;
     font-size: 0.85rem;
-    color: #495057;
+    color: var(--ref-detail-color, #495057);
     margin-top: 0.4rem;
     padding-left: 0.25rem;
 }
@@ -26,14 +50,14 @@
 }
 
 .stage-group.as-cards .list-group-item.statement {
-    border: 1px solid rgba(0, 0, 0, 0.125);
+    border: 1px solid var(--ref-card-border, rgba(0, 0, 0, 0.125));
     border-radius: 0.5rem;
     margin-bottom: 0.5rem;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .stage-group.as-cards .list-group-item.statement.open {
-    border-color: #9ec5fe;
+    border-color: var(--ref-open-border, #9ec5fe);
 }
 
 /* On phones each statement is its own card, grouped under a plain stage heading. The app always shows cards */
@@ -50,14 +74,14 @@
     }
 
     .stage-group .list-group-item.statement {
-        border: 1px solid rgba(0, 0, 0, 0.125);
+        border: 1px solid var(--ref-card-border, rgba(0, 0, 0, 0.125));
         border-radius: 0.5rem;
         margin-bottom: 0.5rem;
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
     }
 
     .stage-group .list-group-item.statement.open {
-        border-color: #9ec5fe;
+        border-color: var(--ref-open-border, #9ec5fe);
     }
 }
 
@@ -108,8 +132,8 @@
     max-height: calc(100vh - 5rem);
     overflow-y: auto;
     padding: 0.75rem 1rem 1rem;
-    background: white;
-    border-bottom: 1px solid #dee2e6;
+    background: var(--ref-surface, white);
+    border-bottom: 1px solid var(--ref-border, #dee2e6);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
 }
 
@@ -119,4 +143,66 @@
 
 .app-content {
     padding: 0.5rem 1rem calc(env(safe-area-inset-bottom) + 1rem);
+}
+
+.app-menu-button.active {
+    background-color: rgba(255, 193, 7, 0.35);
+}
+
+.app-menu-button {
+    color: white;
+}
+
+.app-offline {
+    border-top: 1px solid var(--ref-border, #dee2e6);
+}
+
+.starred-banner {
+    padding: 0.75rem;
+    border-left: 4px solid #ffc107;
+    border-radius: 0.25rem;
+    background: var(--ref-highlight, #fff8e1);
+}
+
+.reference-toast {
+    position: fixed;
+    left: 50%;
+    bottom: calc(env(safe-area-inset-bottom) + 1.5rem);
+    transform: translateX(-50%);
+    z-index: 1100;
+    padding: 0.5rem 1rem;
+    border-radius: 1rem;
+    background: rgba(33, 37, 41, 0.92);
+    color: white;
+    font-size: 0.9rem;
+}
+
+.print-only {
+    display: none;
+}
+
+/* Printing gives a plain checklist of what's on screen */
+@media print {
+    .app-top, .no-print, .reference-toast {
+        display: none !important;
+    }
+
+    .print-only {
+        display: inline;
+    }
+
+    .app-content {
+        padding: 0;
+    }
+
+    .statement {
+        break-inside: avoid;
+        box-shadow: none !important;
+    }
+
+    .starred-banner {
+        background: none;
+        border: none;
+        padding: 0;
+    }
 }

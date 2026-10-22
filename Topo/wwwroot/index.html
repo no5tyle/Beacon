@@ -32,7 +32,11 @@
             add("meta", { name: "apple-mobile-web-app-capable", content: "yes" });
             add("meta", { name: "mobile-web-app-capable", content: "yes" });
             add("meta", { name: "theme-color", content: "#052767" });
+            add("link", { rel: "stylesheet", href: "reference/dark.css" });
             window.topoReferenceApp = true;
+            // Blazor loads a few hundred files; keep a record of them all so "Save everything for offline" can find them
+            if (performance.setResourceTimingBufferSize)
+                performance.setResourceTimingBufferSize(2000);
             if ("serviceWorker" in navigator)
                 navigator.serviceWorker.register(new URL("reference/service-worker.js", document.baseURI));
         })();
@@ -77,6 +81,65 @@
         // We don't need to keep the object URL, let's release the memory
         // On older versions of Safari, it seems you need to comment this line...
         URL.revokeObjectURL(exportUrl);
+    }
+
+    // Share through the phone's share sheet, or copy where sharing isn't available. Returns "shared", "copied", "cancelled" or "failed"
+    async function topoShare(title, text, url) {
+        if (navigator.share) {
+            try {
+                await navigator.share(url ? { title: title, text: text, url: url } : { title: title, text: text });
+                return "shared";
+            } catch (e) {
+                if (e && e.name === "AbortError")
+                    return "cancelled";
+            }
+        }
+        return await copyText(url ? text + "\n" + url : text) ? "copied" : "failed";
+    }
+
+    // Keep the address bar in step with the reference filters without reloading
+    function topoReplaceQuery(query) {
+        history.replaceState(history.state, "", location.pathname + query);
+    }
+
+    function topoScrollTo(id) {
+        var element = document.getElementById(id);
+        if (element)
+            element.scrollIntoView({ block: "center" });
+    }
+
+    function topoPrint() {
+        window.print();
+    }
+
+    function topoConfirm(message) {
+        return window.confirm(message);
+    }
+
+    // True when the Topo Reference service worker is in control, so fetched files are kept for offline use
+    function topoOfflineSupported() {
+        return !!(navigator.serviceWorker && navigator.serviceWorker.controller);
+    }
+
+    // Fetch the app's own files and the given template addresses through the service worker so it keeps a copy.
+    // Returns how many of them are now saved
+    async function topoSaveForOffline(urls) {
+        var page = new URL("reference/", document.baseURI).href;
+        var shell = performance.getEntriesByType("resource")
+            .map(function (entry) { return entry.name; })
+            .filter(function (name) { return name.startsWith(location.origin); });
+        var all = Array.from(new Set([page].concat(shell, urls)));
+        for (var i = 0; i < all.length; i += 8) {
+            await Promise.all(all.slice(i, i + 8).map(function (url) {
+                return fetch(url).catch(function () { });
+            }));
+        }
+        var saved = 0;
+        for (var j = 0; j < urls.length; j++) {
+            if (await caches.match(urls[j], { ignoreSearch: true }))
+                saved++;
+        }
+        return saved;
     }
 
     // Copy text to the clipboard, falling back to a hidden textarea where the Clipboard API is blocked

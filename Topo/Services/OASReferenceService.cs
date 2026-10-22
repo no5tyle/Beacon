@@ -8,19 +8,22 @@ namespace Topo.Services
         public bool IsLoaded(string stream);
         public IEnumerable<OASReferenceStatement> LoadedStatements { get; }
         public Task LoadStream(string stream, Action<int, int>? progress = null);
+        // Every template address fetched so far, so the app can save them for offline use
+        public IEnumerable<string> LoadedUrls { get; }
     }
 
     // Loads OAS templates from Terrain's public template site, so the reference works without signing in.
     // Loaded streams are kept for the rest of the session.
     public class OASReferenceService : IOASReferenceService
     {
-        private const string TemplatesAddress = "https://templates.terrain.scouts.com.au/";
+        public const string TemplatesAddress = "https://templates.terrain.scouts.com.au/";
         private const int ParallelRequests = 6;
 
         // A plain client, so loading doesn't trigger the app's full screen spinner
         private readonly HttpClient _httpClient = new HttpClient();
         private readonly ILogger<OASReferenceService> _logger;
         private readonly Dictionary<string, List<OASReferenceStatement>> _statementsByStream = new Dictionary<string, List<OASReferenceStatement>>();
+        private readonly HashSet<string> _loadedUrls = new HashSet<string>();
 
         public OASReferenceService(ILogger<OASReferenceService> logger)
         {
@@ -30,6 +33,8 @@ namespace Topo.Services
         public bool IsLoaded(string stream) => _statementsByStream.ContainsKey(stream);
 
         public IEnumerable<OASReferenceStatement> LoadedStatements => _statementsByStream.Values.SelectMany(s => s);
+
+        public IEnumerable<string> LoadedUrls => _loadedUrls;
 
         public async Task LoadStream(string stream, Action<int, int>? progress = null)
         {
@@ -63,6 +68,7 @@ namespace Topo.Services
             try
             {
                 var json = await _httpClient.GetStringAsync(TemplatesAddress + path);
+                _loadedUrls.Add(TemplatesAddress + path);
                 return JsonConvert.DeserializeObject<T>(json);
             }
             catch (Exception ex)

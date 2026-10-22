@@ -10,6 +10,8 @@
     <div class="app-top">
         <header class="app-bar">
             <span class="app-title">Topo Reference</span>
+            <span class="flex-grow-1"></span>
+            <button type="button" class="btn app-menu-button me-2 @(starredOnly ? "active" : "")" aria-label="Starred statements" aria-pressed="@(starredOnly ? "true" : "false")" @onclick="() => ShowStarred(!starredOnly)">★<span class="small ms-1">@starred.Count</span></button>
             <button type="button" class="btn app-menu-button" aria-label="Filters" aria-expanded="@(filtersOpen ? "true" : "false")" @onclick="() => filtersOpen = !filtersOpen">
                 <span class="navbar-toggler-icon"></span>
                 @if (ActiveFilterCount > 0)
@@ -21,15 +23,36 @@
         @if (filtersOpen)
         {
             <div class="app-filters">
+                <div class="d-flex flex-wrap gap-2 mb-3">
+                    @StarredButton
+                    <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="ShareView"><span class="oi oi-share-boxed me-1" aria-hidden="true"></span>Share this view</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="Print"><span class="oi oi-print me-1" aria-hidden="true"></span>Print</button>
+                </div>
                 @FilterControls
                 <div class="d-flex justify-content-between mt-3">
                     <button type="button" class="btn btn-link btn-sm px-0" @onclick="ClearFilters">Clear filters</button>
                     <button type="button" class="btn btn-primary btn-sm" @onclick="() => filtersOpen = false">Done</button>
                 </div>
+                <div class="app-offline mt-3 pt-3">
+                    <strong class="small d-block mb-1">Offline</strong>
+                    @if (offlineSupported)
+                    {
+                        <p class="small text-muted mb-2">Download every stream so the reference works at camp without signal.</p>
+                        <button type="button" class="btn btn-outline-primary btn-sm" disabled="@savingOffline" @onclick="SaveForOffline"><span class="oi oi-cloud-download me-1" aria-hidden="true"></span>@(savingOffline ? "Saving..." : "Save everything for offline")</button>
+                    }
+                    else
+                    {
+                        <p class="small text-muted mb-0">Add Topo Reference to your home screen and open it from there to save it for offline use.</p>
+                    }
+                    @if (!string.IsNullOrEmpty(offlineStatus))
+                    {
+                        <p class="small mb-0 mt-2">@offlineStatus</p>
+                    }
+                </div>
             </div>
         }
     </div>
-    <div class="app-search">
+    <div class="app-search no-print">
         <input type="search" class="form-control" placeholder="Search statements and explanations" aria-label="Search" @bind="search" @bind:event="oninput" />
     </div>
     <div class="app-content">
@@ -58,11 +81,26 @@ else
             <button type="button" class="btn btn-link btn-sm" @onclick="ClearFilters">Clear filters</button>
         </div>
     </div>
+    <div class="d-flex flex-wrap gap-2 mb-3 no-print">
+        @StarredButton
+        <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="ShareView"><span class="oi oi-share-boxed me-1" aria-hidden="true"></span>Share this view</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="Print"><span class="oi oi-print me-1" aria-hidden="true"></span>Print</button>
+    </div>
 
     @Results_
 }
 
+@if (!string.IsNullOrEmpty(toast))
+{
+    <div class="reference-toast" role="status">@toast</div>
+}
+
 @code {
+    private RenderFragment StarredButton => __builder =>
+    {
+        <button type="button" class="btn btn-sm @(starredOnly ? "btn-warning" : "btn-outline-secondary")" aria-pressed="@(starredOnly ? "true" : "false")" @onclick="() => ShowStarred(!starredOnly)">★ Starred (@starred.Count)</button>
+    };
+
     private RenderFragment FilterControls => __builder =>
     {
     <div class="row g-2 mb-2 align-items-end">
@@ -131,7 +169,29 @@ else
             var shown = results.Take(OASReferenceController.DisplayLimit).ToList();
         }
 
-        <div class="d-flex flex-wrap justify-content-between align-items-center gap-1 mb-2">
+        @if (starredOnly)
+        {
+            <div class="starred-banner mb-3">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <strong>★ Starred statements</strong>
+                    <button type="button" class="btn btn-link btn-sm p-0 no-print" @onclick="() => ShowStarred(false)">Back to all statements</button>
+                </div>
+                @if (starred.Any())
+                {
+                    <div class="d-flex flex-wrap gap-2 mt-2 no-print">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="Print"><span class="oi oi-print me-1" aria-hidden="true"></span>Print checklist</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="ShareStarred"><span class="oi oi-share-boxed me-1" aria-hidden="true"></span>Share list</button>
+                        <button type="button" class="btn btn-link btn-sm text-danger" @onclick="ClearStarred">Clear starred</button>
+                    </div>
+                }
+                else
+                {
+                    <p class="small text-muted mb-0 mt-1">Tap ☆ on any statement to add it here, for example to plan a unit night.</p>
+                }
+            </div>
+        }
+
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-1 mb-2 no-print">
             <span class="small text-muted">
                 @results.Count statement@(results.Count == 1 ? "" : "s")@(results.Count > shown.Count ? $", showing the first {shown.Count}. Narrow the filters to see the rest." : "")
             </span>
@@ -153,16 +213,22 @@ else
                     @foreach (var statement in stageGroup)
                     {
                         var open = expanded.Contains(statement.Key);
-                        <li class="list-group-item statement @(open ? "open" : "")" @onclick="() => Toggle(statement)">
+                        var isStarred = starred.Contains(statement.Key);
+                        <li id="@ElementId(statement.Key)" class="list-group-item statement @(open ? "open" : "")" @onclick="() => Toggle(statement)">
                             <div class="d-flex flex-column @(AppMode ? "" : "flex-sm-row") justify-content-between align-items-start gap-1 @(AppMode ? "" : "gap-sm-2")">
                                 <span>
+                                    <span class="print-only">☐ </span>
                                     <span class="badge bg-light text-dark border me-1">@statement.Part</span>
                                     @statement.Label
                                 </span>
-                                <span class="@(AppMode ? "" : "text-sm-nowrap")">
+                                <span class="statement-meta @(AppMode ? "" : "text-sm-nowrap")">
                                     <span class="badge bg-info text-dark">@statement.Theme</span>
                                     <span class="badge @(statement.UnitNightSuitable ? "bg-success" : "bg-secondary")">@(statement.UnitNightSuitable ? "unit night" : "outing")</span>
-                                    <span class="text-muted small ms-1">@(open ? "▴" : "▾")</span>
+                                    <span class="text-muted small ms-1 no-print">@(open ? "▴" : "▾")</span>
+                                    <span class="statement-actions no-print">
+                                        <button type="button" class="btn btn-sm statement-action @(isStarred ? "is-starred" : "")" aria-label="@(isStarred ? "Remove star" : "Star")" aria-pressed="@(isStarred ? "true" : "false")" @onclick="() => ToggleStar(statement)" @onclick:stopPropagation="true">@(isStarred ? "★" : "☆")</button>
+                                        <button type="button" class="btn btn-sm statement-action" aria-label="Share" @onclick="() => ShareStatement(statement)" @onclick:stopPropagation="true"><span class="oi oi-share-boxed" aria-hidden="true"></span></button>
+                                    </span>
                                 </span>
                             </div>
                             @if (open)
@@ -186,7 +252,10 @@ else
 
         @if (!results.Any() && string.IsNullOrEmpty(loadingMessage))
         {
-            <p class="text-muted">No statements match these filters.</p>
+            @if (!starredOnly)
+            {
+                <p class="text-muted">No statements match these filters.</p>
+            }
         }
         </div>
     };
