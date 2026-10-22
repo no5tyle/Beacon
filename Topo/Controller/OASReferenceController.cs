@@ -8,7 +8,7 @@ using Topo.Services;
 
 namespace Topo.Controller
 {
-    public class OASReferenceController : ComponentBase
+    public class OASReferenceController : ComponentBase, IDisposable
     {
         [Inject]
         public IOASReferenceService _referenceService { get; set; }
@@ -46,6 +46,8 @@ namespace Topo.Controller
         public bool starredOnly;
         public string toast = "";
         public bool offlineSupported;
+        public bool online = true;
+        private DotNetObjectReference<OASReferenceController>? dotNetReference;
         public bool savingOffline;
         public string offlineStatus = "";
         private string sharedStatement = "";
@@ -67,6 +69,8 @@ namespace Topo.Controller
             if (firstRender && AppMode)
             {
                 offlineSupported = await JS.InvokeAsync<bool>("topoOfflineSupported");
+                dotNetReference = DotNetObjectReference.Create(this);
+                online = await JS.InvokeAsync<bool>("topoWatchOnline", dotNetReference);
                 var saved = await Load<DateTime?>(OfflineSavedStorageKey);
                 if (saved != null)
                     offlineStatus = $"Last saved for offline use on {saved.Value.ToLocalTime():d MMM yyyy}.";
@@ -314,6 +318,19 @@ namespace Topo.Controller
                 offlineStatus = $"Only {saved} of {urls.Count} templates were saved. Try again with better signal.";
             }
             savingOffline = false;
+        }
+
+        // Called from the browser when the device goes offline or comes back, so saving is only offered with signal
+        [JSInvokable]
+        public async Task OnlineChanged(bool isOnline)
+        {
+            online = isOnline;
+            await InvokeAsync(StateHasChanged);
+        }
+
+        public void Dispose()
+        {
+            dotNetReference?.Dispose();
         }
 
         private async Task ShowToast(string message)

@@ -35,7 +35,11 @@
                 </div>
                 <div class="app-offline mt-3 pt-3">
                     <strong class="small d-block mb-1">Offline</strong>
-                    @if (offlineSupported)
+                    @if (offlineSupported && !online)
+                    {
+                        <p class="small text-muted mb-0">You're offline. Anything already saved still works; reconnect to save more.</p>
+                    }
+                    else if (offlineSupported)
                     {
                         <p class="small text-muted mb-2">Download every stream so the reference works at camp without signal.</p>
                         <button type="button" class="btn btn-outline-primary btn-sm" disabled="@savingOffline" @onclick="SaveForOffline"><span class="oi oi-cloud-download me-1" aria-hidden="true"></span>@(savingOffline ? "Saving..." : "Save everything for offline")</button>

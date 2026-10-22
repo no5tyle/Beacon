@@ -121,6 +121,16 @@
         return !!(navigator.serviceWorker && navigator.serviceWorker.controller);
     }
 
+    // Tell .NET whenever the device goes offline or comes back online. Returns whether it is online now
+    function topoWatchOnline(dotNet) {
+        function notify() {
+            dotNet.invokeMethodAsync("OnlineChanged", navigator.onLine);
+        }
+        window.addEventListener("online", notify);
+        window.addEventListener("offline", notify);
+        return navigator.onLine;
+    }
+
     // Fetch the app's own files and the given template addresses through the service worker so it keeps a copy.
     // Returns how many of them are now saved
     async function topoSaveForOffline(urls) {
