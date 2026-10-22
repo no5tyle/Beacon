@@ -283,7 +283,7 @@ namespace Topo.Controller
             if (!months.HasValue)
                 return "no birth date";
             if (months < 0)
-                return $"overdue {Math.Abs(months.Value):0.#} mths";
+                return "Due to move up";
             return $"{months.Value:0.#} mths";
         }
     }

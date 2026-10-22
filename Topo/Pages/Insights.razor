@@ -123,10 +123,6 @@
                         <label class="form-label" for="maxStages">OAS stages to analyse in detail</label>
                         <InputNumber id="maxStages" class="form-control" @bind-Value="model.Settings.MaxGapStages" />
                     </div>
-                    <div class="col-sm-3">
-                        <label class="form-label" for="nights">Unit nights to suggest</label>
-                        <InputNumber id="nights" class="form-control" @bind-Value="model.Settings.SuggestedNights" />
-                    </div>
                 </div>
                 <small class="text-muted">Peak award OAS and SIA defaults follow the wording in Terrain. Move up age defaults are a starting point; check them against the current Scouts Australia requirements for @(string.IsNullOrEmpty(model.SectionRules.SectionDisplay) ? "your section" : model.SectionRules.SectionDisplay).</small>
             </div>
@@ -178,7 +174,7 @@
             </button>
         </li>
         <li class="nav-item">
-            <button class="nav-link @(model.SelectedTab == InsightsTab.Programme ? "active" : "")" @onclick="() => SelectTab(InsightsTab.Programme)">Programme ideas</button>
+            <button class="nav-link @(model.SelectedTab == InsightsTab.Programme ? "active" : "")" @onclick="() => SelectTab(InsightsTab.Programme)">Programming</button>
         </li>
     </ul>
 
@@ -430,45 +426,6 @@
                     <pre class="prompt-preview mt-2">@BuildNightPrompt()</pre>
                 }
             </div>
-        </div>
-
-        <h4>Suggested unit nights</h4>
-        <p class="text-muted">Built from outstanding OAS requirements that suit a regular meeting, weighted towards priority youth.</p>
-        @if (!report.SuggestedNights.Any())
-        {
-            <p class="text-muted">Not enough outstanding requirement data to suggest nights.</p>
-        }
-        <div class="row g-3 mb-4">
-            @foreach (var night in report.SuggestedNights)
-            {
-                <div class="col-md-6">
-                    <div class="card night-card h-100">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between">
-                                <h5>Night @night.Number: @night.Title</h5>
-                                <span class="badge bg-light text-dark border">@night.ChallengeArea</span>
-                            </div>
-                            <p class="mb-2">@night.Focus</p>
-                            @if (night.Covers.Any())
-                            {
-                                <div class="small fw-bold">Requirements it covers</div>
-                                <ul class="small mb-2">
-                                    @foreach (var cover in night.Covers)
-                                    {
-                                        <li>@cover</li>
-                                    }
-                                </ul>
-                            }
-                            @if (night.MemberNames.Any())
-                            {
-                                <div class="small text-muted">
-                                    Helps @night.MemberNames.Count youth@(night.PriorityMemberCount > 0 ? $" ({night.PriorityMemberCount} priority)" : ""): @string.Join(", ", night.MemberNames)
-                                </div>
-                            }
-                        </div>
-                    </div>
-                </div>
-            }
         </div>
 
         <h4>Skill themes across outstanding requirements</h4>
