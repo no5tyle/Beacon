@@ -4,6 +4,8 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [ main ]
+  # Allow a deploy to be started manually from the Actions tab
+  workflow_dispatch:
 
 jobs:
   deploy-to-github-pages:
