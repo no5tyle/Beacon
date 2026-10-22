@@ -129,6 +129,11 @@ namespace Topo.Services
 
         public bool LogToQueue { get; set; }
 
-        public string Version = "2026.10.15";
+        // Filled in by the deploy workflow from the latest release tag and the commit being deployed
+#if DEBUG
+        public string Version = "dev";
+#else
+        public string Version = "__VERSION__";
+#endif
     }
 }
