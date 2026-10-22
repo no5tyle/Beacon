@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Topo</title>
+    <link rel="icon" type="image/x-icon" href="G12-Map-icon-64.png"> <!--Icon from http://raindropmemory.deviantart.com/-->
+    <base href="/Topo-Blazor/" />
+    <link href="css/bootstrap/bootstrap.min.css" rel="stylesheet" />
+    <link href="css/app.css" rel="stylesheet" />
+    <link href="Topo.styles.css" rel="stylesheet" />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        // The reference/ address is the installable Topo Reference app: give it its own name, icon and offline support
+        (function () {
+            var base = new URL(document.baseURI).pathname;
+            if (!location.pathname.startsWith(base + "reference"))
+                return;
+            function add(tag, attributes) {
+                var element = document.createElement(tag);
+                for (var name in attributes)
+                    element.setAttribute(name, attributes[name]);
+                document.head.appendChild(element);
+            }
+            document.title = "Topo Reference";
+            add("link", { rel: "manifest", href: "reference/manifest.webmanifest" });
+            add("link", { rel: "apple-touch-icon", href: "reference/apple-touch-icon.png" });
+            add("meta", { name: "apple-mobile-web-app-title", content: "Topo Reference" });
+            add("meta", { name: "apple-mobile-web-app-capable", content: "yes" });
+            add("meta", { name: "mobile-web-app-capable", content: "yes" });
+            add("meta", { name: "theme-color", content: "#052767" });
+            window.topoReferenceApp = true;
+            if ("serviceWorker" in navigator)
+                navigator.serviceWorker.register(new URL("reference/service-worker.js", document.baseURI));
+        })();
+    </script>
+</head>
+
+<body>
+    <div id="app">
+        <div class="mt-3 mb-3 row text-center">
+            <p />
+            <h2>Topo, helping you navigate the Terrain</h2>
+            <p />
+            <p />
+            <h4>Please wait while Topo loads</h4>
+        </div>
+    </div>
+
+    <div id="blazor-error-ui">
+        An unhandled error has occurred.
+        <a href="" class="reload">Reload</a>
+        <a class="dismiss">🗙</a>
+    </div>
+    <script src="_framework/blazor.webassembly.js"></script>
+</body>
+
+</html>
+<script type="text/javascript">
+    // Use it for .NET 6+
+    function BlazorDownloadFile(filename, contentType, content) {
+        // Create the URL
+        const file = new File([content], filename, { type: contentType });
+        const exportUrl = URL.createObjectURL(file);
+
+        // Create the <a> element and click on it
+        const a = document.createElement("a");
+        document.body.appendChild(a);
+        a.href = exportUrl;
+        a.download = filename;
+        a.target = "_self";
+        a.click();
+
+        // We don't need to keep the object URL, let's release the memory
+        // On older versions of Safari, it seems you need to comment this line...
+        URL.revokeObjectURL(exportUrl);
+    }
+
+    // Copy text to the clipboard, falling back to a hidden textarea where the Clipboard API is blocked
+    async function copyText(text) {
+        try {
+            await navigator.clipboard.writeText(text);
+            return true;
+        } catch {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            textArea.style.opacity = "0";
+            document.body.appendChild(textArea);
+            textArea.select();
+            const copied = document.execCommand("copy");
+            document.body.removeChild(textArea);
+            return copied;
+        }
+    }
+
+</script>
+<script type="text/javascript">
+
+    // In your Javascript (external .js resource or <script> tag)
+    function BindSelect2() {
+        $('.select2').select2({
+            placeholder: "Select one or more items",
+            language: {
+                noResults: function (term) {
+                    return "Please wait while items load.";
+                }
+            }
+        });
+    };
+
+    window.getSelectedValues = function (sel) {
+        var results = [];
+        var i;
+        for (i = 0; i < sel.options.length; i++) {
+            if (sel.options[i].selected) {
+                results[results.length] = sel.options[i].value;
+            }
+        }
+        return results;
+    };
+
+</script>
