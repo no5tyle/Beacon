@@ -2,8 +2,6 @@
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.JSInterop;
 using Newtonsoft.Json;
-using Syncfusion.Blazor.Calendars;
-using Syncfusion.Blazor.Grids;
 using System.Net.NetworkInformation;
 using System.Reflection;
 using System.Text;

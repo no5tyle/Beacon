@@ -18,8 +18,6 @@
     <PackageVersion Include="MSTest" Version="4.2.3" />
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageVersion Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="2.88.1" />
-    <PackageVersion Include="Syncfusion.Blazor.Grid" Version="24.2.8" />
-    <PackageVersion Include="Syncfusion.Blazor.Themes" Version="24.2.8" />
     <PackageVersion Include="Syncfusion.EJ2.AspNet.Core" Version="24.2.8" />
     <PackageVersion Include="Syncfusion.Licensing" Version="24.2.8" />
     <PackageVersion Include="Syncfusion.XlsIO.Net.Core" Version="24.2.8" />

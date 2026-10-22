@@ -1,8 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using Newtonsoft.Json;
-using Syncfusion.Blazor.Calendars;
-using Syncfusion.Blazor.Grids;
 using System.Net.NetworkInformation;
 using System.Reflection;
 using Topo.Model.AdditionalAwards;
@@ -32,12 +30,30 @@ namespace Topo.Controller
 
         public ApprovalsPageViewModel model = new ApprovalsPageViewModel();
 
-        public IEditorSettings DateEditParams = new DateEditCellParams
-        {
-            Params = new DatePickerModel() { ShowClearButton = true }
-        };
+        // Name filter (empty means everyone) and grouping for the approvals table and report
+        public HashSet<string> selectedNames = new HashSet<string>();
+        public bool showNameFilter;
+        public bool groupByMember;
 
-        public SfGrid<ApprovalsListModel> GridInstance { get; set; }
+        internal List<string> MemberNames => (model.Approvals ?? new List<ApprovalsListModel>())
+            .Select(a => a.member_display_name).Distinct().OrderBy(n => n).ToList();
+
+        internal List<ApprovalsListModel> FilteredApprovals => (model.Approvals ?? new List<ApprovalsListModel>())
+            .Where(a => !selectedNames.Any() || selectedNames.Contains(a.member_display_name))
+            .ToList();
+
+        internal IEnumerable<IGrouping<string, ApprovalsListModel>> GroupedApprovals => FilteredApprovals
+            .OrderBy(a => groupByMember ? a.member_display_name : a.achievement_name)
+            .ThenBy(a => groupByMember ? a.achievement_name : a.member_display_name)
+            .GroupBy(a => groupByMember ? a.member_display_name : a.achievement_name);
+
+        internal void ToggleName(string name)
+        {
+            if (!selectedNames.Remove(name))
+                selectedNames.Add(name);
+        }
+
+        internal string NameFilterText => selectedNames.Count == 0 ? "Everyone" : selectedNames.Count == 1 ? selectedNames.First() : $"{selectedNames.Count} youth";
         protected override void OnInitialized()
         {
             if (!_storageService.IsAuthenticated)
@@ -78,15 +94,6 @@ namespace Topo.Controller
             }
         }
 
-        public async void ActionBeginHandler(ActionEventArgs<ApprovalsListModel> Args)
-        {
-            if (Args.RequestType == Syncfusion.Blazor.Grids.Action.Save)
-            {
-                var data = (ApprovalsListModel)Args.Data;
-                await _approvalsService.UpdateApproval(model.UnitId, data);
-            }
-        }
-
         internal async Task ApprovalsReportPdfClick()
         {
             byte[] report = await ApprovalsReport(OutputType.PDF);
@@ -107,44 +114,7 @@ namespace Topo.Controller
 
         internal async Task<byte[]> ApprovalsReport(OutputType outputType = OutputType.PDF)
         {
-            var filterSetings = GridInstance.FilterSettings;
-            string[] nameFilterColumnValues = new string[0];
-            string nameFilterOperator = "";
-            string[] statusFilterColumnValues = new string[0];
-            string statusFilterOperator = "";
-            string groupCols = "";
-            if (filterSetings != null && filterSetings.Columns != null)
-            {
-                var nameFilterSettings = filterSetings.Columns.Where(x => x.Field == "member_display_name");
-                if (nameFilterSettings != null)
-                {
-                    nameFilterColumnValues = nameFilterSettings.Select(x => x.Value.ToString() ?? "").ToArray();
-                    nameFilterOperator = nameFilterSettings.FirstOrDefault()?.Operator.ToString() ?? "";
-                }
-                var statusFilterSettings = filterSetings.Columns.Where(x => x.Field == "submission_status");
-                if (statusFilterSettings != null)
-                {
-                    statusFilterColumnValues = statusFilterSettings.Select(x => x.Value.ToString() ?? "").ToArray();
-                    statusFilterOperator = statusFilterSettings.FirstOrDefault()?.Operator.ToString() ?? "";
-                }
-            }
-            var groupSettings = GridInstance.GroupSettings;
-            if (groupSettings != null && groupSettings.Columns != null)
-            {
-                groupCols = string.Join(",", groupSettings.Columns);
-            }
-
-            var selectedApprovals = new List<ApprovalsListModel>();
-            if (nameFilterOperator.ToLower() == "equal")
-                selectedApprovals = model.Approvals.Where(t2 => nameFilterColumnValues.Count(m => m == t2.member_display_name) != 0).ToList();
-            else
-                selectedApprovals = model.Approvals.Where(t2 => nameFilterColumnValues.Count(m => m == t2.member_display_name) == 0).ToList();
-            if (statusFilterOperator.ToLower() == "equal")
-                selectedApprovals = selectedApprovals.Where(t2 => statusFilterColumnValues.Count(m => m == t2.submission_status) != 0).ToList();
-            else
-                selectedApprovals = selectedApprovals.Where(t2 => statusFilterColumnValues.Count(m => m == t2.submission_status) == 0).ToList();
-
-            var groupByMember = (groupCols ?? "achievement_name") == "member_display_name";
+            var selectedApprovals = FilteredApprovals;
             var groupName = _storageService.GroupName ?? "";
             var unitName = _storageService.UnitName ?? "";
             var section = _storageService.Section;

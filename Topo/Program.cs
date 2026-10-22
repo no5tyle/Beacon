@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.AspNetCore.Components;
 using System.Globalization;
 using Blazored.LocalStorage;
-using Syncfusion.Blazor;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
@@ -47,12 +46,6 @@ builder.Services.AddSingleton<LogQueueService>();
 builder.Services.AddSingleton<ILoggerProvider, TopoLoggerProvider>();
 
 builder.Services.AddBlazoredLocalStorage();
-builder.Services.AddSyncfusionBlazor();
-#if DEBUG
-Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense("");
-#else
-Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense("__SYNCFUSION-KEY__");
-#endif
 
 CultureInfo cultureInfo = new CultureInfo("en-AU");
 CultureInfo.DefaultThreadCurrentCulture = cultureInfo;

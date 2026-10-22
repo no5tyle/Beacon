@@ -1,6 +1,5 @@
 ﻿@page "/approvals/approvals"
 @inherits Controller.ApprovalsController
-@using Syncfusion.Blazor.Grids
 
 <PageTitle>Topo / Approvals</PageTitle>
 
@@ -75,21 +74,70 @@
         </div>
     </div>
 
-    <SfGrid @ref="GridInstance" DataSource="@model.Approvals" AllowGrouping="true" AllowFiltering="true">
-        <GridGroupSettings Columns="@(new string[] {"achievement_name"})"></GridGroupSettings>
-        <GridFilterSettings Type="FilterType.Excel"></GridFilterSettings>
-        <GridEditSettings AllowEditing="false" Mode="EditMode.Normal">
-        </GridEditSettings>
-        @* <GridEvents OnActionBegin="ActionBeginHandler" TValue="Model.Approvals.ApprovalsListModel"></GridEvents> *@
-        <GridColumns>
-            <GridColumn Field="achievement_id" HeaderText="Name" IsPrimaryKey="true" Visible="false"></GridColumn>
-            <GridColumn Field="member_display_name" HeaderText="Name" AllowEditing="false"></GridColumn>
-            <GridColumn Field="achievement_name" HeaderText="Achievement" AllowEditing="false" AllowFiltering="false"></GridColumn>
-            <GridColumn Field="submission_type" HeaderText="Type" AllowEditing="false" AllowFiltering="false" AllowGrouping="false"></GridColumn>
-            <GridColumn Field="awarded_date" HeaderText="Awarded" Format="dd/MM/yyyy" EditType="EditType.DatePickerEdit" Type="ColumnType.Date" AllowEditing="false" AllowFiltering="false" AllowGrouping="false"></GridColumn>
-            <GridColumn Field="presented_date" HeaderText="Presented" Format="dd/MM/yyyy" EditType="EditType.DatePickerEdit" Type="ColumnType.Date" AllowEditing="false" AllowFiltering="false" AllowGrouping="false"></GridColumn>
-        </GridColumns>
-    </SfGrid>
+    @if (model.Approvals != null && model.Approvals.Any())
+    {
+        <div class="mt-3 mb-2 row g-2 align-items-end">
+            <div class="col-sm-4 name-filter">
+                <label class="form-label small">Youth</label>
+                <button type="button" class="form-select text-start" @onclick="() => showNameFilter = !showNameFilter">@NameFilterText</button>
+                @if (showNameFilter)
+                {
+                    <div class="name-filter-panel">
+                        <div class="d-flex justify-content-between small mb-1">
+                            <button type="button" class="btn btn-link btn-sm p-0" @onclick="() => selectedNames.Clear()">Everyone</button>
+                            <button type="button" class="btn btn-link btn-sm p-0" @onclick="() => showNameFilter = false">Done</button>
+                        </div>
+                        @foreach (var name in MemberNames)
+                        {
+                            var id = $"name-{name.GetHashCode()}";
+                            <div class="form-check">
+                                <input id="@id" type="checkbox" class="form-check-input" checked="@selectedNames.Contains(name)" @onchange="() => ToggleName(name)" />
+                                <label class="form-check-label" for="@id">@name</label>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+            <div class="col-sm-3">
+                <label class="form-label small" for="groupBy">Group by</label>
+                <select id="groupBy" class="form-select" value="@(groupByMember ? "member" : "achievement")" @onchange='e => groupByMember = e.Value?.ToString() == "member"'>
+                    <option value="achievement">Achievement</option>
+                    <option value="member">Youth</option>
+                </select>
+            </div>
+            <div class="col-sm-5 small text-muted">@FilteredApprovals.Count of @model.Approvals.Count approvals shown. The report includes the approvals shown.</div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-sm align-middle approvals-table">
+                <thead>
+                    <tr>
+                        <th>@(groupByMember ? "Achievement" : "Name")</th>
+                        <th>Type</th>
+                        <th>Awarded</th>
+                        <th>Presented</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var group in GroupedApprovals)
+                    {
+                        <tr class="group-row">
+                            <td colspan="4"><strong>@group.Key</strong> <span class="text-muted small">(@group.Count())</span></td>
+                        </tr>
+                        @foreach (var approval in group)
+                        {
+                            <tr>
+                                <td class="ps-4">@(groupByMember ? approval.achievement_name : approval.member_display_name)</td>
+                                <td>@approval.submission_type</td>
+                                <td>@approval.awarded_date?.ToString("dd/MM/yyyy")</td>
+                                <td>@approval.presented_date?.ToString("dd/MM/yyyy")</td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
 
     @if (model.Approvals != null && model.Approvals.Any())
     {
