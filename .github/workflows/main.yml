@@ -7,6 +7,10 @@ on:
   # Allow a deploy to be started manually from the Actions tab
   workflow_dispatch:
 
+# The deploy step pushes the built site to the gh-pages branch
+permissions:
+  contents: write
+
 jobs:
   deploy-to-github-pages:
     # use ubuntu-latest image to run steps on
