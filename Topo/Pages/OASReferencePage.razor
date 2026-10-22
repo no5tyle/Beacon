@@ -23,16 +23,6 @@
             }
         </select>
     </div>
-    <div class="col-sm-2">
-        <label class="form-label small" for="part">Part</label>
-        <select id="part" class="form-select" @bind="part">
-            <option value="">All parts</option>
-            @foreach (var p in OASReference.Parts)
-            {
-                <option value="@p">@p</option>
-            }
-        </select>
-    </div>
     <div class="col-sm-4">
         <label class="form-label small" for="theme">Skill theme</label>
         <select id="theme" class="form-select" @bind="theme">
@@ -43,7 +33,17 @@
             }
         </select>
     </div>
-    <div class="col-sm-3">
+    <div class="col-6 col-sm-2">
+        <label class="form-label small" for="part">Part</label>
+        <select id="part" class="form-select" @bind="part">
+            <option value="">All parts</option>
+            @foreach (var p in OASReference.Parts)
+            {
+                <option value="@p">@p</option>
+            }
+        </select>
+    </div>
+    <div class="col-6 col-sm-3">
         <label class="form-label small" for="where">Where</label>
         <select id="where" class="form-select" @bind="where">
             <option value="@OASReferenceWhere.Any">Anywhere</option>
@@ -82,7 +82,7 @@
     var shown = results.Take(OASReferenceController.DisplayLimit).ToList();
 }
 
-<div class="d-flex justify-content-between align-items-center mb-2">
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-1 mb-2">
     <span class="small text-muted">
         @results.Count statement@(results.Count == 1 ? "" : "s")@(results.Count > shown.Count ? $", showing the first {shown.Count}. Narrow the filters to see the rest." : "")
     </span>
@@ -98,19 +98,19 @@
 @foreach (var stageGroup in shown.GroupBy(s => s.Stage.TemplateLink))
 {
     var stageInfo = stageGroup.First().Stage;
-    <div class="card mb-3">
+    <div class="card mb-3 stage-group">
         <div class="card-header"><strong>@stageInfo.Title</strong></div>
         <ul class="list-group list-group-flush">
             @foreach (var statement in stageGroup)
             {
                 var open = expanded.Contains(statement.Key);
                 <li class="list-group-item statement @(open ? "open" : "")" @onclick="() => Toggle(statement)">
-                    <div class="d-flex justify-content-between align-items-start gap-2">
+                    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start gap-1 gap-sm-2">
                         <span>
                             <span class="badge bg-light text-dark border me-1">@statement.Part</span>
                             @statement.Label
                         </span>
-                        <span class="text-nowrap">
+                        <span class="text-sm-nowrap">
                             <span class="badge bg-info text-dark">@statement.Theme</span>
                             <span class="badge @(statement.UnitNightSuitable ? "bg-success" : "bg-secondary")">@(statement.UnitNightSuitable ? "unit night" : "outing")</span>
                             <span class="text-muted small ms-1">@(open ? "▴" : "▾")</span>

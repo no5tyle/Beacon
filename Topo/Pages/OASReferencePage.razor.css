@@ -13,3 +13,28 @@
     margin-top: 0.4rem;
     padding-left: 0.25rem;
 }
+
+/* On phones each statement is its own card, grouped under a plain stage heading */
+@media (max-width: 575.98px) {
+    .stage-group {
+        border: none;
+        background: transparent;
+    }
+
+    .stage-group .card-header {
+        background: transparent;
+        border: none;
+        padding: 0.25rem 0;
+    }
+
+    .stage-group .list-group-item.statement {
+        border: 1px solid rgba(0, 0, 0, 0.125);
+        border-radius: 0.5rem;
+        margin-bottom: 0.5rem;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    .stage-group .list-group-item.statement.open {
+        border-color: #9ec5fe;
+    }
+}
