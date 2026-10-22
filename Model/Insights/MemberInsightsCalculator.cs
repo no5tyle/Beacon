@@ -46,6 +46,7 @@ namespace Topo.Model.Insights
             {
                 Rules = rules,
                 PeakAwardTasks = InsightsCalculator.PeakAwardTasks(youth, rules, requirements),
+                PeakAwardBreakdown = InsightsCalculator.PeakAwardBreakdown(youth.Progress, rules),
                 Milestone = MilestoneProgressFor(youth),
                 Stages = StageProgressFor(youth, requirements, startedStages)
             };

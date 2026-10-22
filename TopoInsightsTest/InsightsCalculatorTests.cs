@@ -200,6 +200,42 @@ namespace TopoInsightsTest
         }
 
         [TestMethod]
+        public void PeakAwardBreakdownWeightsAndCaps()
+        {
+            var settings = new InsightsSettings();
+            var progress = new WallchartItemModel
+            {
+                Milestone1Awarded = Today, Milestone2Awarded = Today, IntroToScouting = Today, IntroToSection = Today,
+                OASStageProgressions = 7,
+                SIAEnvironment = 4, SIAArtsLiterature = 3,
+                LeadershipCourse = Today
+            };
+
+            var scout = InsightsCalculator.PeakAwardBreakdown(progress, settings.RulesFor("scout")).ToDictionary(c => c.Name);
+
+            Assert.AreEqual(21, scout["Essentials"].Earned, 0.001, "9 per milestone plus 1.5 per intro");
+            Assert.AreEqual(21, scout["OAS"].Earned, 0.001, "7 of 10 progressions at 3 each");
+            Assert.AreEqual(25, scout["SIA"].Earned, 0.001, "7 projects is capped at the 6 needed");
+            Assert.AreEqual(5, scout["Course"].Earned);
+            Assert.AreEqual(0, scout["Journey"].Earned);
+            Assert.AreEqual(8, scout["Journey"].Max);
+            Assert.AreEqual(72, scout.Values.Sum(c => c.Earned), 0.001);
+
+            progress.OASStageProgressions = 20;
+            progress.Milestone3Awarded = Today;
+            var rover = InsightsCalculator.PeakAwardBreakdown(progress, settings.RulesFor("rover")).ToDictionary(c => c.Name);
+            Assert.AreEqual(30, rover["OAS"].Earned, 0.001, "20 progressions is capped at the 14 needed");
+            Assert.AreEqual(30, rover["Essentials"].Earned, 0.001);
+
+            var joey = InsightsCalculator.PeakAwardBreakdown(new WallchartItemModel { OASBushcraftStage = 1, OASCampingStage = 2, SIAEnvironment = 3 }, settings.RulesFor("joey")).ToDictionary(c => c.Name);
+            Assert.AreEqual(20, joey["OAS"].Earned, 0.001, "Stage 1 in 2 of 3 core streams");
+            Assert.AreEqual(14, joey["SIA"].Earned, 0.001, "3 of 6 projects of 28");
+            Assert.IsFalse(joey.ContainsKey("Course"));
+            Assert.AreEqual(100, joey.Values.Sum(c => c.Max), 0.001);
+            Assert.AreEqual(100, rover.Values.Sum(c => c.Max), 0.001);
+        }
+
+        [TestMethod]
         public void PeakAwardSIAAndCourseFollowTerrain()
         {
             var settings = new InsightsSettings();
@@ -287,6 +323,19 @@ namespace TopoInsightsTest
                 var expected = requirements.Count(r => r.InputLabel == gap.InputLabel && !r.Answered);
                 Assert.AreEqual(expected, gap.OutstandingCount, gap.InputLabel);
             }
+        }
+
+        [TestMethod]
+        public void RequirementGapsCarryStatementExplanation()
+        {
+            var (youth, requirements) = BushwalkingStage3Unit();
+            var label = requirements.First(r => r.InputGroup == "Do").InputLabel;
+            requirements.Where(r => r.InputLabel == label).First().InputDetail = "Activity should take no more than an hour.";
+
+            var gaps = InsightsCalculator.RequirementGaps(youth, requirements, new HashSet<string>());
+
+            Assert.AreEqual("Activity should take no more than an hour.", gaps.Single(g => g.InputLabel == label).InputDetail);
+            Assert.IsTrue(gaps.Where(g => g.InputLabel != label).All(g => g.InputDetail == ""));
         }
 
         [TestMethod]

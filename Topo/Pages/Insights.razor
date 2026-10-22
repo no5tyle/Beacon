@@ -273,25 +273,31 @@
                             <tbody>
                                 @foreach (var gap in SortByStreamAndStage(group.Gaps.Take(MostCommonLimit)))
                                 {
-                                    <tr>
+                                    var expanded = IsGapExpanded(gap);
+                                    <tr class="gap-row @(expanded ? "expanded" : "")" @onclick="() => ToggleGap(gap)" title="@(expanded ? "Click to collapse" : "Click for details and who's missing")">
                                         <td class="text-nowrap">@gap.StreamDisplay @gap.Stage</td>
                                         <td>@gap.InputGroup</td>
-                                        <td>@gap.InputLabel</td>
-                                        <td><span class="badge bg-info text-dark">@gap.Theme</span></td>
                                         <td>
-                                            <details class="missing-youth">
-                                                <summary>
-                                                    <div class="count-line">
-                                                        <span class="count-label">Working on it</span>
-                                                        <div class="mini-track"><div class="mini-fill mini-fill-active" style="width:@((gap.ActiveOutstandingPercent * 100).ToString("0"))%"></div></div>
-                                                        <small>@(gap.ActiveCandidateCount == 0 ? "none started" : $"{gap.ActiveOutstandingCount} of {gap.ActiveCandidateCount}")</small>
-                                                    </div>
-                                                    <div class="count-line">
-                                                        <span class="count-label">All eligible</span>
-                                                        <div class="mini-track"><div class="mini-fill" style="width:@((gap.OutstandingPercent * 100).ToString("0"))%"></div></div>
-                                                        <small title="@gap.CompletedCount already completed this stage">@gap.OutstandingCount of @gap.CandidateCount@(gap.PriorityMemberCount > 0 ? $", {gap.PriorityMemberCount} priority" : "")</small>
-                                                    </div>
-                                                </summary>
+                                            @gap.InputLabel
+                                            @if (expanded && !string.IsNullOrWhiteSpace(gap.InputDetail))
+                                            {
+                                                <div class="statement-detail"><em>@gap.InputDetail.Trim()</em></div>
+                                            }
+                                        </td>
+                                        <td><span class="badge bg-info text-dark">@gap.Theme</span></td>
+                                        <td class="missing-youth">
+                                            <div class="count-line">
+                                                <span class="count-label">Working on it</span>
+                                                <div class="mini-track"><div class="mini-fill mini-fill-active" style="width:@((gap.ActiveOutstandingPercent * 100).ToString("0"))%"></div></div>
+                                                <small>@(gap.ActiveCandidateCount == 0 ? "none started" : $"{gap.ActiveOutstandingCount} of {gap.ActiveCandidateCount}")</small>
+                                            </div>
+                                            <div class="count-line">
+                                                <span class="count-label">All eligible</span>
+                                                <div class="mini-track"><div class="mini-fill" style="width:@((gap.OutstandingPercent * 100).ToString("0"))%"></div></div>
+                                                <small class="toggle-arrow" title="@gap.CompletedCount already completed this stage">@gap.OutstandingCount of @gap.CandidateCount@(gap.PriorityMemberCount > 0 ? $", {gap.PriorityMemberCount} priority" : "") @(expanded ? "\u25B4" : "\u25BE")</small>
+                                            </div>
+                                            @if (expanded)
+                                            {
                                                 <ul class="list-unstyled small mb-0 mt-1">
                                                     @foreach (var memberId in gap.OutstandingMemberIds.OrderByDescending(IsMovingUp).ThenBy(MemberName))
                                                     {
@@ -304,7 +310,7 @@
                                                         </li>
                                                     }
                                                 </ul>
-                                            </details>
+                                            }
                                         </td>
                                     </tr>
                                 }
@@ -378,7 +384,8 @@
                                 <div class="progress my-2" style="height:8px">
                                     <div class="progress-bar bg-success" style="width:@((candidate.CompletionPercent * 100).ToString("0"))%"></div>
                                 </div>
-                                <small class="text-muted">@((candidate.CompletionPercent * 100).ToString("0"))% of @report.Rules.PeakAwardName items complete, @candidate.OutstandingCount outstanding</small>
+                                <small class="text-muted">@((candidate.CompletionPercent * 100).ToString("0"))% towards the @report.Rules.PeakAwardName, @candidate.OutstandingCount items outstanding</small>
+                                <div class="small text-muted peak-breakdown">@string.Join(" · ", candidate.PeakAwardBreakdown.Select(c => $"{c.Name} {c.Display}"))</div>
                                 <ul class="list-unstyled task-list mt-2 mb-0">
                                     @foreach (var task in candidate.Tasks.OrderBy(t => t.Done))
                                     {
@@ -402,6 +409,7 @@
 
     @if (model.SelectedTab == InsightsTab.Programme)
     {
+        @* Hidden for now: Plan a night with AI. Remove this comment to show it again.
         <div class="card ai-prompt-card mb-4">
             <div class="card-body">
                 <h5 class="card-title">Plan a night with AI</h5>
@@ -428,6 +436,7 @@
             </div>
         </div>
 
+        *@
         <h4>Skill themes across outstanding requirements</h4>
         <div class="table-responsive mb-4">
             <table class="table table-sm align-middle">

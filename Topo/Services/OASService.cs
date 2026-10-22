@@ -140,7 +140,8 @@ namespace Topo.Services
                                 InputGroup = inputGroupTitle,
                                 InputGroupSort = GetInputGroupSort(inputGroupTitle),
                                 InputId = input.id,
-                                InputLabel = input.label
+                                InputLabel = input.label,
+                                InputDetail = input.dialog_text ?? ""
                             };
                             _storageService.OASTemplates.Add(oasTemplate);
                         }

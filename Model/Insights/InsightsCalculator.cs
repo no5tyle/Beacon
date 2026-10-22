@@ -241,6 +241,7 @@ namespace Topo.Model.Insights
                         Stage = g.Key.Stage,
                         InputGroup = g.Key.Group,
                         InputLabel = g.Key.InputLabel,
+                        InputDetail = g.Select(r => r.InputDetail).FirstOrDefault(d => !string.IsNullOrWhiteSpace(d)) ?? "",
                         Theme = SkillThemeClassifier.Classify(g.Key.Group, g.Key.InputLabel),
                         UnitNightSuitable = SkillThemeClassifier.IsUnitNightSuitable(g.Key.Group, g.Key.InputLabel),
                         // Youth who have completed the stage count towards the total as already done
@@ -291,7 +292,8 @@ namespace Topo.Model.Insights
                     IsFocus = isFocus,
                     // Focus youth who aren't moving up soon sit alongside the medium urgency group
                     Urgency = !isMovingUp ? Urgency.Medium : monthsRemaining <= 3 ? Urgency.High : monthsRemaining <= 6 ? Urgency.Medium : Urgency.Low,
-                    Tasks = PeakAwardTasks(member, rules, requirements ?? new List<OASRequirementStatus>())
+                    Tasks = PeakAwardTasks(member, rules, requirements ?? new List<OASRequirementStatus>()),
+                    PeakAwardBreakdown = PeakAwardBreakdown(member.Progress, rules)
                 };
                 var effectiveMonths = isMovingUp ? monthsRemaining!.Value : settings.MoveUpWindowMonths;
                 candidate.PriorityScore = Math.Round(OutstandingWeight(candidate.Tasks) / Math.Max(effectiveMonths, 0.5), 2);
@@ -302,6 +304,46 @@ namespace Topo.Model.Insights
                 .ThenByDescending(c => c.PriorityScore)
                 .ThenBy(c => c.MonthsRemaining ?? double.MaxValue)
                 .ToList();
+        }
+
+        // Peak award progress out of 100 using Terrain's component weights, split further:
+        // essentials give 9 per milestone awarded plus 3 shared by the two introductions, OAS is shared
+        // equally across the stage progressions needed, SIA across the projects needed, and the
+        // course, Adventurous Journey and Personal Reflection are all or nothing. No component goes
+        // over its weight when a youth does more than is required.
+        public static List<PeakAwardComponent> PeakAwardBreakdown(WallchartItemModel p, SectionRules rules)
+        {
+            var milestones = new[] { p.Milestone1Awarded, p.Milestone2Awarded, p.Milestone3Awarded }.Count(m => m.HasValue);
+            var intros = new[] { p.IntroToScouting, p.IntroToSection }.Count(i => i.HasValue);
+            var essentials = milestones * 9.0 + intros * 1.5;
+
+            double oas;
+            if (rules.OASStageProgressionsRequired > 0)
+            {
+                oas = rules.OASWeight * Math.Min(p.OASStageProgressions, rules.OASStageProgressionsRequired) / rules.OASStageProgressionsRequired;
+            }
+            else
+            {
+                // Joeys: the stages needed are Stage 1 (or the core minimum) in each core stream
+                var needed = Streams.Count(s => s.IsCore) * Math.Max(rules.CoreStageRequired, 1);
+                var reached = Streams.Where(s => s.IsCore).Sum(s => Math.Min(StageFor(p, s.Key), Math.Max(rules.CoreStageRequired, 1)));
+                oas = rules.OASWeight * reached / needed;
+            }
+
+            var siaProjects = p.SIAAdventureSport + p.SIAArtsLiterature + p.SIAEnvironment + p.SIAStemInnovation + p.SIAGrowthDevelopment + p.SIACreatingABetterWorld;
+            var sia = rules.SIAProjectsRequired > 0 ? rules.SIAWeight * Math.Min(siaProjects, rules.SIAProjectsRequired) / rules.SIAProjectsRequired : 0;
+
+            var components = new List<PeakAwardComponent>
+            {
+                new PeakAwardComponent { Name = "Essentials", Max = rules.EssentialsWeight, Earned = Math.Min(essentials, rules.EssentialsWeight) },
+                new PeakAwardComponent { Name = "OAS", Max = rules.OASWeight, Earned = Math.Min(oas, rules.OASWeight) },
+                new PeakAwardComponent { Name = "SIA", Max = rules.SIAWeight, Earned = Math.Min(sia, rules.SIAWeight) }
+            };
+            if (rules.LeadershipCourseRequired && rules.CourseWeight > 0)
+                components.Add(new PeakAwardComponent { Name = "Course", Max = rules.CourseWeight, Earned = p.LeadershipCourse.HasValue ? rules.CourseWeight : 0 });
+            components.Add(new PeakAwardComponent { Name = "Journey", Max = rules.AdventurousJourneyWeight, Earned = p.AdventurousJourney.HasValue ? rules.AdventurousJourneyWeight : 0 });
+            components.Add(new PeakAwardComponent { Name = "Reflection", Max = rules.ReflectionWeight, Earned = p.PersonalReflection.HasValue ? rules.ReflectionWeight : 0 });
+            return components;
         }
 
         public static List<PriorityTask> PeakAwardTasks(YouthRecord member, SectionRules rules, List<OASRequirementStatus> requirements)

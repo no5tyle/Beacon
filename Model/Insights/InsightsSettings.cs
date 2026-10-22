@@ -49,6 +49,14 @@ namespace Topo.Model.Insights
         public int SIAAreasRequired { get; set; }
         // Joeys have no leadership / personal development course
         public bool LeadershipCourseRequired { get; set; } = true;
+
+        // Peak award progress weights out of 100, as Terrain's peak award page uses them
+        public double EssentialsWeight { get; set; } = 30;
+        public double OASWeight { get; set; } = 30;
+        public double SIAWeight { get; set; } = 25;
+        public double CourseWeight { get; set; } = 5;
+        public double AdventurousJourneyWeight { get; set; } = 8;
+        public double ReflectionWeight { get; set; } = 2;
         // OAS stages insights show when limited to the section's usual stages
         public int LowestStageShown { get; set; } = 1;
         public int HighestStageShown { get; set; } = 9;
@@ -59,7 +67,7 @@ namespace Topo.Model.Insights
         {
             return new List<SectionRules>
             {
-                new SectionRules { Section = "joey", SectionDisplay = "Joey Scouts", PeakAwardName = "Joey Scout Challenge Award", MoveUpAgeYears = 8, OASStageProgressionsRequired = 0, CoreStageRequired = 1, SIAProjectsRequired = 6, SIAAreasRequired = 2, LeadershipCourseRequired = false, LowestStageShown = 1, HighestStageShown = 1 },
+                new SectionRules { Section = "joey", SectionDisplay = "Joey Scouts", PeakAwardName = "Joey Scout Challenge Award", MoveUpAgeYears = 8, OASStageProgressionsRequired = 0, CoreStageRequired = 1, SIAProjectsRequired = 6, SIAAreasRequired = 2, LeadershipCourseRequired = false, LowestStageShown = 1, HighestStageShown = 1, SIAWeight = 28, CourseWeight = 0, AdventurousJourneyWeight = 9, ReflectionWeight = 3 },
                 new SectionRules { Section = "cub", SectionDisplay = "Cub Scouts", PeakAwardName = "Grey Wolf Award", MoveUpAgeYears = 11, OASStageProgressionsRequired = 8, CoreStageRequired = 3, SIAProjectsRequired = 6, SIAAreasRequired = 2, LowestStageShown = 2, HighestStageShown = 3 },
                 new SectionRules { Section = "scout", SectionDisplay = "Scouts", PeakAwardName = "Australian Scout Award", MoveUpAgeYears = 15, OASStageProgressionsRequired = 10, CoreStageRequired = 5, SIAProjectsRequired = 6, SIAAreasRequired = 3, LowestStageShown = 4, HighestStageShown = 5 },
                 new SectionRules { Section = "venturer", SectionDisplay = "Venturer Scouts", PeakAwardName = "King's Scout Award", MoveUpAgeYears = 18, OASStageProgressionsRequired = 12, CoreStageRequired = 5, OASHighStageProgressionsRequired = 4, OASHighStage = 4, SIAProjectsRequired = 6, SIAAreasRequired = 3, LowestStageShown = 5, HighestStageShown = 7 },

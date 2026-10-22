@@ -91,7 +91,11 @@
                         </div>
                     }
                     <div class="col-lg-6">
-                        <h5>@insights.Rules.PeakAwardName</h5>
+                        <h5>@insights.Rules.PeakAwardName <span class="text-muted fw-normal">@insights.PeakAwardPercent.ToString("0")%</span></h5>
+                        <div class="progress mb-1" style="height:8px">
+                            <div class="progress-bar bg-success" style="width:@insights.PeakAwardPercent.ToString("0")%"></div>
+                        </div>
+                        <div class="small text-muted mb-2">@string.Join(" · ", insights.PeakAwardBreakdown.Select(c => $"{c.Name} {c.Display}"))</div>
                         <div>
                             @foreach (var task in insights.PeakAwardTasks.OrderBy(t => t.Done))
                             {
@@ -164,6 +168,7 @@
                     }
                 }
 
+                @* Hidden for now: Plan with AI. Remove this comment to show it again.
                 <div class="ai-prompt mt-3">
                     <h5>Plan with AI</h5>
                     <p class="small text-muted mb-2">
@@ -186,6 +191,7 @@
                         <pre class="prompt-preview mt-2">@BuildPrompt()</pre>
                     }
                 </div>
+                *@
             }
         </div>
     </div>

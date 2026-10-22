@@ -7,6 +7,8 @@ namespace Topo.Model.Insights
         public double? MonthsToMoveUp { get; set; }
         public List<string> Highlights { get; set; } = new List<string>();
         public List<PriorityTask> PeakAwardTasks { get; set; } = new List<PriorityTask>();
+        public List<PeakAwardComponent> PeakAwardBreakdown { get; set; } = new List<PeakAwardComponent>();
+        public double PeakAwardPercent => PeakAwardBreakdown.Sum(c => c.Earned);
         public MilestoneProgress? Milestone { get; set; }
         public List<StageProgress> Stages { get; set; } = new List<StageProgress>();
         public List<MemberThemeGap> Themes { get; set; } = new List<MemberThemeGap>();

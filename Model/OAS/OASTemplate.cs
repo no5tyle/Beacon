@@ -9,5 +9,7 @@
         public int InputGroupSort { get; set; }
         public string InputId { get; set; } = "";
         public string InputLabel { get; set; } = "";
+        // The longer explanation of the statement shown in Terrain
+        public string InputDetail { get; set; } = "";
     }
 }

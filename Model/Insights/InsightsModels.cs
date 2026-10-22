@@ -18,6 +18,7 @@ namespace Topo.Model.Insights
         public int Stage { get; set; }
         public string InputGroup { get; set; } = string.Empty;
         public string InputLabel { get; set; } = string.Empty;
+        public string InputDetail { get; set; } = string.Empty;
         public string MemberId { get; set; } = string.Empty;
         public bool Answered { get; set; }
     }
@@ -77,6 +78,7 @@ namespace Topo.Model.Insights
         public int Stage { get; set; }
         public string InputGroup { get; set; } = string.Empty;
         public string InputLabel { get; set; } = string.Empty;
+        public string InputDetail { get; set; } = string.Empty;
         public string Theme { get; set; } = string.Empty;
         public bool UnitNightSuitable { get; set; }
         // All eligible youth: those who have completed the stage, plus those who haven't and could get
@@ -126,7 +128,17 @@ namespace Topo.Model.Insights
         public double PriorityScore { get; set; }
         public List<PriorityTask> Tasks { get; set; } = new List<PriorityTask>();
         public int OutstandingCount => Tasks.Count(t => !t.Done);
-        public double CompletionPercent => Tasks.Count == 0 ? 1 : (double)Tasks.Count(t => t.Done) / Tasks.Count;
+        // Weighted peak award progress, as a fraction of 1
+        public List<PeakAwardComponent> PeakAwardBreakdown { get; set; } = new List<PeakAwardComponent>();
+        public double CompletionPercent => PeakAwardBreakdown.Any() ? PeakAwardBreakdown.Sum(c => c.Earned) / 100.0 : Tasks.Count == 0 ? 1 : (double)Tasks.Count(t => t.Done) / Tasks.Count;
+    }
+
+    public class PeakAwardComponent
+    {
+        public string Name { get; set; } = string.Empty;
+        public double Earned { get; set; }
+        public double Max { get; set; }
+        public string Display => $"{Earned:0.#}/{Max:0.#}";
     }
 
     public class PriorityTask

@@ -231,6 +231,19 @@ namespace Topo.Controller
         }
 
         // Moving up soon or a focus youth
+        // Expanded rows in the missing requirements tables show the statement's explanation and who's missing
+        private readonly HashSet<string> expandedGaps = new HashSet<string>();
+
+        private static string GapKey(RequirementGap gap) => $"{gap.Stream}/{gap.Stage}/{gap.InputGroup}/{gap.InputLabel}";
+
+        internal bool IsGapExpanded(RequirementGap gap) => expandedGaps.Contains(GapKey(gap));
+
+        internal void ToggleGap(RequirementGap gap)
+        {
+            if (!expandedGaps.Remove(GapKey(gap)))
+                expandedGaps.Add(GapKey(gap));
+        }
+
         internal bool IsMovingUp(string memberId)
         {
             return model.Report?.MoveUpCandidates.Any(c => c.MemberId == memberId) ?? false;

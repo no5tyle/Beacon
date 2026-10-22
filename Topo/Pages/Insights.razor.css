@@ -171,25 +171,22 @@
     overflow-y: auto;
 }
 
-.missing-youth summary {
+.gap-row {
     cursor: pointer;
-    list-style: none;
 }
 
-.missing-youth summary::-webkit-details-marker {
-    display: none;
+.gap-row.expanded td {
+    background: #f8fbfc;
 }
 
-.missing-youth summary .count-line:last-child small::after {
-    content: " \25BE";
-    color: #6c757d;
+.statement-detail {
+    white-space: pre-line;
+    font-size: 0.85rem;
+    color: #495057;
+    margin-top: 0.35rem;
 }
 
-.missing-youth[open] summary .count-line:last-child small::after {
-    content: " \25B4";
-}
-
-.missing-youth summary small {
+.missing-youth small {
     white-space: nowrap;
 }
 

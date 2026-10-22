@@ -84,6 +84,7 @@ namespace Topo.Services
                             Stage = stageNumber,
                             InputGroup = a.InputTitle,
                             InputLabel = a.InputLabel,
+                            InputDetail = templateList.FirstOrDefault(t => t.InputId == a.InputId)?.InputDetail ?? "",
                             MemberId = a.MemberId,
                             Answered = a.Answered
                         }));
@@ -161,6 +162,7 @@ namespace Topo.Services
                             Stage = stageNumber,
                             InputGroup = a.InputTitle,
                             InputLabel = a.InputLabel,
+                            InputDetail = templateList.FirstOrDefault(t => t.InputId == a.InputId)?.InputDetail ?? "",
                             MemberId = youth.MemberId,
                             Answered = a.Answered
                         }));
