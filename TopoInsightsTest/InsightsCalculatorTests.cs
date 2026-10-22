@@ -216,7 +216,7 @@ namespace TopoInsightsTest
             Assert.AreEqual(21, scout["Essentials"].Earned, 0.001, "9 per milestone plus 1.5 per intro");
             Assert.AreEqual(21, scout["OAS"].Earned, 0.001, "7 of 10 progressions at 3 each");
             Assert.AreEqual(25, scout["SIA"].Earned, 0.001, "7 projects is capped at the 6 needed");
-            Assert.AreEqual(5, scout["Course"].Earned);
+            Assert.AreEqual(5, scout["Personal development"].Earned);
             Assert.AreEqual(0, scout["Journey"].Earned);
             Assert.AreEqual(8, scout["Journey"].Max);
             Assert.AreEqual(72, scout.Values.Sum(c => c.Earned), 0.001);
@@ -230,7 +230,7 @@ namespace TopoInsightsTest
             var joey = InsightsCalculator.PeakAwardBreakdown(new WallchartItemModel { OASBushcraftStage = 1, OASCampingStage = 2, SIAEnvironment = 3 }, settings.RulesFor("joey")).ToDictionary(c => c.Name);
             Assert.AreEqual(20, joey["OAS"].Earned, 0.001, "Stage 1 in 2 of 3 core streams");
             Assert.AreEqual(14, joey["SIA"].Earned, 0.001, "3 of 6 projects of 28");
-            Assert.IsFalse(joey.ContainsKey("Course"));
+            Assert.IsFalse(joey.ContainsKey("Personal development"));
             Assert.AreEqual(100, joey.Values.Sum(c => c.Max), 0.001);
             Assert.AreEqual(100, rover.Values.Sum(c => c.Max), 0.001);
         }
@@ -250,7 +250,7 @@ namespace TopoInsightsTest
             Assert.IsFalse(InsightsCalculator.PeakAwardTasks(twoAreas, settings.RulesFor("scout"), new List<OASRequirementStatus>()).Single(t => t.Key == "sia").Done, "Scouts need 3 areas");
 
             Assert.AreEqual((6, 4), (settings.RulesFor("rover").SIAProjectsRequired, settings.RulesFor("rover").SIAAreasRequired));
-            Assert.IsFalse(InsightsCalculator.PeakAwardTasks(oneArea, settings.RulesFor("joey"), new List<OASRequirementStatus>()).Any(t => t.Key == "peak:course"), "Joeys have no leadership course");
+            Assert.IsFalse(InsightsCalculator.PeakAwardTasks(oneArea, settings.RulesFor("joey"), new List<OASRequirementStatus>()).Any(t => t.Key == "peak:course"), "Joeys have no personal development course");
             Assert.IsTrue(InsightsCalculator.PeakAwardTasks(oneArea, settings.RulesFor("cub"), new List<OASRequirementStatus>()).Any(t => t.Key == "peak:course"));
             Assert.AreEqual("Joey Scout Challenge Award", settings.RulesFor("joey").PeakAwardName);
             Assert.AreEqual("King's Scout Award", settings.RulesFor("venturer").PeakAwardName);

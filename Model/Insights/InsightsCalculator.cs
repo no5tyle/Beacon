@@ -339,8 +339,8 @@ namespace Topo.Model.Insights
                 new PeakAwardComponent { Name = "OAS", Max = rules.OASWeight, Earned = Math.Min(oas, rules.OASWeight) },
                 new PeakAwardComponent { Name = "SIA", Max = rules.SIAWeight, Earned = Math.Min(sia, rules.SIAWeight) }
             };
-            if (rules.LeadershipCourseRequired && rules.CourseWeight > 0)
-                components.Add(new PeakAwardComponent { Name = "Course", Max = rules.CourseWeight, Earned = p.LeadershipCourse.HasValue ? rules.CourseWeight : 0 });
+            if (rules.PersonalDevelopmentCourseRequired && rules.CourseWeight > 0)
+                components.Add(new PeakAwardComponent { Name = "Personal development", Max = rules.CourseWeight, Earned = p.LeadershipCourse.HasValue ? rules.CourseWeight : 0 });
             components.Add(new PeakAwardComponent { Name = "Journey", Max = rules.AdventurousJourneyWeight, Earned = p.AdventurousJourney.HasValue ? rules.AdventurousJourneyWeight : 0 });
             components.Add(new PeakAwardComponent { Name = "Reflection", Max = rules.ReflectionWeight, Earned = p.PersonalReflection.HasValue ? rules.ReflectionWeight : 0 });
             return components;
@@ -412,8 +412,8 @@ namespace Topo.Model.Insights
                 });
             }
 
-            if (rules.LeadershipCourseRequired)
-                tasks.Add(new PriorityTask { Category = TaskCategory.PeakAward, Key = "peak:course", Title = "Leadership course", Done = p.LeadershipCourse.HasValue });
+            if (rules.PersonalDevelopmentCourseRequired)
+                tasks.Add(new PriorityTask { Category = TaskCategory.PeakAward, Key = "peak:course", Title = "Personal development course", Done = p.LeadershipCourse.HasValue });
             tasks.Add(new PriorityTask { Category = TaskCategory.PeakAward, Key = "peak:aj", Title = "Adventurous Journey", Done = p.AdventurousJourney.HasValue });
             tasks.Add(new PriorityTask { Category = TaskCategory.PeakAward, Key = "peak:reflection", Title = "Personal Reflection", Done = p.PersonalReflection.HasValue, UnitNightSuitable = true });
             return tasks;

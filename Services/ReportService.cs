@@ -1831,7 +1831,7 @@ namespace Topo.Services
                 sheet.Range[rowNumber, 34].Text = " STEM & Innovation";
                 sheet.Range[rowNumber, 35].Text = " Growth & Development";
                 sheet.Range[rowNumber, 36].Text = " Creating a Better World";
-                sheet.Range[rowNumber, 37].Text = " Leadership Course";
+                sheet.Range[rowNumber, 37].Text = " Personal Development Course";
                 sheet.Range[rowNumber, 38].Text = " Adventurous Journey";
                 sheet.Range[rowNumber, 39].Text = " Personal Reflection";
                 sheet.Range[rowNumber, 40].Text = " PEAK AWARD";
