@@ -75,11 +75,14 @@ namespace Topo.Services
         };
         private readonly ILogger<TerrainAPIService> _logger;
 
-        public TerrainAPIService(HttpClient httpClient, StorageService storageService, ILogger<TerrainAPIService> logger)
+        private readonly TerrainProfileGate _profileGate;
+
+        public TerrainAPIService(HttpClient httpClient, StorageService storageService, ILogger<TerrainAPIService> logger, TerrainProfileGate profileGate)
         {
             _httpClient = httpClient;
             _storageService = storageService;
             _logger = logger;
+            _profileGate = profileGate;
         }
 
         public async Task<AuthenticationResultModel?> LoginAsync(string? branch, string? username, string? password)
@@ -525,7 +528,8 @@ namespace Topo.Services
             var response = new HttpResponseMessage();
             try
             {
-                response = await _httpClient.SendAsync(httpRequest);
+                using (await _profileGate.Request())
+                    response = await _httpClient.SendAsync(httpRequest);
                 var responseContent = response.Content.ReadAsStringAsync();
                 var result = responseContent.Result;
                 _logger.LogInformation($"Version: {_storageService.Version}; Date: {DateTime.Now.ToString("dd/MM/yyyy : HH:mm:ss")}; Request: {requestUri}");
@@ -601,7 +605,9 @@ namespace Topo.Services
             httpRequest.Headers.Add("accept", "application/json, text/plain, */*");
             try
             {
-                var response = await _httpClient.SendAsync(httpRequest);
+                HttpResponseMessage response;
+                using (await _profileGate.Request())
+                    response = await _httpClient.SendAsync(httpRequest);
                 var result = await response.Content.ReadAsStringAsync();
                 _logger.LogInformation($"Version: {_storageService.Version}; Date: {DateTime.Now.ToString("dd/MM/yyyy : HH:mm:ss")}; Request: {httpMethod} {requestUri}; StatusCode: {response.StatusCode}");
                 _logger.LogInformation($"Version: {_storageService.Version}; Date: {DateTime.Now.ToString("dd/MM/yyyy : HH:mm:ss")}; Response: {result}");

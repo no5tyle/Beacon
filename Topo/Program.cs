@@ -12,6 +12,7 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 builder.Services.AddSingleton<StorageService>();
+builder.Services.AddSingleton<TerrainProfileGate>();
 builder.Services.AddScoped<ITerrainAPIService, TerrainAPIService>();
 builder.Services.AddScoped<IMembersService, MembersService>();
 builder.Services.AddScoped<ILoginService, LoginService>();
@@ -20,6 +21,7 @@ builder.Services.AddScoped<IWallchartService, WallchartService>();
 builder.Services.AddScoped<IApprovalsService, ApprovalsService>();
 builder.Services.AddScoped<IProgressService, ProgressService>();
 builder.Services.AddScoped<IInsightsService, InsightsService>();
+builder.Services.AddScoped<PreloadService>();
 builder.Services.AddScoped<IOASRecordingService, OASRecordingService>();
 builder.Services.AddSingleton<IOASReferenceService, OASReferenceService>();
 

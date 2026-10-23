@@ -6,8 +6,14 @@ using Topo.Services;
 
 namespace Topo.Controller
 {
-    public class InsightsController : ComponentBase
+    public class InsightsController : ComponentBase, IDisposable
     {
+        [Inject]
+        public IWallchartService _wallchartService { get; set; }
+
+        public bool analysing;
+        public bool showFilters;
+
         [Inject]
         public StorageService _storageService { get; set; }
 
@@ -44,8 +50,53 @@ namespace Topo.Controller
 
         protected override async Task OnInitializedAsync()
         {
+            _wallchartService.ProgressChanged += ProgressChanged;
             if (_storageService.IsAuthenticated && !string.IsNullOrEmpty(model.UnitId))
                 await LoadFocusYouth();
+        }
+
+        // Analyse as soon as the page opens. The unit's data is usually already loaded in the background after login.
+        protected override async Task OnAfterRenderAsync(bool firstRender)
+        {
+            if (firstRender && _storageService.IsAuthenticated && !string.IsNullOrEmpty(model.UnitId) && model.Report == null)
+            {
+                await AnalyseClick();
+                StateHasChanged();
+            }
+        }
+
+        private void ProgressChanged()
+        {
+            if (analysing)
+                InvokeAsync(StateHasChanged);
+        }
+
+        public void Dispose()
+        {
+            _wallchartService.ProgressChanged -= ProgressChanged;
+        }
+
+        internal (int Done, int Total) LoadProgress => _wallchartService.LoadProgress(model.UnitId);
+
+        internal bool LoadingYouth => analysing && !_wallchartService.IsCached(model.UnitId);
+
+        // Settings that differ from the defaults, shown as a count on the Filters button
+        internal int ActiveFilterCount => (focusIds.Any() ? 1 : 0) + (model.Settings.IncludeNonCoreOAS ? 1 : 0)
+            + (model.Settings.SectionStagesOnly ? 0 : 1) + (model.SuppressLastName ? 1 : 0);
+
+        internal void ToggleFilters() => showFilters = !showFilters;
+
+        internal async Task ApplyFilters()
+        {
+            showFilters = false;
+            await AnalyseClick();
+        }
+
+        // Fetch every youth's progress from Terrain again, e.g. after changes made in Terrain itself
+        internal async Task RefreshClick()
+        {
+            _storageService.CachedWallchartItems.RemoveAll(c => c.Key == model.UnitId);
+            await AnalyseClick();
         }
 
         protected override void OnInitialized()
@@ -74,6 +125,7 @@ namespace Topo.Controller
             model.Report = null;
             LoadSectionRules();
             await LoadFocusYouth();
+            await AnalyseClick();
         }
 
         private string FocusStorageKey => $"insights-focus-youth-{model.UnitId}";
@@ -144,9 +196,10 @@ namespace Topo.Controller
 
         internal async Task AnalyseClick()
         {
-            if (string.IsNullOrEmpty(model.UnitId))
+            if (string.IsNullOrEmpty(model.UnitId) || analysing)
                 return;
 
+            analysing = true;
             model.ErrorMessage = "";
             _storageService.SuppressLastName = model.SuppressLastName;
             try
@@ -158,8 +211,9 @@ namespace Topo.Controller
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Insights: analysis failed");
-                model.ErrorMessage = "Unable to analyse the unit. Try the Wallchart report first to check Terrain is responding.";
+                model.ErrorMessage = "Unable to analyse the unit. Check Terrain is responding, then tap Refresh.";
             }
+            analysing = false;
         }
 
         internal string BuildNightPrompt()

@@ -35,8 +35,11 @@ namespace Topo.Services
 
         private static readonly string[] CompleteStatuses = { "awarded", "approved" };
 
-        public OASRecordingService(StorageService storageService, ITerrainAPIService terrainAPIService, ILogger<OASRecordingService> logger)
+        private readonly TerrainProfileGate _profileGate;
+
+        public OASRecordingService(StorageService storageService, ITerrainAPIService terrainAPIService, ILogger<OASRecordingService> logger, TerrainProfileGate profileGate)
         {
+            _profileGate = profileGate;
             _storageService = storageService;
             _terrainAPIService = terrainAPIService;
             _logger = logger;
@@ -82,6 +85,8 @@ namespace Topo.Services
             if (state.Stage.Stage > OASRecording.MaxLeaderVerifiableStage && newlyTicked.Any(s => !s.IsLogbook))
                 return new TerrainWriteResult { Success = false, Body = $"Adult leaders can't verify Stage {OASRecording.MaxLeaderVerifiableStage + 1} and above." };
 
+            // Nothing else may talk to Terrain while it is acting as the youth
+            using var actingAsYouth = await _profileGate.ActAsYouth();
             try
             {
                 await _terrainAPIService.RevokeAssumedProfiles();
@@ -130,6 +135,8 @@ namespace Topo.Services
             if (!OASRecording.CanReceiveCredit(state.Stage.Stage, state.CompletedStagesInStream))
                 return new TerrainWriteResult { Success = false, Body = $"Stage {state.Stage.Stage - 3} of this stream must be complete before Stage {state.Stage.Stage} can be submitted." };
 
+            // Nothing else may talk to Terrain while it is acting as the youth
+            using var actingAsYouth = await _profileGate.ActAsYouth();
             try
             {
                 await _terrainAPIService.RevokeAssumedProfiles();

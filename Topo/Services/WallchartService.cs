@@ -10,6 +10,10 @@ namespace Topo.Services
     public interface IWallchartService
     {
         Task<List<WallchartItemModel>> GetWallchartItems(string selectedUnitId);
+        bool IsCached(string selectedUnitId);
+        bool IsLoading(string selectedUnitId);
+        (int Done, int Total) LoadProgress(string selectedUnitId);
+        event Action? ProgressChanged;
     }
     public class WallchartService : IWallchartService
     {
@@ -19,13 +23,29 @@ namespace Topo.Services
         private readonly IMembersService _membersService;
         private List<ApprovalsListModel> approvals = new List<ApprovalsListModel>();
 
-        public WallchartService(StorageService storageService, ITerrainAPIService terrainAPIService, IApprovalsService approvalService, IMembersService membersService)
+        private readonly TerrainProfileGate _profileGate;
+
+        public WallchartService(StorageService storageService, ITerrainAPIService terrainAPIService, IApprovalsService approvalService, IMembersService membersService, TerrainProfileGate profileGate)
         {
+            _profileGate = profileGate;
             _storageService = storageService;
             _terrainAPIService = terrainAPIService;
             _approvalService = approvalService;
             _membersService = membersService;
         }
+
+        // Loads still running, so a page asking for a unit that is already being loaded (e.g. in the background
+        // after login) waits for that load instead of starting a second one
+        private readonly Dictionary<string, Task<List<WallchartItemModel>>> _loading = new Dictionary<string, Task<List<WallchartItemModel>>>();
+        private readonly Dictionary<string, (int Done, int Total)> _progress = new Dictionary<string, (int Done, int Total)>();
+
+        public event Action? ProgressChanged;
+
+        public bool IsCached(string selectedUnitId) => _storageService.CachedWallchartItems.Any(cm => cm.Key == selectedUnitId);
+
+        public bool IsLoading(string selectedUnitId) => _loading.ContainsKey(selectedUnitId);
+
+        public (int Done, int Total) LoadProgress(string selectedUnitId) => _progress.TryGetValue(selectedUnitId, out var progress) ? progress : (0, 0);
 
         public async Task<List<WallchartItemModel>> GetWallchartItems(string selectedUnitId)
         {
@@ -42,13 +62,35 @@ namespace Topo.Services
                 return cachedWallchartItems;
             }
 
+            if (!_loading.TryGetValue(selectedUnitId, out var load))
+            {
+                load = LoadWallchartItems(selectedUnitId, members);
+                _loading[selectedUnitId] = load;
+            }
+            try
+            {
+                return await load;
+            }
+            finally
+            {
+                _loading.Remove(selectedUnitId);
+            }
+        }
+
+        private async Task<List<WallchartItemModel>> LoadWallchartItems(string selectedUnitId, List<Topo.Model.Members.MemberListModel> members)
+        {
             var section = _storageService.Section;
             approvals = await _approvalService.ReadApprovalListFromLocalStorage(selectedUnitId);
             await _terrainAPIService.RevokeAssumedProfiles();
 
             var wallchartItems = new List<WallchartItemModel>();
-            foreach (var member in members.Where(m => m.isAdultLeader == 0).OrderBy(m => m.last_name).ThenBy(m => m.first_name))
+            var youth = members.Where(m => m.isAdultLeader == 0).OrderBy(m => m.last_name).ThenBy(m => m.first_name).ToList();
+            SetProgress(selectedUnitId, 0, youth.Count);
+            foreach (var member in youth)
             {
+                // Stop if the leader logs out part way through
+                if (!_storageService.IsAuthenticated)
+                    throw new OperationCanceledException("Logged out while loading the unit");
                 var wallchartItem = new WallchartItemModel();
 
                 // Get Milestone for member
@@ -165,9 +207,13 @@ namespace Topo.Services
                 wallchartItem.IntroToScouting = await GetIntroToScouting(member.id);
                 wallchartItem.IntroToSection = await GetIntroToSection(member.id);
                 // Logbook
-                await _terrainAPIService.AssumeProfile(member.id);
-                var getMemberLogbookMetrics = await _terrainAPIService.GetMemberLogbookMetrics(member.id);
-                await _terrainAPIService.RevokeAssumedProfiles();
+                Topo.Model.Logbook.GetMemberLogbookMetricsResultModel getMemberLogbookMetrics;
+                using (await _profileGate.ActAsYouth())
+                {
+                    await _terrainAPIService.AssumeProfile(member.id);
+                    getMemberLogbookMetrics = await _terrainAPIService.GetMemberLogbookMetrics(member.id);
+                    await _terrainAPIService.RevokeAssumedProfiles();
+                }
                 var totalNightsCamped = getMemberLogbookMetrics.results.Where(r => r.name == "total_nights_camped").FirstOrDefault()?.value ?? 0;
                 var totalNightsCampedInSection = totalNightsCamped;
                 var totalKmsHiked = (getMemberLogbookMetrics.results.Where(r => r.name == "total_distance_hiked").FirstOrDefault()?.value ?? 0) / 1000.0f;
@@ -220,9 +266,16 @@ namespace Topo.Services
 
                 wallchartItem.PeakAward = 0;
                 wallchartItems.Add(wallchartItem);
+                SetProgress(selectedUnitId, wallchartItems.Count, youth.Count);
             }
             _storageService.CachedWallchartItems.Add(new KeyValuePair<string, List<WallchartItemModel>>(selectedUnitId, wallchartItems));
             return wallchartItems;
+        }
+
+        private void SetProgress(string selectedUnitId, int done, int total)
+        {
+            _progress[selectedUnitId] = (done, total);
+            ProgressChanged?.Invoke();
         }
 
         private void MoveMilestoneAssistsToLeads(MilestoneResult milestoneResult)

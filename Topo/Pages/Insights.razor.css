@@ -204,24 +204,67 @@
     min-width: 90px;
 }
 
-.focus-picker {
-    position: relative;
+.insights-toolbar {
+    display: flex;
+    gap: 0.5rem;
 }
 
-.focus-panel {
-    position: absolute;
-    z-index: 10;
-    top: 100%;
-    left: 0;
-    right: 0;
-    margin-top: 0.25rem;
-    padding: 0.5rem 0.75rem;
-    background: #fff;
+.insights-toolbar .btn {
+    min-height: 44px;
+}
+
+.filters-panel {
     border: 1px solid #dee2e6;
-    border-radius: 0.4rem;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    max-height: 320px;
+    border-radius: 0.5rem;
+    padding: 0.25rem 0.9rem 0.75rem;
+}
+
+.filters-section {
+    padding: 0.6rem 0;
+    border-bottom: 1px solid #f1f3f5;
+}
+
+.filters-section summary {
+    cursor: pointer;
+    padding: 0.2rem 0 0.5rem;
+}
+
+/* The whole row is the tap target */
+.filter-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-height: 40px;
+    cursor: pointer;
+}
+
+.filter-row ::deep .form-check-input, .filter-row .form-check-input {
+    flex-shrink: 0;
+    width: 1.25rem;
+    height: 1.25rem;
+    margin-top: 0;
+}
+
+.focus-list {
+    max-height: 14rem;
     overflow-y: auto;
+}
+
+.filters-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding-top: 0.75rem;
+}
+
+.filters-actions .btn {
+    min-height: 44px;
+    min-width: 6rem;
+}
+
+.loading-note {
+    max-width: 28rem;
+    color: #495057;
 }
 
 @media (max-width: 575.98px) {

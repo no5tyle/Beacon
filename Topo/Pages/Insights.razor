@@ -6,147 +6,146 @@
 
 <EditForm Model="@model">
     <DataAnnotationsValidator />
-    <div class="mt-3 mb-3 row">
-        <h2>Unit Insights @model.GroupName</h2>
-        <p class="text-muted mb-0">OAS gaps, priority youth, and skills to programme into unit nights. Priority youth are those moving up soon plus any focus youth you pick.</p>
+    <div class="mt-3 mb-2">
+        <h2 class="mb-1">Insights</h2>
+        <p class="text-muted small mb-0">OAS gaps, priority youth, and skills to programme into unit nights. Priority youth are those moving up soon plus any focus youth you pick.</p>
     </div>
 
-    <div class="form-group mb-3 row">
-        <label for="unit" class="col-sm-2 col-form-label">
-            Select Unit
-        </label>
-        <div class="col-sm-3">
-            <select id="unit" class="form-select" value="@model.UnitId" @onchange="UnitChange">
-                <option value="">Select unit</option>
-                @foreach (var unit in model.Units)
-                {
-                    <option value="@unit.Key">@unit.Value</option>
-                }
-            </select>
-            <ValidationMessage For="@(() => model.UnitId)" />
-        </div>
-        <label class="col-sm-2 col-form-label text-sm-end">Focus youth</label>
-        <div class="col-sm-5 focus-picker">
-            <button type="button" class="form-select text-start" @onclick="() => showFocusPicker = !showFocusPicker" disabled="@(!unitYouth.Any())">@FocusButtonText</button>
-            @if (showFocusPicker)
+    @if (string.IsNullOrEmpty(model.UnitId) || model.Units.Count > 1)
+    {
+        <select id="unit" class="form-select mb-2" value="@model.UnitId" @onchange="UnitChange" disabled="@analysing">
+            <option value="">Select unit</option>
+            @foreach (var unit in model.Units)
             {
-                <div class="focus-panel">
-                    <div class="d-flex justify-content-between small mb-1">
-                        <span class="text-muted">Treated like youth moving up soon</span>
-                        <span>
-                            <button type="button" class="btn btn-link btn-sm p-0 me-2" @onclick="ClearFocus">Clear</button>
-                            <button type="button" class="btn btn-link btn-sm p-0" @onclick="() => showFocusPicker = false">Done</button>
-                        </span>
-                    </div>
+                <option value="@unit.Key">@unit.Value</option>
+            }
+        </select>
+    }
+
+    <div class="insights-toolbar mb-2">
+        <button type="button" class="btn @(showFilters ? "btn-primary" : "btn-outline-primary")" @onclick="ToggleFilters" aria-expanded="@(showFilters ? "true" : "false")">
+            <span class="oi oi-list" aria-hidden="true"></span> Filters
+            @if (ActiveFilterCount > 0)
+            {
+                <span class="badge @(showFilters ? "bg-light text-primary" : "bg-primary") ms-1">@ActiveFilterCount</span>
+            }
+        </button>
+        <button type="button" class="btn btn-outline-secondary" @onclick="RefreshClick" disabled="@(analysing || string.IsNullOrEmpty(model.UnitId))" title="Load every youth's progress from Terrain again">
+            <span class="oi oi-reload" aria-hidden="true"></span> Refresh
+        </button>
+    </div>
+
+    @if (showFilters)
+    {
+        <div class="filters-panel mb-3">
+            <div class="filters-section">
+                <div class="d-flex justify-content-between align-items-baseline">
+                    <strong>Focus youth</strong>
+                    @if (focusIds.Any())
+                    {
+                        <button type="button" class="btn btn-link btn-sm p-0" @onclick="ClearFocus">Clear</button>
+                    }
+                </div>
+                <div class="small text-muted mb-1">Treated like youth moving up soon. Changes apply straight away.</div>
+                <div class="focus-list">
                     @foreach (var youthMember in unitYouth)
                     {
                         var id = $"focus-{youthMember.Key}";
-                        <div class="form-check">
+                        <label class="filter-row" for="@id">
                             <input id="@id" type="checkbox" class="form-check-input" checked="@focusIds.Contains(youthMember.Key)" @onchange="() => ToggleFocus(youthMember.Key)" />
-                            <label class="form-check-label" for="@id">@youthMember.Value</label>
-                        </div>
+                            <span>@youthMember.Value</span>
+                        </label>
                     }
                 </div>
-            }
-        </div>
-    </div>
+            </div>
 
-    <div class="mt-3 mb-3 row">
-        <div class="col-sm-3">
-            <div class="form-check">
-                <InputCheckbox id="suppressLastName" class="form-check-input"
-                               @bind-Value="model.SuppressLastName" />
-                <label class="form-check-label" for="suppressLastName">
-                    Suppress Last Name
+            <div class="filters-section">
+                <strong>Show</strong>
+                <label class="filter-row" for="includeNonCore">
+                    <InputCheckbox id="includeNonCore" class="form-check-input" @bind-Value="model.Settings.IncludeNonCoreOAS" />
+                    <span>Include non-core OAS streams</span>
+                </label>
+                <label class="filter-row" for="hideLower">
+                    <InputCheckbox id="hideLower" class="form-check-input" @bind-Value="model.Settings.SectionStagesOnly" />
+                    <span>Only the section's stages (@StageRangeDisplay(model.SectionRules))</span>
+                </label>
+                <label class="filter-row" for="suppressLastName">
+                    <InputCheckbox id="suppressLastName" class="form-check-input" @bind-Value="model.SuppressLastName" />
+                    <span>Hide last names</span>
                 </label>
             </div>
-        </div>
-        <div class="col-sm-3">
-            <div class="form-check">
-                <InputCheckbox id="includeNonCore" class="form-check-input"
-                               @bind-Value="model.Settings.IncludeNonCoreOAS" />
-                <label class="form-check-label" for="includeNonCore">
-                    Include non-core OAS streams
-                </label>
-            </div>
-        </div>
-        <div class="col-sm-3">
-            <div class="form-check">
-                <InputCheckbox id="hideLower" class="form-check-input"
-                               @bind-Value="model.Settings.SectionStagesOnly" />
-                <label class="form-check-label" for="hideLower">
-                    Only show the section's stages (@StageRangeDisplay(model.SectionRules))
-                </label>
-            </div>
-        </div>
-        <div class="col-sm-3">
-            <div class="form-check">
-                <InputCheckbox id="showSettings" class="form-check-input"
-                               @bind-Value="model.ShowSettings" />
-                <label class="form-check-label" for="showSettings">
-                    Show settings
-                </label>
-            </div>
-        </div>
-    </div>
 
-    @if (model.ShowSettings)
-    {
-        <div class="card mb-3 settings-card">
-            <div class="card-body">
+            <details class="filters-section">
+                <summary><strong>Advanced settings</strong></summary>
                 <div class="row g-3">
-                    <div class="col-sm-3">
-                        <label class="form-label" for="window">Moving up window (months)</label>
+                    <div class="col-6 col-sm-4">
+                        <label class="form-label small mb-1" for="window">Moving up window (months)</label>
                         <InputNumber id="window" class="form-control" @bind-Value="model.Settings.MoveUpWindowMonths" />
                     </div>
-                    <div class="col-sm-3">
-                        <label class="form-label" for="moveUpAge">Move up age (years)</label>
+                    <div class="col-6 col-sm-4">
+                        <label class="form-label small mb-1" for="moveUpAge">Move up age (years)</label>
                         <InputNumber id="moveUpAge" class="form-control" @bind-Value="model.SectionRules.MoveUpAgeYears" />
                     </div>
-                    <div class="col-sm-3">
-                        <label class="form-label" for="oasRequired">OAS stage progressions for peak award</label>
+                    <div class="col-6 col-sm-4">
+                        <label class="form-label small mb-1" for="oasRequired">OAS stage progressions for peak award</label>
                         <InputNumber id="oasRequired" class="form-control" @bind-Value="model.SectionRules.OASStageProgressionsRequired" />
                     </div>
-                    <div class="col-sm-3">
-                        <label class="form-label" for="coreStage">Minimum stage in core OAS</label>
+                    <div class="col-6 col-sm-4">
+                        <label class="form-label small mb-1" for="coreStage">Minimum stage in core OAS</label>
                         <InputNumber id="coreStage" class="form-control" @bind-Value="model.SectionRules.CoreStageRequired" />
                     </div>
-                    <div class="col-sm-3">
-                        <label class="form-label" for="siaRequired">SIA projects for peak award</label>
+                    <div class="col-6 col-sm-4">
+                        <label class="form-label small mb-1" for="siaRequired">SIA projects for peak award</label>
                         <InputNumber id="siaRequired" class="form-control" @bind-Value="model.SectionRules.SIAProjectsRequired" />
                     </div>
-                    <div class="col-sm-3">
-                        <label class="form-label" for="siaAreas">SIA areas for peak award</label>
+                    <div class="col-6 col-sm-4">
+                        <label class="form-label small mb-1" for="siaAreas">SIA areas for peak award</label>
                         <InputNumber id="siaAreas" class="form-control" @bind-Value="model.SectionRules.SIAAreasRequired" />
                     </div>
-                    <div class="col-sm-3">
-                        <label class="form-label" for="lowestStage">Lowest OAS stage shown</label>
+                    <div class="col-6 col-sm-4">
+                        <label class="form-label small mb-1" for="lowestStage">Lowest OAS stage shown</label>
                         <InputNumber id="lowestStage" class="form-control" @bind-Value="model.SectionRules.LowestStageShown" />
                     </div>
-                    <div class="col-sm-3">
-                        <label class="form-label" for="highestStage">Highest OAS stage shown</label>
+                    <div class="col-6 col-sm-4">
+                        <label class="form-label small mb-1" for="highestStage">Highest OAS stage shown</label>
                         <InputNumber id="highestStage" class="form-control" @bind-Value="model.SectionRules.HighestStageShown" />
                     </div>
-                    <div class="col-sm-3">
-                        <label class="form-label" for="maxStages">OAS stages to analyse in detail</label>
+                    <div class="col-6 col-sm-4">
+                        <label class="form-label small mb-1" for="maxStages">OAS stages to analyse in detail</label>
                         <InputNumber id="maxStages" class="form-control" @bind-Value="model.Settings.MaxGapStages" />
                     </div>
                 </div>
-                <small class="text-muted">Peak award OAS and SIA defaults follow the wording in Terrain. Move up age defaults are a starting point; check them against the current Scouts Australia requirements for @(string.IsNullOrEmpty(model.SectionRules.SectionDisplay) ? "your section" : model.SectionRules.SectionDisplay).</small>
+                <div class="small text-muted mt-2">Peak award OAS and SIA defaults follow the wording in Terrain. Move up age defaults are a starting point; check them against the current Scouts Australia requirements for @(string.IsNullOrEmpty(model.SectionRules.SectionDisplay) ? "your section" : model.SectionRules.SectionDisplay).</div>
+            </details>
+
+            <div class="filters-actions">
+                <button type="button" class="btn btn-outline-secondary" @onclick="ToggleFilters">Close</button>
+                <button type="button" class="btn btn-primary" @onclick="ApplyFilters" disabled="@analysing">Apply</button>
             </div>
         </div>
     }
 
-    <div class="mt-3 mb-3 row">
-        <div class="col-sm">
-            <button type="submit" name="button" @onclick="AnalyseClick" class="btn btn-primary">Analyse unit</button>
-            <small class="text-muted ms-2">Loads every youth's progress from Terrain, so the first run for a unit can take a few minutes.</small>
+    @if (analysing)
+    {
+        <div class="loading-note mb-3">
+            @if (LoadingYouth && LoadProgress.Total > 0)
+            {
+                <div class="small">Loading youth @LoadProgress.Done of @LoadProgress.Total from Terrain...</div>
+                <div class="progress mt-1" style="height:6px">
+                    <div class="progress-bar" style="width:@((100.0 * LoadProgress.Done / LoadProgress.Total).ToString("0"))%"></div>
+                </div>
+            }
+            else
+            {
+                <div class="small">Working out the unit's gaps...</div>
+            }
         </div>
-    </div>
+    }
 
-    <div class="mt-3 mb-3 row">
-        <label class="col-form-label validation-message">@model.ErrorMessage</label>
-    </div>
+    @if (!string.IsNullOrEmpty(model.ErrorMessage))
+    {
+        <div class="validation-message mb-3">@model.ErrorMessage</div>
+    }
 </EditForm>
 
 @if (model.Report != null && model.Report.YouthCount > 0)
@@ -189,7 +188,7 @@
     @if (model.SelectedTab == InsightsTab.OASGaps)
     {
         <h4>Unit completion</h4>
-        <p class="text-muted">How many youth have completed each stage, out of @report.YouthCount youth. Click a stream to list each youth under the lowest stage they haven't completed. Pale rows are streams the unit is lacking.@(report.StreamCoverage.All(s => s.IsCore) ? " Core streams only; tick \"Include non-core OAS streams\" and analyse again to see the others." : "")</p>
+        <p class="text-muted">How many youth have completed each stage, out of @report.YouthCount youth. Click a stream to list each youth under the lowest stage they haven't completed. Pale rows are streams the unit is lacking.@(report.StreamCoverage.All(s => s.IsCore) ? " Core streams only; turn on \"Include non-core OAS streams\" in Filters to see the others." : "")</p>
         <div class="table-responsive mb-4">
             <table class="table table-sm heatmap">
                 <thead>

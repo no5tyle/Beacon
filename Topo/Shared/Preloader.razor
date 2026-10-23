@@ -1,0 +1,24 @@
+@* Starts loading slow unit data in the background whenever a leader is signed in with a unit chosen *@
+@inject Topo.Services.PreloadService _preloadService
+@inject Topo.Services.StorageService _storageService
+@inject NavigationManager NavigationManager
+@implements IDisposable
+
+@code {
+    protected override void OnInitialized()
+    {
+        _storageService.OnChange += Start;
+        NavigationManager.LocationChanged += LocationChanged;
+        Start();
+    }
+
+    private void LocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e) => Start();
+
+    private void Start() => _preloadService.StartIfReady();
+
+    public void Dispose()
+    {
+        _storageService.OnChange -= Start;
+        NavigationManager.LocationChanged -= LocationChanged;
+    }
+}

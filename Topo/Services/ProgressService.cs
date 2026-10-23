@@ -19,8 +19,11 @@ namespace Topo.Services
         private readonly IMembersService _memberService;
         private int _oasProgressionCount = 0;
 
-        public ProgressService(StorageService storageService, ITerrainAPIService terrainAPIService, IMembersService memberService)
+        private readonly TerrainProfileGate _profileGate;
+
+        public ProgressService(StorageService storageService, ITerrainAPIService terrainAPIService, IMembersService memberService, TerrainProfileGate profileGate)
         {
+            _profileGate = profileGate;
             _storageService = storageService;
             _terrainAPIService = terrainAPIService;
             _memberService = memberService;
@@ -37,10 +40,13 @@ namespace Topo.Services
             progressDetailsPageViewModel.IntroToSectionDate = introToSectionDate.ToString("dd/MM/yyyy");
             progressDetailsPageViewModel.Milestones = await GetMilestoneSummaries(memberId);
             progressDetailsPageViewModel.OASSummaries = await GetOASSummaries(memberId);
-            await _terrainAPIService.RevokeAssumedProfiles();
-            await _terrainAPIService.AssumeProfile(memberId);
-            progressDetailsPageViewModel.Stats = await GetStats(memberId, introToSectionDate);
-            await _terrainAPIService.RevokeAssumedProfiles();
+            using (await _profileGate.ActAsYouth())
+            {
+                await _terrainAPIService.RevokeAssumedProfiles();
+                await _terrainAPIService.AssumeProfile(memberId);
+                progressDetailsPageViewModel.Stats = await GetStats(memberId, introToSectionDate);
+                await _terrainAPIService.RevokeAssumedProfiles();
+            }
             progressDetailsPageViewModel.SIASummaries = await GetSIASummaries(memberId);
             progressDetailsPageViewModel.PeakAward = await GetPeakAwardSummary(memberId);
 
