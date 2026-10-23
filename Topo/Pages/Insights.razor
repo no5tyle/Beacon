@@ -53,32 +53,40 @@
 
     <div class="mt-3 mb-3 row">
         <div class="col-sm-3">
-            <InputCheckbox id="suppressLastName" class="form-check-input"
-                           @bind-Value="model.SuppressLastName" />
-            <label class="form-check-label" for="suppressLastName">
-                Suppress Last Name
-            </label>
+            <div class="form-check">
+                <InputCheckbox id="suppressLastName" class="form-check-input"
+                               @bind-Value="model.SuppressLastName" />
+                <label class="form-check-label" for="suppressLastName">
+                    Suppress Last Name
+                </label>
+            </div>
         </div>
         <div class="col-sm-3">
-            <InputCheckbox id="includeNonCore" class="form-check-input"
-                           @bind-Value="model.Settings.IncludeNonCoreOAS" />
-            <label class="form-check-label" for="includeNonCore">
-                Include non-core OAS streams
-            </label>
+            <div class="form-check">
+                <InputCheckbox id="includeNonCore" class="form-check-input"
+                               @bind-Value="model.Settings.IncludeNonCoreOAS" />
+                <label class="form-check-label" for="includeNonCore">
+                    Include non-core OAS streams
+                </label>
+            </div>
         </div>
         <div class="col-sm-3">
-            <InputCheckbox id="hideLower" class="form-check-input"
-                           @bind-Value="model.Settings.SectionStagesOnly" />
-            <label class="form-check-label" for="hideLower">
-                Only show the section's stages (@StageRangeDisplay(model.SectionRules))
-            </label>
+            <div class="form-check">
+                <InputCheckbox id="hideLower" class="form-check-input"
+                               @bind-Value="model.Settings.SectionStagesOnly" />
+                <label class="form-check-label" for="hideLower">
+                    Only show the section's stages (@StageRangeDisplay(model.SectionRules))
+                </label>
+            </div>
         </div>
         <div class="col-sm-3">
-            <InputCheckbox id="showSettings" class="form-check-input"
-                           @bind-Value="model.ShowSettings" />
-            <label class="form-check-label" for="showSettings">
-                Show settings
-            </label>
+            <div class="form-check">
+                <InputCheckbox id="showSettings" class="form-check-input"
+                               @bind-Value="model.ShowSettings" />
+                <label class="form-check-label" for="showSettings">
+                    Show settings
+                </label>
+            </div>
         </div>
     </div>
 
@@ -164,7 +172,7 @@
         </div>
     </div>
 
-    <ul class="nav nav-tabs mb-3">
+    <ul class="nav nav-tabs nav-tabs-scroll mb-3">
         <li class="nav-item">
             <button class="nav-link @(model.SelectedTab == InsightsTab.OASGaps ? "active" : "")" @onclick="() => SelectTab(InsightsTab.OASGaps)">OAS gaps</button>
         </li>
@@ -260,7 +268,7 @@
                 else
                 {
                     <div class="table-responsive mb-3">
-                        <table class="table table-sm table-hover align-middle">
+                        <table class="table table-sm table-hover align-middle table-stack">
                             <thead>
                                 <tr>
                                     <th>Stage</th>
@@ -275,16 +283,16 @@
                                 {
                                     var expanded = IsGapExpanded(gap);
                                     <tr class="gap-row @(expanded ? "expanded" : "")" @onclick="() => ToggleGap(gap)" title="@(expanded ? "Click to collapse" : "Click for details and who's missing")">
-                                        <td class="text-nowrap">@gap.StreamDisplay @gap.Stage</td>
-                                        <td>@gap.InputGroup</td>
-                                        <td>
+                                        <td class="text-nowrap" data-label="Stage">@gap.StreamDisplay @gap.Stage</td>
+                                        <td data-label="Part">@gap.InputGroup</td>
+                                        <td class="stack-title">
                                             @gap.InputLabel
                                             @if (expanded && !string.IsNullOrWhiteSpace(gap.InputDetail))
                                             {
                                                 <div class="statement-detail"><em>@gap.InputDetail.Trim()</em></div>
                                             }
                                         </td>
-                                        <td><span class="badge bg-info text-dark">@gap.Theme</span></td>
+                                        <td data-label="Theme"><span class="badge bg-info text-dark">@gap.Theme</span></td>
                                         <td class="missing-youth">
                                             <div class="count-line">
                                                 <span class="count-label">Working on it</span>
@@ -435,7 +443,7 @@
         *@
         <h4>Skill themes across outstanding requirements</h4>
         <div class="table-responsive mb-4">
-            <table class="table table-sm align-middle">
+            <table class="table table-sm align-middle table-stack">
                 <thead>
                     <tr>
                         <th>Theme</th>
@@ -450,11 +458,11 @@
                     @foreach (var theme in report.SkillThemes)
                     {
                         <tr>
-                            <td><strong>@theme.Name</strong><br /><small class="text-muted">@theme.Description</small></td>
-                            <td class="text-end">@theme.ActiveMemberIds.Count</td>
-                            <td class="text-end">@theme.MemberIds.Count</td>
-                            <td class="text-end">@theme.PriorityMemberCount</td>
-                            <td class="text-end">@theme.OutstandingRequirements</td>
+                            <td class="stack-title"><strong>@theme.Name</strong><br /><small class="text-muted">@theme.Description</small></td>
+                            <td class="text-end" data-label="Working on it">@theme.ActiveMemberIds.Count</td>
+                            <td class="text-end" data-label="All eligible still needing">@theme.MemberIds.Count</td>
+                            <td class="text-end" data-label="Priority">@theme.PriorityMemberCount</td>
+                            <td class="text-end" data-label="Requirements">@theme.OutstandingRequirements</td>
                             <td class="text-end"><button class="btn btn-sm btn-outline-secondary" @onclick="() => ToggleTheme(theme.Name)">@(model.ExpandedThemes.Contains(theme.Name) ? "Hide" : "Show")</button></td>
                         </tr>
                         @if (model.ExpandedThemes.Contains(theme.Name))

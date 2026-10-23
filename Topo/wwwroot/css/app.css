@@ -133,6 +133,68 @@ a, .btn-link {
         margin-bottom: 0.25rem;
     }
 
+    /*
+        Tables with table-stack become one card per row the same way: data-label on each cell,
+        and stack-title on the cell to show first as the card heading.
+    */
+    .table-stack thead {
+        display: none;
+    }
+
+    .table-stack, .table-stack tbody {
+        display: block;
+    }
+
+    .table-stack tr {
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 0.5rem;
+        padding: 0.5rem 0.75rem;
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+    }
+
+    .table-stack td {
+        display: flex;
+        gap: 0.75rem;
+        padding: 0.15rem 0;
+        border: 0;
+        text-align: left !important;
+        white-space: normal !important;
+    }
+
+    .table-stack td[data-label]::before {
+        content: attr(data-label);
+        flex: 0 0 9.5rem;
+        color: #6c757d;
+    }
+
+    .table-stack td.stack-title {
+        order: -1;
+        display: block;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+
+    .table-stack td.stack-title small {
+        font-weight: normal;
+    }
+
+    .table-stack td:not([data-label]):not(.stack-title) {
+        display: block;
+    }
+
+    /* Tabs scroll sideways rather than wrapping onto a second line */
+    .nav-tabs-scroll {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+    }
+
+    .nav-tabs-scroll .nav-link {
+        white-space: nowrap;
+    }
+
     /* Big enough to tap */
     .btn, .form-select, .form-control {
         min-height: 44px;
