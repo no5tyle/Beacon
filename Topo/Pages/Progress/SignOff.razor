@@ -1,0 +1,232 @@
+@page "/oas/sign-off"
+@inherits Controller.OASSignOffController
+@using Topo.Controller
+@using Topo.Model.OAS
+
+<PageTitle>Topo / OAS Sign Off</PageTitle>
+
+<div class="sign-off">
+    <h2 class="mt-3 mb-1">OAS sign off</h2>
+    <ol class="steps mb-3">
+        <li class="@(step == SignOffStep.Statements ? "current" : "done")">Statements</li>
+        <li class="@(step == SignOffStep.Youth ? "current" : step == SignOffStep.Review ? "done" : "")">Youth</li>
+        <li class="@(step == SignOffStep.Review ? "current" : "")">Save</li>
+    </ol>
+
+    @if (!string.IsNullOrEmpty(message))
+    {
+        <div class="alert alert-danger py-2">@message</div>
+    }
+
+    @if (step == SignOffStep.Statements)
+    {
+        <div class="chip-group mb-2">
+            @foreach (var stream in Streams())
+            {
+                <button type="button" class="btn chip @(stream == selectedStream ? "btn-primary" : "btn-outline-primary")" @onclick="() => SelectStream(stream)" disabled="@loading">@stream</button>
+            }
+            <button type="button" class="btn btn-link chip-more" @onclick="() => showNonCoreOAS = !showNonCoreOAS">@(showNonCoreOAS ? "Fewer streams" : "More streams")</button>
+        </div>
+
+        @if (!string.IsNullOrEmpty(selectedStream))
+        {
+            <div class="chip-group mb-3">
+                @foreach (var option in StagesForStream())
+                {
+                    <button type="button" class="btn chip @(option.TemplateLink == stage?.TemplateLink ? "btn-primary" : "btn-outline-primary")" @onclick="() => SelectStage(option)" disabled="@loading">@StageButtonText(option)</button>
+                }
+            </div>
+        }
+
+        @if (loading)
+        {
+            <p class="text-muted">Loading...</p>
+        }
+        else if (stage != null && statements.Any())
+        {
+            @if (!LeadersCanVerify)
+            {
+                <div class="alert alert-warning small py-2">Adult leaders can't verify Stage @(OASRecording.MaxLeaderVerifiableStage + 1) and above, so only the logbook can be ticked here.</div>
+            }
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <strong>@StageName</strong>
+                <button type="button" class="btn btn-link btn-sm p-0" @onclick="SelectAllStatements">Select all</button>
+            </div>
+            @foreach (var group in statements.GroupBy(s => s.Group))
+            {
+                <div class="group-title">@group.Key</div>
+                @foreach (var statement in group)
+                {
+                    var id = $"st-{statement.InputId}";
+                    <label class="pick-row @(CanSelect(statement) ? "" : "disabled")" for="@id">
+                        <input id="@id" type="checkbox" class="form-check-input" checked="@selectedStatements.Contains(statement.InputId)" disabled="@(!CanSelect(statement))" @onchange="() => ToggleStatement(statement)" />
+                        <span>@statement.Label</span>
+                    </label>
+                }
+            }
+        }
+
+        <div class="action-bar">
+            <span class="small text-muted">@selectedStatements.Count statement@(selectedStatements.Count == 1 ? "" : "s")</span>
+            <button type="button" class="btn btn-primary" @onclick="GoToYouth" disabled="@(!selectedStatements.Any() || loading)">Choose youth</button>
+        </div>
+    }
+
+    @if (step == SignOffStep.Youth)
+    {
+        <div class="small text-muted mb-2">@StageName · @selectedStatements.Count statement@(selectedStatements.Count == 1 ? "" : "s")</div>
+
+        @if (string.IsNullOrEmpty(unitId) || Units.Count > 1)
+        {
+            <select class="form-select mb-2" value="@unitId" @onchange="UnitChange" disabled="@loading">
+                <option value="">Select unit</option>
+                @foreach (var unit in Units)
+                {
+                    <option value="@unit.Key">@unit.Value</option>
+                }
+            </select>
+        }
+
+        @if (loading)
+        {
+            <p class="text-muted">Loading the unit's youth...</p>
+        }
+        else if (youth.Any())
+        {
+            <div class="d-flex justify-content-end mb-1">
+                <button type="button" class="btn btn-link btn-sm p-0" @onclick="SelectAllYouth">Select everyone who needs it</button>
+            </div>
+            @foreach (var member in youth)
+            {
+                var state = YouthState(member.id);
+                var id = $"youth-{member.id}";
+                <label class="pick-row @(state.State == SignOffState.ToAdd ? "" : "disabled")" for="@id">
+                    <input id="@id" type="checkbox" class="form-check-input" checked="@selectedYouth.Contains(member.id)" disabled="@(state.State != SignOffState.ToAdd)" @onchange="() => ToggleYouth(member.id)" />
+                    <span class="flex-grow-1">
+                        @member.first_name @member.last_name
+                        <small class="d-block text-muted">
+                            @member.patrol_name
+                            @if (state.State == SignOffState.AlreadyDone)
+                            {
+                                <span> · already has @(selectedStatements.Count == 1 ? "it" : "these")</span>
+                            }
+                            else if (state.State == SignOffState.Locked)
+                            {
+                                <span> · @StatusDisplay(state.Status), can't change</span>
+                            }
+                            else if (state.ToAddCount < selectedStatements.Count)
+                            {
+                                <span> · @state.ToAddCount of @selectedStatements.Count new</span>
+                            }
+                        </small>
+                    </span>
+                </label>
+            }
+        }
+
+        <div class="action-bar">
+            <button type="button" class="btn btn-outline-secondary" @onclick="GoToStatements">Back</button>
+            <button type="button" class="btn btn-primary" @onclick="GoToReview" disabled="@(!selectedYouth.Any() || loading)">Review @selectedYouth.Count youth</button>
+        </div>
+    }
+
+    @if (step == SignOffStep.Review)
+    {
+        @if (!outcomes.Any())
+        {
+            <div class="review-card mb-3">
+                <div class="fw-semibold">@StageName</div>
+                <ul class="small mb-2">
+                    @foreach (var statement in statements.Where(s => selectedStatements.Contains(s.InputId)))
+                    {
+                        <li>@statement.Label</li>
+                    }
+                </ul>
+                <div class="fw-semibold">For @selectedYouth.Count youth</div>
+                <div class="small">@string.Join(", ", SelectedYouthInOrder().Select(m => $"{m.first_name} {m.last_name}"))</div>
+            </div>
+
+            @if (NeedsVerifier)
+            {
+                <label class="form-label small mb-1" for="verifierName">Verifier name</label>
+                <input id="verifierName" class="form-control mb-2" @bind="verifier.Name" />
+                <label class="form-label small mb-1" for="verifierContact">Verifier email or phone</label>
+                <input id="verifierContact" class="form-control mb-1" @bind="verifier.Contact" @bind:event="oninput" />
+                <div class="small text-muted mb-3">Recorded in Terrain as verified by a Scout member, dated today.</div>
+            }
+
+            <p class="small text-muted">
+                Topo switches to each youth's profile in turn, adds only the statements they don't already have, then switches back.
+                Nothing already recorded is changed, and the stages aren't submitted. Keep this page open until it finishes.
+            </p>
+
+            <div class="action-bar">
+                <button type="button" class="btn btn-outline-secondary" @onclick="BackToYouth">Back</button>
+                <button type="button" class="btn btn-success" @onclick="SaveAll" disabled="@(!VerifierValid)">Sign off @selectedYouth.Count youth</button>
+            </div>
+        }
+        else
+        {
+            <div class="mb-2">
+                <strong>@StageName</strong>
+                <div class="progress mt-1" style="height:8px">
+                    <div class="progress-bar bg-success" style="width:@((100.0 * outcomes.Values.Count(o => o.State != SignOffOutcomeState.Waiting && o.State != SignOffOutcomeState.Saving) / outcomes.Count).ToString("0"))%"></div>
+                </div>
+            </div>
+            @foreach (var (memberId, outcome) in outcomes)
+            {
+                var member = youth.FirstOrDefault(m => m.id == memberId);
+                <div class="result-row">
+                    <span class="result-icon @outcome.State.ToString().ToLower()">
+                        @switch (outcome.State)
+                        {
+                            case SignOffOutcomeState.Saved:
+                                <span class="oi oi-check" aria-hidden="true"></span>
+                                break;
+                            case SignOffOutcomeState.Failed:
+                                <span class="oi oi-x" aria-hidden="true"></span>
+                                break;
+                            case SignOffOutcomeState.Skipped:
+                                <span class="oi oi-minus" aria-hidden="true"></span>
+                                break;
+                            case SignOffOutcomeState.Saving:
+                                <span class="spinner-border spinner-border-sm" role="status"></span>
+                                break;
+                        }
+                    </span>
+                    <span class="flex-grow-1">
+                        @member?.first_name @member?.last_name
+                        <small class="d-block text-muted">
+                            @switch (outcome.State)
+                            {
+                                case SignOffOutcomeState.Saved:
+                                    @($"Saved {outcome.SavedCount} statement{(outcome.SavedCount == 1 ? "" : "s")}")
+                                    break;
+                                case SignOffOutcomeState.Saving:
+                                    @("Saving...")
+                                    break;
+                                case SignOffOutcomeState.Waiting:
+                                    @("Waiting")
+                                    break;
+                                default:
+                                    @outcome.Message
+                                    break;
+                            }
+                        </small>
+                    </span>
+                </div>
+            }
+
+            @if (Finished)
+            {
+                <div class="alert @(OutcomeCount(SignOffOutcomeState.Failed) > 0 ? "alert-warning" : "alert-success") mt-3 py-2">
+                    Saved for @OutcomeCount(SignOffOutcomeState.Saved) youth@(OutcomeCount(SignOffOutcomeState.Skipped) > 0 ? $", {OutcomeCount(SignOffOutcomeState.Skipped)} skipped" : "")@(OutcomeCount(SignOffOutcomeState.Failed) > 0 ? $", {OutcomeCount(SignOffOutcomeState.Failed)} failed. Check them in Terrain before trying again." : ".")
+                </div>
+                <div class="action-bar">
+                    <button type="button" class="btn btn-outline-primary" @onclick="MoreYouth">Same statements, more youth</button>
+                    <button type="button" class="btn btn-primary" @onclick="StartAgain">New sign off</button>
+                </div>
+            }
+        }
+    }
+</div>

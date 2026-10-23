@@ -1,0 +1,169 @@
+.sign-off {
+    max-width: 640px;
+    /* Room for the action bar at the bottom */
+    padding-bottom: 5rem;
+}
+
+.steps {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0;
+    list-style: none;
+    counter-reset: step;
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+.steps li {
+    counter-increment: step;
+}
+
+.steps li::before {
+    content: counter(step);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.4rem;
+    height: 1.4rem;
+    margin-right: 0.3rem;
+    border-radius: 50%;
+    background: #e9ecef;
+    font-size: 0.75rem;
+}
+
+.steps li.current {
+    color: #052767;
+    font-weight: 600;
+}
+
+.steps li.current::before {
+    background: #052767;
+    color: #fff;
+}
+
+.steps li.done::before {
+    background: #198754;
+    color: #fff;
+}
+
+.chip-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.chip {
+    min-height: 44px;
+}
+
+.chip-more {
+    min-height: 44px;
+    padding-left: 0.25rem;
+}
+
+.group-title {
+    margin-top: 0.75rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #495057;
+}
+
+/* The whole row is the tap target */
+.pick-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.7rem 0.25rem;
+    border-bottom: 1px solid #f1f3f5;
+    cursor: pointer;
+}
+
+.pick-row .form-check-input {
+    flex-shrink: 0;
+    width: 1.4rem;
+    height: 1.4rem;
+    margin-top: 0;
+}
+
+.pick-row.disabled {
+    color: #adb5bd;
+    cursor: default;
+}
+
+.review-card {
+    border: 1px solid #dee2e6;
+    border-radius: 0.4rem;
+    padding: 0.75rem 0.9rem;
+}
+
+.result-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.25rem;
+    border-bottom: 1px solid #f1f3f5;
+}
+
+.result-icon {
+    flex: 0 0 1.6rem;
+    height: 1.6rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    color: #fff;
+    background: #dee2e6;
+}
+
+.result-icon.saved {
+    background: #198754;
+}
+
+.result-icon.failed {
+    background: #dc3545;
+}
+
+.result-icon.skipped {
+    background: #adb5bd;
+}
+
+.result-icon.saving {
+    background: none;
+    color: #052767;
+}
+
+.result-icon .oi {
+    width: auto;
+    font-size: 0.8rem;
+    top: 0;
+}
+
+/* Main action stays within thumb reach at the bottom of the screen */
+.action-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.6rem 1rem calc(0.6rem + env(safe-area-inset-bottom));
+    background: #fff;
+    border-top: 1px solid #dee2e6;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.action-bar .btn {
+    min-height: 44px;
+}
+
+/* Beside the sidebar on wider screens */
+@media (min-width: 641px) {
+    .action-bar {
+        left: 250px;
+        padding-left: 2rem;
+        padding-right: 1.5rem;
+    }
+}

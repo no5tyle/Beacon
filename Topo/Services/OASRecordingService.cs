@@ -9,6 +9,9 @@ namespace Topo.Services
         public Task<TerrainWriteResult> SaveVerifications(OASRecordingState state, List<OASStatement> newlyTicked, OASVerifier verifier);
         public Task<TerrainWriteResult> SubmitForReview(OASRecordingState state);
         public OASVerifier DefaultVerifier();
+        public Task<GetOASTemplateResultModel> LoadTemplate(OASStageListModel stage);
+        public Task<Dictionary<string, Result>> LoadUnitStage(string unitId, OASStageListModel stage);
+        public Task<SignOffOutcome> SignOff(string memberId, OASStageListModel stage, IReadOnlyCollection<string> inputIds, OASVerifier verifier);
     }
 
     // One youth's OAS stage as Topo shows it on the Record OAS page
@@ -145,6 +148,48 @@ namespace Topo.Services
             {
                 await _terrainAPIService.RevokeAssumedProfiles();
             }
+        }
+
+        public async Task<GetOASTemplateResultModel> LoadTemplate(OASStageListModel stage)
+        {
+            return await _terrainAPIService.GetOASTemplateAsync(stage.TemplateLink.Replace("/latest.json", "")) ?? new GetOASTemplateResultModel();
+        }
+
+        // Every youth's record for the stage in one request, to show who each statement would be new for
+        public async Task<Dictionary<string, Result>> LoadUnitStage(string unitId, OASStageListModel stage)
+        {
+            var results = await _terrainAPIService.GetUnitOASAchievements(unitId, stage.Stream.ToLowerInvariant(), stage.Branch, stage.Stage);
+            return OASSignOff.LatestByMember(results?.results ?? new Result[0], stage.Branch);
+        }
+
+        // Adds the statements one youth doesn't have yet, reading their record fresh from Terrain first
+        public async Task<SignOffOutcome> SignOff(string memberId, OASStageListModel stage, IReadOnlyCollection<string> inputIds, OASVerifier verifier)
+        {
+            OASRecordingState state;
+            try
+            {
+                state = await LoadStage(memberId, stage);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "OAS sign off: load failed");
+                return new SignOffOutcome { State = SignOffOutcomeState.Failed, Message = "Couldn't load their record from Terrain." };
+            }
+
+            if (!OASRecording.IsEditable(state.Status))
+                return new SignOffOutcome { State = SignOffOutcomeState.Skipped, Message = "Already submitted or complete." };
+            var newlyTicked = state.Statements.Where(s => inputIds.Contains(s.InputId) && !s.AlreadyDone).ToList();
+            if (!newlyTicked.Any())
+                return new SignOffOutcome { State = SignOffOutcomeState.Skipped, Message = "Already had these." };
+
+            var result = await SaveVerifications(state, newlyTicked, verifier);
+            if (result.Success)
+                return new SignOffOutcome { State = SignOffOutcomeState.Saved, SavedCount = newlyTicked.Count };
+            return new SignOffOutcome
+            {
+                State = SignOffOutcomeState.Failed,
+                Message = result.StatusCode > 0 ? $"Terrain didn't accept it (response {result.StatusCode})." : result.Body
+            };
         }
 
         public OASVerifier DefaultVerifier()
