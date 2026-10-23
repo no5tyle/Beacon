@@ -4,8 +4,8 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Topo</title>
-    <link rel="icon" type="image/x-icon" href="G12-Map-icon-64.png"> <!--Icon from http://raindropmemory.deviantart.com/-->
+    <title>Beacon</title>
+    <link rel="icon" type="image/png" href="favicon-32.png">
     <base href="/Topo-Blazor/" />
     <link href="css/bootstrap/bootstrap.min.css" rel="stylesheet" />
     <link href="css/app.css" rel="stylesheet" />
@@ -15,8 +15,8 @@
     <link href="lib/select2/select2.min.css" rel="stylesheet" />
     <script src="lib/select2/select2.min.js"></script>
     <script>
-        // Topo and Topo Reference install as two separate apps: the reference/ address gets the Reference app's
-        // name, icon and offline support, and every other address gets Topo's own
+        // Beacon and Beacon Reference install as two separate apps: the reference/ address gets the Reference app's
+        // name, icon and offline support, and every other address gets Beacon's own
         (function () {
             var base = new URL(document.baseURI).pathname;
             function add(tag, attributes) {
@@ -28,7 +28,7 @@
             if (!location.pathname.startsWith(base + "reference")) {
                 add("link", { rel: "manifest", href: "manifest.webmanifest" });
                 add("link", { rel: "apple-touch-icon", href: "apple-touch-icon.png" });
-                add("meta", { name: "apple-mobile-web-app-title", content: "Topo" });
+                add("meta", { name: "apple-mobile-web-app-title", content: "Beacon" });
                 add("meta", { name: "apple-mobile-web-app-capable", content: "yes" });
                 add("meta", { name: "mobile-web-app-capable", content: "yes" });
                 add("meta", { name: "theme-color", content: "#052767" });
@@ -36,10 +36,10 @@
                     navigator.serviceWorker.register(new URL("service-worker.js", document.baseURI), { scope: base });
                 return;
             }
-            document.title = "Topo Reference";
+            document.title = "Beacon Reference";
             add("link", { rel: "manifest", href: "reference/manifest.webmanifest" });
             add("link", { rel: "apple-touch-icon", href: "reference/apple-touch-icon.png" });
-            add("meta", { name: "apple-mobile-web-app-title", content: "Topo Reference" });
+            add("meta", { name: "apple-mobile-web-app-title", content: "Beacon Reference" });
             add("meta", { name: "apple-mobile-web-app-capable", content: "yes" });
             add("meta", { name: "mobile-web-app-capable", content: "yes" });
             add("meta", { name: "theme-color", content: "#052767" });
@@ -58,10 +58,10 @@
     <div id="app">
         <div class="mt-3 mb-3 row text-center">
             <p />
-            <h2>Topo, helping you navigate the Terrain</h2>
+            <h2>Beacon, lighting the way through the Terrain</h2>
             <p />
             <p />
-            <h4>Please wait while Topo loads</h4>
+            <h4>Please wait while Beacon loads</h4>
         </div>
     </div>
 
@@ -127,7 +127,7 @@
         return window.confirm(message);
     }
 
-    // True when the Topo Reference service worker is in control, so fetched files are kept for offline use
+    // True when the Beacon Reference service worker is in control, so fetched files are kept for offline use
     function topoOfflineSupported() {
         return !!(navigator.serviceWorker && navigator.serviceWorker.controller);
     }

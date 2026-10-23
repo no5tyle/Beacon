@@ -1,4 +1,4 @@
-// Service worker for the installed Topo Reference app.
+// Service worker for the installed Beacon Reference app.
 // Network first so the app always picks up new releases and template changes,
 // falling back to the last copy seen so the reference still opens without signal.
 const CACHE_PREFIX = "topo-reference-";
@@ -9,7 +9,7 @@ self.addEventListener("install", () => self.skipWaiting());
 
 self.addEventListener("activate", event => {
     event.waitUntil((async () => {
-        // Leave the main Topo app's cache alone
+        // Leave the main Beacon app's cache alone
         for (const key of await caches.keys()) {
             if (key.startsWith(CACHE_PREFIX) && key !== CACHE)
                 await caches.delete(key);

@@ -1,7 +1,7 @@
 {
   "id": "./",
-  "name": "Topo",
-  "short_name": "Topo",
+  "name": "Beacon",
+  "short_name": "Beacon",
   "description": "Reports, progress and unit insights from Scouts Australia's Terrain, for leaders.",
   "start_url": "./",
   "scope": "./",
