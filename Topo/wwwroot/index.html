@@ -159,6 +159,40 @@
         return saved;
     }
 
+    // Login page: focus the first empty field, and log in straight away when a password manager fills the
+    // member number and password. Anything typed into the password field means it wasn't filled, so then
+    // the leader taps Log In as usual. Only tries once per visit, so a failed login doesn't loop.
+    function beaconLoginPage() {
+        var branch = document.getElementById("branch");
+        var member = document.getElementById("memberNumber");
+        var password = document.getElementById("password");
+        var button = document.getElementById("logIn");
+        if (!branch || !member || !password || !button)
+            return;
+
+        var firstEmpty = [branch, member, password].find(function (field) { return !field.value; });
+        if (firstEmpty)
+            firstEmpty.focus();
+
+        var typed = false;
+        var tried = false;
+        password.addEventListener("keydown", function () { typed = true; });
+        function loginIfFilled() {
+            if (typed || tried || !branch.value || !member.value || !password.value)
+                return;
+            tried = true;
+            // Make sure Blazor has the filled values before logging in
+            member.dispatchEvent(new Event("change", { bubbles: true }));
+            password.dispatchEvent(new Event("change", { bubbles: true }));
+            setTimeout(function () { button.click(); }, 50);
+        }
+        function soon() { setTimeout(loginIfFilled, 150); }
+        password.addEventListener("input", soon);
+        password.addEventListener("change", soon);
+        // The branch isn't filled by password managers; picking it after the fill also logs in
+        branch.addEventListener("change", function () { if (password.value) soon(); });
+    }
+
     // Copy text to the clipboard, falling back to a hidden textarea where the Clipboard API is blocked
     async function copyText(text) {
         try {

@@ -1,5 +1,6 @@
 ﻿using Blazored.LocalStorage;
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 using Topo.Model.Login;
 using Topo.Services;
 
@@ -19,6 +20,9 @@ namespace Topo.Controller
         [Inject]
         public ILocalStorageService _localStorageService { get; set; }
 
+        [Inject]
+        public IJSRuntime JS { get; set; }
+
         public LoginPageViewModel model = new LoginPageViewModel();
 
         // Only the branch is remembered; the phone's password manager can fill in the member number and password
@@ -35,6 +39,27 @@ namespace Topo.Controller
             catch
             {
                 // Storage can be unavailable, e.g. in a private window; the branch just isn't preselected
+            }
+            branchLoaded = true;
+        }
+
+        private bool branchLoaded;
+        private bool pageWired;
+
+        // Once the form is on screen with any remembered branch filled in: put the cursor in the first empty
+        // field, and log in as soon as a password manager fills the member number and password
+        protected override async Task OnAfterRenderAsync(bool firstRender)
+        {
+            if (pageWired || !branchLoaded)
+                return;
+            pageWired = true;
+            try
+            {
+                await JS.InvokeVoidAsync("beaconLoginPage");
+            }
+            catch (JSException)
+            {
+                // Without it the form still works as normal
             }
         }
 
