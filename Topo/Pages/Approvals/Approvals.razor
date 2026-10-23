@@ -56,13 +56,17 @@
         <div class="col-sm-2">
         </div>
         <div class="col-sm-3">
-            <button type="submit" name="button" class="btn btn-primary" @onclick="RefreshApprovalsClick">Refresh list</button>
+            <button type="submit" name="button" class="btn btn-primary" @onclick="RefreshApprovalsClick" disabled="@loadingApprovals">Refresh list</button>
         </div>
         <div class="col-sm-7">
         </div>
     </div>
 
-    @if (model.Approvals != null && model.Approvals.Any())
+    @if (loadingApprovals)
+    {
+        <p class="text-muted">Loading approvals from Terrain...</p>
+    }
+    else if (model.Approvals != null && model.Approvals.Any())
     {
         <div class="mt-3 mb-2 row g-2 align-items-end">
             <div class="col-sm-4 name-filter">

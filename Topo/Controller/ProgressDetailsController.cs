@@ -50,6 +50,8 @@ namespace Topo.Controller
         public bool promptPreview;
         public string promptStatus = "";
 
+        public bool loadingDetails = true;
+
         protected override async Task OnInitializedAsync()
         {
             if (!_storageService.IsAuthenticated)
@@ -57,6 +59,7 @@ namespace Topo.Controller
 
             model = await _progressService.GetProgressDetailsPageViewModel(MemberId);
             model.GroupName = _storageService.GroupNameDisplay;
+            loadingDetails = false;
 
             // Show the progress straight away, then fill in the insights which need extra OAS lookups
             StateHasChanged();

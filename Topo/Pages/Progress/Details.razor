@@ -6,8 +6,15 @@
 <EditForm Model="@model">
 
     <div class="mt-3 mb-3 row">
-        <h2>Progress Details for @model.Member.first_name @model.Member.last_name</h2>
+        <h2>Progress Details@(loadingDetails ? "" : $" for {model.Member.first_name} {model.Member.last_name}")</h2>
     </div>
+
+    @if (loadingDetails)
+    {
+        <p class="text-muted">Loading progress from Terrain...</p>
+    }
+    else
+    {
 
     <div class="card mt-3 mb-3 insights-card">
         <div class="card-header d-flex flex-wrap justify-content-between gap-2">
@@ -575,4 +582,5 @@
     <div class="mt-3 mb-3">
         <a href="progress/progress" class="btn btn-primary">Back</a>
     </div>
+    }
 </EditForm>

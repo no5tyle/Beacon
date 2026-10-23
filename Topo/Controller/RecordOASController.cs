@@ -35,6 +35,7 @@ namespace Topo.Controller
         public HashSet<string> ticked = new HashSet<string>();
         public OASVerifier verifier = new OASVerifier();
         public bool loading;
+        public bool loadingStages = true;
         public bool confirmingSave;
         public bool confirmingSubmit;
         public bool working;
@@ -51,6 +52,7 @@ namespace Topo.Controller
 
             member = await _membersService.GetMember(_storageService.UnitId, MemberId);
             allStages = await _oasService.GetOASStagesList();
+            loadingStages = false;
             verifier = _recordingService.DefaultVerifier();
 
             // Stream and stage can be passed in from the progress page, e.g. ?stream=bushwalking&stage=3

@@ -26,7 +26,11 @@
         </div>
     </div>
 
-    @if (model.Members != null && model.Members.Any())
+    @if (loadingMembers)
+    {
+        <p class="text-muted">Loading youth...</p>
+    }
+    else if (model.Members != null && model.Members.Any())
     {
         <div class="stack-list">
             <div class="row header">

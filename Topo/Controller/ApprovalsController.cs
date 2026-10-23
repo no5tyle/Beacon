@@ -73,11 +73,15 @@ namespace Topo.Controller
             await RefreshApprovalsClick();
         }
 
+        public bool loadingApprovals;
+
         internal async Task RefreshApprovalsClick()
         {
             if (!string.IsNullOrEmpty(model.UnitName))
             {
+                loadingApprovals = true;
                 model.Approvals = await _approvalsService.GetApprovalListItems(_storageService.UnitId);
+                loadingApprovals = false;
                 model.Approvals = model.Approvals?.Where(a => a.submission_date >= model.ApprovalSearchFromDate && a.submission_date <= model.ApprovalSearchToDate.AddDays(1)).ToList() ?? new List<ApprovalsListModel>();
                 if (!model.ShowRejected)
                     model.Approvals = model.Approvals.Where(a => a.submission_outcome.ToLower() != "rejected").ToList();

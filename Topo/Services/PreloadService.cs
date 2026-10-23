@@ -38,8 +38,6 @@ namespace Topo.Services
 
         private async Task Preload(string unitId)
         {
-            // Background requests don't show the spinner over the page the leader is using
-            SpinnerService.Quiet.Value = true;
             try
             {
                 await _oasService.GetOASStagesList();

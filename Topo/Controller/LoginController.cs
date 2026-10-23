@@ -63,13 +63,30 @@ namespace Topo.Controller
             }
         }
 
+        public bool loggingIn;
+
         internal async Task LogInClick ()
         {
+            if (loggingIn)
+                return;
             if (string.IsNullOrEmpty(model.Branch))
             {
                 model.LoginErrorMessage = "Select your branch.";
                 return;
             }
+            loggingIn = true;
+            try
+            {
+                await LogIn();
+            }
+            finally
+            {
+                loggingIn = false;
+            }
+        }
+
+        private async Task LogIn()
+        {
             var authenticationResult = await _loginService.LoginAsync(model.Branch, model.MemberNumber, model.Password);
             model.LoginErrorMessage = "";
             if (authenticationResult != null && authenticationResult.AuthenticationSuccessResultModel.AuthenticationResult != null)

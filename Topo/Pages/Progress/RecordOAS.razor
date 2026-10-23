@@ -16,7 +16,7 @@
     <div class="col-sm-5">
         <label for="stage" class="form-label">Stage</label>
         <select id="stage" class="form-select" value="@selectedTemplateLink" @onchange="StageChange" disabled="@working">
-            <option value="">Select a stage</option>
+            <option value="">@(loadingStages ? "Loading stages..." : "Select a stage")</option>
             @foreach (var option in StageOptions())
             {
                 <option value="@option.TemplateLink">@option.SelectListItemText</option>

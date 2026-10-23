@@ -25,18 +25,6 @@ builder.Services.AddScoped<PreloadService>();
 builder.Services.AddScoped<IOASRecordingService, OASRecordingService>();
 builder.Services.AddSingleton<IOASReferenceService, OASReferenceService>();
 
-builder.Services.AddScoped<SpinnerService>();
-builder.Services.AddScoped<DisplaySpinnerAutomaticallyHttpMessageHandler>();
-builder.Services.AddScoped(s =>
-{
-    var accessTokenHandler = s.GetRequiredService<DisplaySpinnerAutomaticallyHttpMessageHandler>();
-    accessTokenHandler.InnerHandler = new HttpClientHandler();
-    var uriHelper = s.GetRequiredService<NavigationManager>();
-    return new HttpClient(accessTokenHandler)
-    {
-        BaseAddress = new Uri(uriHelper.BaseUri)
-    };
-});
 
 builder.Logging.ClearProviders();
 builder.Services.AddSingleton<LogQueueService>();

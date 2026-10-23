@@ -55,11 +55,15 @@ namespace Topo.Controller
             await populateMembers();
         }
 
+        public bool loadingMembers;
+
         async Task populateMembers()
         {
+            loadingMembers = true;
             var allMembers = await _membersService.GetMembersAsync(_storageService.UnitId);
             model.Members = allMembers.Where(m => m.isAdultLeader == 0).OrderBy(m => m.first_name).ThenBy(m => m.last_name).ToList();
             model.UnitName = _storageService.UnitName;
+            loadingMembers = false;
         }
 
     }
