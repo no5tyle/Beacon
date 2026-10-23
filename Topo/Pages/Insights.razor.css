@@ -223,3 +223,18 @@
     max-height: 320px;
     overflow-y: auto;
 }
+
+@media (max-width: 575.98px) {
+    /* Keep the stream names in view while the stage columns scroll */
+    .heatmap tr > :first-child {
+        position: sticky;
+        left: 0;
+        z-index: 1;
+        background: #fff;
+        box-shadow: 1px 0 0 #dee2e6;
+    }
+
+    .count-line .mini-track {
+        flex-basis: 80px;
+    }
+}

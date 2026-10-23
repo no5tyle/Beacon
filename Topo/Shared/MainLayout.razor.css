@@ -60,6 +60,8 @@ main {
         height: 100vh;
         position: sticky;
         top: 0;
+        /* Scroll the menu when it is taller than the window rather than spilling onto the page */
+        overflow-y: auto;
     }
 
     .top-row {

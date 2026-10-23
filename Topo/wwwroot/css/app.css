@@ -86,3 +86,136 @@ a, .btn-link {
         display: none !important;
     }
 }
+
+/* Buttons that sit together, wrapping with even spacing on narrow screens */
+.button-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/*
+    Phones: lists built from a .row.header followed by .row.striped rows become one card per row.
+    Put stack-list on the element holding the rows, data-label="Column name" on each cell to show its
+    column name beside the value (cells left empty are hidden), and stack-title on a cell to make it the card heading.
+*/
+@media (max-width: 575.98px) {
+    .stack-list > .row.header {
+        display: none;
+    }
+
+    .stack-list > .row.striped {
+        margin: 0 0 0.5rem;
+        padding: 0.5rem 0;
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+        background: none;
+    }
+
+    .stack-list > .row.striped > [data-label] {
+        display: flex;
+        gap: 0.75rem;
+    }
+
+    .stack-list > .row.striped > [data-label]::before {
+        content: attr(data-label);
+        flex: 0 0 9.5rem;
+        color: #6c757d;
+    }
+
+    .stack-list > .row.striped > [data-label]:empty {
+        display: none;
+    }
+
+    .stack-list .stack-title {
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+
+    /* A select checkbox sits beside the card heading; tapping the heading ticks it */
+    .stack-list > .row.striped > .col-auto .form-check-input {
+        width: 1.4rem;
+        height: 1.4rem;
+        margin-top: 0;
+    }
+
+    .stack-list label.stack-title {
+        cursor: pointer;
+        padding-left: 0;
+    }
+
+    /*
+        Tables with table-stack become one card per row the same way: data-label on each cell,
+        and stack-title on the cell to show first as the card heading.
+    */
+    .table-stack thead {
+        display: none;
+    }
+
+    .table-stack, .table-stack tbody {
+        display: block;
+    }
+
+    .table-stack tr {
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 0.5rem;
+        padding: 0.5rem 0.75rem;
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+    }
+
+    .table-stack td {
+        display: flex;
+        gap: 0.75rem;
+        padding: 0.15rem 0;
+        border: 0;
+        text-align: left !important;
+        white-space: normal !important;
+    }
+
+    .table-stack td[data-label]::before {
+        content: attr(data-label);
+        flex: 0 0 9.5rem;
+        color: #6c757d;
+    }
+
+    .table-stack td.stack-title {
+        order: -1;
+        display: block;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+
+    .table-stack td.stack-title small {
+        font-weight: normal;
+    }
+
+    .table-stack td:not([data-label]):not(.stack-title) {
+        display: block;
+    }
+
+    /* Tabs scroll sideways rather than wrapping onto a second line */
+    .nav-tabs-scroll {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+    }
+
+    .nav-tabs-scroll .nav-link {
+        white-space: nowrap;
+    }
+
+    /* Big enough to tap (main app pages only; the Reference app has its own layout) */
+    .content .btn, .content .form-select, .content .form-control {
+        min-height: 44px;
+    }
+
+    .stack-list .btn-link {
+        display: inline-flex;
+        align-items: center;
+        padding-left: 0;
+        margin-right: 1rem;
+    }
+}

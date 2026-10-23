@@ -106,3 +106,18 @@
     max-height: 400px;
     overflow-y: auto;
 }
+
+@media (max-width: 575.98px) {
+    .milestone-area {
+        font-weight: 600;
+        margin-top: 0.5rem;
+    }
+
+    .need-label {
+        flex-basis: 105px;
+    }
+
+    .stage-detail summary {
+        padding: 0.35rem 0;
+    }
+}
