@@ -1,0 +1,19 @@
+/* Version at the bottom of the screen, clear of the iPhone home indicator */
+.login-version {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 0.5rem 1rem max(env(safe-area-inset-bottom), 0.5rem);
+    text-align: center;
+    font-size: 0.75rem;
+    color: #adb5bd;
+    pointer-events: none;
+}
+
+/* Beside the sidebar on wider screens */
+@media (min-width: 641px) {
+    .login-version {
+        left: 250px;
+    }
+}
