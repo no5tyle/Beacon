@@ -691,6 +691,41 @@
         padding-right: 1.5rem;
     }
 }
+/* /Shared/InstallHint.razor.rz.scp.css */
+.install-hint[b-ttl1tqqq38] {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 0.9rem;
+    border: 1px solid #d6dbec;
+    border-radius: 0.6rem;
+    background: #f4f6fc;
+}
+
+.install-icon[b-ttl1tqqq38] {
+    flex-shrink: 0;
+    border-radius: 0.6rem;
+}
+
+.install-text[b-ttl1tqqq38] {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.install-hint .btn-primary[b-ttl1tqqq38] {
+    flex-shrink: 0;
+    min-height: 36px;
+}
+
+.install-hint .btn-close[b-ttl1tqqq38] {
+    flex-shrink: 0;
+    align-self: flex-start;
+}
+
+.install-hint .oi[b-ttl1tqqq38] {
+    font-size: 0.8rem;
+    top: 0;
+}
 /* /Shared/MainLayout.razor.rz.scp.css */
 .page[b-6wbl9fsfs3] {
     position: relative;
