@@ -340,6 +340,18 @@
         flex-basis: 80px;
     }
 }
+
+/* The three tabs share the width equally, so they fit a phone without scrolling */
+.insights-tabs .nav-link[b-f7if1sp21m] {
+    white-space: nowrap;
+}
+
+@media (max-width: 575.98px) {
+    .insights-tabs .nav-link[b-f7if1sp21m] {
+        padding: 0.5rem 0.25rem;
+        font-size: 0.875rem;
+    }
+}
 /* /Pages/Progress/Details.razor.rz.scp.css */
 .insights-card[b-wh3rgevjst] {
     border-top: 4px solid #4fb3bd;
