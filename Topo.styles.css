@@ -1,4 +1,24 @@
 /* /Pages/Approvals/Approvals.razor.rz.scp.css */
+.approvals-header[b-0y6kjgtsus] {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.icon-btn[b-0y6kjgtsus] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+}
+
+.icon-btn .oi[b-0y6kjgtsus] {
+    top: 0;
+}
+
 .name-filter[b-0y6kjgtsus] {
     position: relative;
 }
@@ -9,6 +29,7 @@
     top: 100%;
     left: 0;
     right: 0;
+    min-width: 14rem;
     margin-top: 0.25rem;
     padding: 0.5rem 0.75rem;
     background: #fff;
@@ -19,8 +40,51 @@
     overflow-y: auto;
 }
 
-.approvals-table .group-row td[b-0y6kjgtsus] {
-    background: #f1f3f5;
+.filter-row[b-0y6kjgtsus] {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-height: 40px;
+    cursor: pointer;
+}
+
+.filter-row .form-check-input[b-0y6kjgtsus] {
+    flex-shrink: 0;
+    width: 1.25rem;
+    height: 1.25rem;
+    margin-top: 0;
+}
+
+.group-heading[b-0y6kjgtsus] {
+    margin: 1rem 0 0.4rem;
+    font-weight: 600;
+}
+
+.approval-card[b-0y6kjgtsus] {
+    padding: 0.6rem 0.8rem;
+    margin-bottom: 0.5rem;
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+}
+
+.votes .oi[b-0y6kjgtsus] {
+    font-size: 0.75rem;
+    top: 0;
+}
+
+.approvals-empty[b-0y6kjgtsus] {
+    padding: 1.5rem 1rem;
+    text-align: center;
+    color: #6c757d;
+    border: 1px dashed #dee2e6;
+    border-radius: 0.5rem;
+}
+
+.approvals-empty .oi[b-0y6kjgtsus] {
+    display: block;
+    margin: 0 auto 0.4rem;
+    font-size: 1.5rem;
+    color: #198754;
 }
 /* /Pages/Insights.razor.rz.scp.css */
 .stat-tile[b-f7if1sp21m] {
