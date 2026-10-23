@@ -6,9 +6,22 @@
 
 <EditForm Model="@model">
     <DataAnnotationsValidator />
-    <div class="mt-3 mb-2">
-        <h2 class="mb-1">Insights</h2>
-        <p class="text-muted small mb-0">OAS gaps, priority youth, and skills to programme into unit nights. Priority youth are those moving up soon plus any focus youth you pick.</p>
+    <div class="insights-header mt-3 mb-2">
+        <h2 class="mb-0">Insights</h2>
+        <div class="insights-toolbar">
+            <button type="button" class="btn icon-btn @(showFilters ? "btn-primary" : "btn-outline-primary")" @onclick="ToggleFilters"
+                    title="Filters" aria-label="@($"Filters{(ActiveFilterCount > 0 ? $", {ActiveFilterCount} set" : "")}")" aria-expanded="@(showFilters ? "true" : "false")">
+                <span class="oi oi-list" aria-hidden="true"></span>
+                @if (ActiveFilterCount > 0)
+                {
+                    <span class="filter-count" aria-hidden="true">@ActiveFilterCount</span>
+                }
+            </button>
+            <button type="button" class="btn icon-btn btn-outline-secondary" @onclick="RefreshClick" disabled="@(analysing || string.IsNullOrEmpty(model.UnitId))"
+                    title="Load every youth's progress from Terrain again" aria-label="Refresh">
+                <span class="oi oi-reload" aria-hidden="true"></span>
+            </button>
+        </div>
     </div>
 
     @if (string.IsNullOrEmpty(model.UnitId) || model.Units.Count > 1)
@@ -21,19 +34,6 @@
             }
         </select>
     }
-
-    <div class="insights-toolbar mb-2">
-        <button type="button" class="btn @(showFilters ? "btn-primary" : "btn-outline-primary")" @onclick="ToggleFilters" aria-expanded="@(showFilters ? "true" : "false")">
-            <span class="oi oi-list" aria-hidden="true"></span> Filters
-            @if (ActiveFilterCount > 0)
-            {
-                <span class="badge @(showFilters ? "bg-light text-primary" : "bg-primary") ms-1">@ActiveFilterCount</span>
-            }
-        </button>
-        <button type="button" class="btn btn-outline-secondary" @onclick="RefreshClick" disabled="@(analysing || string.IsNullOrEmpty(model.UnitId))" title="Load every youth's progress from Terrain again">
-            <span class="oi oi-reload" aria-hidden="true"></span> Refresh
-        </button>
-    </div>
 
     @if (showFilters)
     {

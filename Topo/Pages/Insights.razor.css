@@ -204,13 +204,47 @@
     min-width: 90px;
 }
 
+/* Title on the left, icon buttons on the right */
+.insights-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
 .insights-toolbar {
     display: flex;
     gap: 0.5rem;
 }
 
-.insights-toolbar .btn {
-    min-height: 44px;
+.icon-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+}
+
+.icon-btn .oi {
+    top: 0;
+}
+
+/* How many filters differ from the defaults */
+.filter-count {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    min-width: 1.15rem;
+    height: 1.15rem;
+    padding: 0 0.25rem;
+    border-radius: 999px;
+    background: #e8a33d;
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 600;
+    line-height: 1.15rem;
 }
 
 .filters-panel {
