@@ -248,6 +248,21 @@
     max-height: 320px;
     overflow-y: auto;
 }
+
+@media (max-width: 575.98px) {
+    /* Keep the stream names in view while the stage columns scroll */
+    .heatmap tr > :first-child[b-f7if1sp21m] {
+        position: sticky;
+        left: 0;
+        z-index: 1;
+        background: #fff;
+        box-shadow: 1px 0 0 #dee2e6;
+    }
+
+    .count-line .mini-track[b-f7if1sp21m] {
+        flex-basis: 80px;
+    }
+}
 /* /Pages/Progress/Details.razor.rz.scp.css */
 .insights-card[b-wh3rgevjst] {
     border-top: 4px solid #4fb3bd;
@@ -357,14 +372,37 @@
     max-height: 400px;
     overflow-y: auto;
 }
+
+@media (max-width: 575.98px) {
+    .milestone-area[b-wh3rgevjst] {
+        font-weight: 600;
+        margin-top: 0.5rem;
+    }
+
+    .need-label[b-wh3rgevjst] {
+        flex-basis: 105px;
+    }
+
+    .stage-detail summary[b-wh3rgevjst] {
+        padding: 0.35rem 0;
+    }
+}
 /* /Pages/Progress/RecordOAS.razor.rz.scp.css */
 .statement-list li[b-5wkkjm8hnz] {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
     padding: 0.3rem 0;
     border-bottom: 1px solid #f1f3f5;
 }
 
 .statement-list li .form-check-input[b-5wkkjm8hnz] {
-    margin-right: 0.5rem;
+    flex-shrink: 0;
+    margin-top: 0.2rem;
+}
+
+.statement-list li .form-check-label[b-5wkkjm8hnz] {
+    flex: 1;
 }
 
 .statement-list li.done label[b-5wkkjm8hnz] {
@@ -376,6 +414,23 @@
     background: #fffbea;
     border-radius: 0.4rem;
     padding: 0.75rem 0.9rem;
+}
+
+@media (max-width: 575.98px) {
+    /* Bigger checkboxes, and the whole statement is the tap target */
+    .statement-list li[b-5wkkjm8hnz] {
+        padding: 0.6rem 0;
+    }
+
+    .statement-list li .form-check-input[b-5wkkjm8hnz] {
+        width: 1.4rem;
+        height: 1.4rem;
+        margin-top: 0;
+    }
+
+    .statement-list li .form-check-label[b-5wkkjm8hnz] {
+        cursor: pointer;
+    }
 }
 /* /Shared/MainLayout.razor.rz.scp.css */
 .page[b-6wbl9fsfs3] {
@@ -440,6 +495,8 @@ main[b-6wbl9fsfs3] {
         height: 100vh;
         position: sticky;
         top: 0;
+        /* Scroll the menu when it is taller than the window rather than spilling onto the page */
+        overflow-y: auto;
     }
 
     .top-row[b-6wbl9fsfs3] {
