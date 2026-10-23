@@ -7,7 +7,6 @@ namespace Topo.Services
     public interface IMembersService
     {
         public Task<List<MemberListModel>> GetMembersAsync(string unitId);
-        public Task<List<MemberListModel>> GetMembersForPatrol(string patrolId, string patrolName);
         public void ClearMemberCache(string unitId);
         public Task<MemberListModel> GetMember(string unitId, string memberId);
         public Task<string> GetMemberLastName(string unitId, string memberId);
@@ -85,28 +84,6 @@ namespace Topo.Services
             return memberList;
         }
 
-        public async Task<List<MemberListModel>> GetMembersForPatrol(string patrolId, string patrolName)
-        {
-            var getMembersResultModel = await _terrainAPIService.GetMembersForPatrolAsync(patrolId ?? "");
-            var memberList = new List<MemberListModel>();
-            if (getMembersResultModel != null && getMembersResultModel.results != null)
-            {
-                memberList = getMembersResultModel.results
-                    .Select(m => new MemberListModel
-                    {
-                        id = m.id,
-                        member_number = m.member_number,
-                        first_name = m.first_name,
-                        last_name = m.last_name,
-                        patrol_name = patrolName,
-                        patrol_order = 3,
-                        isAdultLeader = 0,
-                        status = m.status
-                    })
-                    .ToList();
-            }
-            return memberList;
-        }
 
         public async Task<MemberListModel> GetMember(string unitId, string memberId)
         {

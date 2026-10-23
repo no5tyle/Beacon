@@ -14,6 +14,8 @@ Beacon is a fork of [NomisNostab/Topo-Blazor](https://github.com/NomisNostab/Top
 - **OAS Sign Off**: tick the same I statements for several youth at once, e.g. at the end of a unit night.
 - **Beacon Reference**: every OAS I statement with Terrain's full explanation, installable as its own app and usable offline.
 
+Beacon is built for phones at the hall. The desktop reports from the original Topo (wallchart, member and patrol lists, program sign in sheets, OAS, SIA, milestone, logbook and award reports) aren't included; use [Topo](https://nomisnostab.github.io/Topo-Blazor/) for those.
+
 ## Installation
 ### Browser
 To run Beacon just go to https://no5tyle.github.io/Beacon/ and it will download and start, be patient while it downloads.

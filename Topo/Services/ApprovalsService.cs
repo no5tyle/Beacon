@@ -1,5 +1,4 @@
 ﻿using Blazored.LocalStorage;
-using Microsoft.AspNetCore.Components.Forms;
 using Newtonsoft.Json;
 using System.Globalization;
 using Topo.Model.Approvals;
@@ -11,9 +10,6 @@ namespace Topo.Services
     {
         public Task<List<ApprovalsListModel>> GetApprovalListItems(string unitId);
         public Task<List<ApprovalsListModel>> ReadApprovalListFromLocalStorage(string unitId);
-        public Task UpdateApproval(string unitId, ApprovalsListModel approval);
-        public Task<string> DownloadApprovalList(string unitId);
-        public Task UploadApprovals(IBrowserFile approvalsFile, string unitId);
     }
     public class ApprovalsService : IApprovalsService
     {
@@ -311,35 +307,7 @@ namespace Topo.Services
             return list ?? new List<ApprovalsListModel>();
         }
 
-        public async Task UpdateApproval(string unitId, ApprovalsListModel approval)
-        {
-            var savedApprovalItems = await ReadApprovalListFromLocalStorage(unitId);
-            var approvalItem = savedApprovalItems.Where(a => a.achievement_id == approval.achievement_id && a.submission_type == approval.submission_type).FirstOrDefault();
-            if (approvalItem != null)
-            {
-                approvalItem.presented_date = approval.presented_date.HasValue ? approval.presented_date.Value.ToLocalTime() : null;
-            }
-            await WriteApprovalsListToLocalStarage(savedApprovalItems.OrderBy(a => a.submission_date).ToList(), unitId);
-        }
 
-        public async Task<string> DownloadApprovalList(string unitId)
-        {
-            var savedApprovalItems = await ReadApprovalListFromLocalStorage(unitId); 
-            return JsonConvert.SerializeObject(savedApprovalItems);
-        }
 
-        public async Task UploadApprovals(IBrowserFile approvalsFile, string unitId)
-        {
-            try
-            {
-                var json = await new StreamReader(approvalsFile.OpenReadStream()).ReadToEndAsync();
-                List<ApprovalsListModel>? list = JsonConvert.DeserializeObject<List<ApprovalsListModel>>(json);
-                await WriteApprovalsListToLocalStarage(list?.OrderBy(a => a.submission_date).ToList() ?? new List<ApprovalsListModel>(), unitId);
-            }
-            catch
-            {
-                return;
-            }
-        }
     }
 }
