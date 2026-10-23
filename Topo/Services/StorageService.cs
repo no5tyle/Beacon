@@ -37,6 +37,12 @@ namespace Topo.Services
         public Dictionary<string, string> Groups { get; set; } = new Dictionary<string, string>();
         public string? GroupId { get; set; }
         public string? GroupName { get; set; }
+        // The chosen unit, or the group while no unit is chosen
+        public string UnitNameDisplay => string.IsNullOrEmpty(UnitId) ? GroupNameDisplay : $"({UnitName})";
+
+        // Key for remembering the chosen unit on this device between logins
+        public const string ChosenUnitStorageKey = "beacon-unit";
+
         public string GroupNameDisplay
         {
             get
@@ -49,11 +55,13 @@ namespace Topo.Services
             get
             {
                 return GetProfilesResult?.profiles?
-                    .Where(p => p.unit != null)
+                    .Where(p => p.unit != null && p.group != null)
                     .Where(p => p.group.name == (GroupName ?? ""))
                     .Where(p => p.member.name == (MemberName ?? ""))
                     .Select(p => p.unit)
-                    .ToDictionary(u => u?.id?.ToString() ?? "", u => u?.name ?? "");
+                    .GroupBy(u => u?.id?.ToString() ?? "")
+                    .ToDictionary(g => g.Key, g => g.First()?.name ?? "")
+                    ?? new Dictionary<string, string>();
             }
         }
         public string UnitId
@@ -68,7 +76,12 @@ namespace Topo.Services
             }
             set
             {
-                _unitId = value;
+                if (_unitId != value)
+                {
+                    _unitId = value;
+                    // e.g. so unit data starts loading in the background for the newly chosen unit
+                    NotifyStateChanged();
+                }
             }
         }
 

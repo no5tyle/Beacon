@@ -18,7 +18,11 @@
         <div class="alert alert-danger py-2">@message</div>
     }
 
-    @if (step == SignOffStep.Statements)
+    @if (string.IsNullOrEmpty(unitId))
+    {
+        <ChooseUnit />
+    }
+    else if (step == SignOffStep.Statements)
     {
         <div class="chip-group mb-2">
             @foreach (var stream in Streams())
@@ -76,16 +80,6 @@
     {
         <div class="small text-muted mb-2">@StageName · @selectedStatements.Count statement@(selectedStatements.Count == 1 ? "" : "s")</div>
 
-        @if (string.IsNullOrEmpty(unitId) || Units.Count > 1)
-        {
-            <select class="form-select mb-2" value="@unitId" @onchange="UnitChange" disabled="@loading">
-                <option value="">Select unit</option>
-                @foreach (var unit in Units)
-                {
-                    <option value="@unit.Key">@unit.Value</option>
-                }
-            </select>
-        }
 
         @if (loading)
         {

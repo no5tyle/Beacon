@@ -63,8 +63,6 @@ namespace Topo.Controller
             loading = false;
         }
 
-        internal Dictionary<string, string> Units => _storageService.Units;
-
         internal IEnumerable<string> Streams()
         {
             return allStages
@@ -150,13 +148,6 @@ namespace Topo.Controller
             await LoadYouth();
         }
 
-        internal async Task UnitChange(ChangeEventArgs e)
-        {
-            unitId = e.Value?.ToString() ?? "";
-            _storageService.UnitId = unitId;
-            selectedYouth.Clear();
-            await LoadYouth();
-        }
 
         internal async Task LoadYouth()
         {

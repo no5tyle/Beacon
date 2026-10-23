@@ -125,6 +125,17 @@ namespace Topo.Controller
                 _storageService.GroupId = _storageService.Groups.Count == 1 ? _storageService.Groups.FirstOrDefault().Key : "";
                 _storageService.GroupName = _storageService.Groups.Count == 1 ? _storageService.Groups.FirstOrDefault().Value : "";
 
+                // Pick up the unit chosen last time on this device, if it's still one of theirs
+                try
+                {
+                    var savedUnit = await _localStorageService.GetItemAsync<string>(StorageService.ChosenUnitStorageKey);
+                    if (!string.IsNullOrEmpty(savedUnit) && _storageService.Units.ContainsKey(savedUnit))
+                        _storageService.UnitId = savedUnit;
+                }
+                catch
+                {
+                }
+
                 NavigationManager.NavigateTo("");
             }
             if (authenticationResult != null && authenticationResult.AuthenticationErrorResultModel != null)

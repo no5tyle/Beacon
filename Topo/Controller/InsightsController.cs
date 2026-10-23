@@ -116,17 +116,6 @@ namespace Topo.Controller
             model.SuppressLastName = _storageService.SuppressLastName;
         }
 
-        internal async Task UnitChange(ChangeEventArgs e)
-        {
-            var unitId = e.Value?.ToString() ?? "";
-            _storageService.UnitId = unitId;
-            model.UnitId = unitId;
-            model.UnitName = _storageService.UnitName;
-            model.Report = null;
-            LoadSectionRules();
-            await LoadFocusYouth();
-            await AnalyseClick();
-        }
 
         private string FocusStorageKey => $"insights-focus-youth-{model.UnitId}";
 

@@ -24,15 +24,9 @@
         </div>
     </div>
 
-    @if (string.IsNullOrEmpty(model.UnitId) || model.Units.Count > 1)
+    @if (string.IsNullOrEmpty(model.UnitId))
     {
-        <select id="unit" class="form-select mb-2" value="@model.UnitId" @onchange="UnitChange" disabled="@analysing">
-            <option value="">Select unit</option>
-            @foreach (var unit in model.Units)
-            {
-                <option value="@unit.Key">@unit.Value</option>
-            }
-        </select>
+        <ChooseUnit />
     }
 
     @if (showFilters)

@@ -13,11 +13,11 @@
             <h2>Welcome @indexPageViewModel.FullName</h2>
         </div>
         <div class="mb-3 row">
-            <label for="unit" class="col-sm-2 col-form-label">
+            <label for="group" class="col-sm-2 col-form-label">
                 Select Group to access:
             </label>
             <div class="col-sm-3">
-                <select id="unit" class="form-select" value="@indexPageViewModel.GroupId" @onchange="GroupChange">
+                <select id="group" class="form-select" value="@indexPageViewModel.GroupId" @onchange="GroupChange">
                     <option value="">Select group</option>
                     @foreach (var group in indexPageViewModel.Groups)
                     {
@@ -27,6 +27,27 @@
                 <label class="col-form-label validation-message">@indexPageViewModel.GroupErrorMessage</label>
             </div>
         </div>
+        @if (Units.Count > 1)
+        {
+            <div class="mb-3 row">
+                <label for="chosenUnit" class="col-sm-2 col-form-label">
+                    Unit:
+                </label>
+                <div class="col-sm-3">
+                    <select id="chosenUnit" class="form-select" value="@UnitId" @onchange="UnitChange">
+                        <option value="">Select unit</option>
+                        @foreach (var unit in Units)
+                        {
+                            <option value="@unit.Key">@unit.Value</option>
+                        }
+                    </select>
+                    @if (string.IsNullOrEmpty(UnitId))
+                    {
+                        <label class="col-form-label validation-message">Choose the unit to work with. Every page uses it.</label>
+                    }
+                </div>
+            </div>
+        }
         <div class="mb-3 row">
             <p>
                 Use Insights to see the unit's OAS gaps, who is moving up soon and what to programme next.

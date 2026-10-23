@@ -53,7 +53,7 @@ namespace Topo.Controller
             if (!_storageService.IsAuthenticated)
                 NavigationManager.NavigateTo("index");
 
-            model.GroupName = _storageService.GroupNameDisplay;
+            model.GroupName = _storageService.UnitNameDisplay;
             model.Units = _storageService.Units;
             model.ApprovalSearchFromDate = DateTime.Now.AddMonths(-2);
             model.ApprovalSearchToDate = DateTime.Now;
@@ -64,14 +64,13 @@ namespace Topo.Controller
             }
         }
 
-        internal async Task UnitChange(ChangeEventArgs e)
+        // The unit is chosen on Home, so load its approvals straight away
+        protected override async Task OnInitializedAsync()
         {
-            var unitId = e.Value?.ToString() ?? "";
-            model.UnitId = unitId;
-            _storageService.UnitId = model.UnitId;
-            model.UnitName = _storageService.UnitName;
-            await RefreshApprovalsClick();
+            if (_storageService.IsAuthenticated && !string.IsNullOrEmpty(model.UnitId))
+                await RefreshApprovalsClick();
         }
+
 
         public bool loadingApprovals;
 
