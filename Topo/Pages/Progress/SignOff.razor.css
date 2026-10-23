@@ -149,7 +149,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 0.5rem;
-    padding: 0.6rem 1rem calc(0.6rem + env(safe-area-inset-bottom));
+    padding: 0.6rem max(env(safe-area-inset-right), 1rem) calc(0.6rem + env(safe-area-inset-bottom)) max(env(safe-area-inset-left), 1rem);
     background: #fff;
     border-top: 1px solid #dee2e6;
     box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.06);

@@ -74,7 +74,7 @@
     z-index: 20;
     display: flex;
     height: var(--tab-bar-height);
-    padding-bottom: env(safe-area-inset-bottom);
+    padding: 0 max(env(safe-area-inset-right), 0.75rem) var(--tab-bar-bottom) max(env(safe-area-inset-left), 0.75rem);
     background: #0b1a4a;
     box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.15);
 }

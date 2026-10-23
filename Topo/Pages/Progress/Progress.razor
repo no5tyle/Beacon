@@ -48,13 +48,13 @@
                 <div class="col-sm">
                     <strong>Unit Council</strong>
                 </div>
-                <div class="col-sm">
-                </div>
+                <div class="col-sm-auto row-chevron invisible" aria-hidden="true">&rsaquo;</div>
             </div>
 
             @foreach (var item in model?.Members)
             {
-                <div class="row striped">
+                @* The whole row opens the youth's progress *@
+                <a class="row striped row-link" href="progress/details/@item.id">
                     <div class="col-12 d-sm-none stack-title">@item.first_name @item.last_name</div>
                     <div class="col-sm d-none d-sm-block">
                         @item.first_name
@@ -66,10 +66,8 @@
                     <div class="col-sm" data-label="Patrol">@item.patrol_name</div>
                     <div class="col-sm" data-label="Role">@item.patrol_duty</div>
                     <div class="col-sm align-content-center" data-label="Unit Council">@(item.unit_council ? "Yes" : "")</div>
-                    <div class="col-sm">
-                        <a href="progress/details/@item.id" class="btn btn-link pt-0 pb-0">Progress</a>
-                    </div>
-                </div>
+                    <div class="col-sm-auto row-chevron" aria-hidden="true">&rsaquo;</div>
+                </a>
             }
         </div>
 
