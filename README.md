@@ -16,13 +16,13 @@ Beacon is a fork of [NomisNostab/Topo-Blazor](https://github.com/NomisNostab/Top
 
 ## Installation
 ### Browser
-To run Beacon just go to https://no5tyle.github.io/Topo-Blazor/ and it will download and start, be patient while it downloads.
+To run Beacon just go to https://no5tyle.github.io/Beacon/ and it will download and start, be patient while it downloads.
 
 ### Phone
-Open the address above, then use "Add to Home Screen" (iPhone) or "Install app" (Android). Do the same from https://no5tyle.github.io/Topo-Blazor/reference/ to add Beacon Reference.
+Open the address above, then use "Add to Home Screen" (iPhone) or "Install app" (Android). Do the same from https://no5tyle.github.io/Beacon/reference/ to add Beacon Reference.
 
 ## Documentation
 
 The original project's [wiki](https://github.com/NomisNostab/Topo-Blazor/wiki) covers how to use the standard features. The features added in this fork are described above.
 
-The code, project names and web address still use the original Topo name.
+The code and project names still use the original Topo name.

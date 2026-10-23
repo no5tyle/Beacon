@@ -33,9 +33,10 @@ jobs:
     # publishes Blazor project to the release-folder
     - name: Publish .NET Core Project
       run: dotnet publish ./Topo/Topo.csproj -c Release -o release --nologo
-    # changes the base-tag in index.html from '/' to 'Topo-Blazor' to match GitHub Pages repository subdirectory
-    - name: Change base-tag in index.html from / to Topo-Blazor
-      run: sed -i 's/<base href="\/" \/>/<base href="\/Topo-Blazor\/" \/>/g' release/wwwroot/index.html
+    # changes the base-tag in index.html from '/' to the repository's name to match the GitHub Pages subdirectory,
+    # so the site keeps working if the repository is renamed
+    - name: Change base-tag in index.html from / to the repository name
+      run: sed -i 's@<base href="/" />@<base href="/${{ github.event.repository.name }}/" />@g' release/wwwroot/index.html
     # copy index.html to 404.html to serve the same file when a file is not found
     - name: copy index.html to 404.html
       run: cp release/wwwroot/index.html release/wwwroot/404.html
