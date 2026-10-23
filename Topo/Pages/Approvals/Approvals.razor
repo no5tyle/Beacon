@@ -1,123 +1,101 @@
-﻿@page "/approvals/approvals"
+@page "/approvals/approvals"
 @inherits Controller.ApprovalsController
+@using Topo.Model.Approvals
 
 <PageTitle>Beacon / Approvals</PageTitle>
 
-<EditForm Model="@model">
+<div class="approvals-header mt-3 mb-1">
+    <h2 class="mb-0">Approvals</h2>
+    <button type="button" class="btn icon-btn btn-outline-secondary" @onclick="RefreshApprovalsClick" disabled="@(loadingApprovals || string.IsNullOrEmpty(unitId))"
+            title="Check Terrain again" aria-label="Refresh">
+        <span class="oi oi-reload" aria-hidden="true"></span>
+    </button>
+</div>
 
-    <div class="mt-3 mb-3 row">
-        <h2>Approvals @model.GroupName</h2>
-    </div>
-
-    @if (string.IsNullOrEmpty(model.UnitId))
-    {
-        <ChooseUnit />
-    }
-    else
-    {
-
-    <div class="mt-3 mb-3 row">
-        <label class="col-sm-2 col-form-label">Search From Date</label>
-        <div class="col-sm-3">
-            <InputDate @bind-Value="@model.ApprovalSearchFromDate" class="form-control" />
-        </div>
-        <label class="col-sm-2 col-form-label">Search To Date</label>
-        <div class="col-sm-3">
-            <InputDate @bind-Value="@model.ApprovalSearchToDate" class="form-control" />
-        </div>
-        <div class="col-sm-2">
-        </div>
-        <label class="col-sm col-form-label validation-message">@model.DateErrorMessage</label>
-    </div>
-
-    <div class="mt-3 mb-3 row">
-        <div class="col-sm-3">
-            <div class="form-check">
-                <InputCheckbox id="showRejected" class="form-check-input"
-                               @bind-Value="model.ShowRejected" />
-                <label class="form-check-label" for="showRejected">
-                    Show Rejected
-                </label>
-            </div>
-        </div>
-    </div>
-
-    <div class="mt-3 mb-3 row">
-        <div class="col-sm-2">
-        </div>
-        <div class="col-sm-3">
-            <button type="submit" name="button" class="btn btn-primary" @onclick="RefreshApprovalsClick" disabled="@loadingApprovals">Refresh list</button>
-        </div>
-        <div class="col-sm-7">
-        </div>
-    </div>
+@if (string.IsNullOrEmpty(unitId))
+{
+    <ChooseUnit />
+}
+else
+{
+    <p class="small text-muted mb-3">
+        @unitName @(loadingApprovals ? "" : pending.Count == 1 ? "· 1 waiting for the Unit Council" : $"· {pending.Count} waiting for the Unit Council")
+    </p>
 
     @if (loadingApprovals)
     {
         <p class="text-muted">Loading approvals from Terrain...</p>
     }
-    else if (model.Approvals != null && model.Approvals.Any())
+    else if (!string.IsNullOrEmpty(errorMessage))
     {
-        <div class="mt-3 mb-2 row g-2 align-items-end">
-            <div class="col-sm-4 name-filter">
-                <label class="form-label small">Youth</label>
-                <button type="button" class="form-select text-start" @onclick="() => showNameFilter = !showNameFilter">@NameFilterText</button>
-                @if (showNameFilter)
-                {
-                    <div class="name-filter-panel">
-                        <div class="d-flex justify-content-between small mb-1">
-                            <button type="button" class="btn btn-link btn-sm p-0" @onclick="() => selectedNames.Clear()">Everyone</button>
-                            <button type="button" class="btn btn-link btn-sm p-0" @onclick="() => showNameFilter = false">Done</button>
-                        </div>
-                        @foreach (var name in MemberNames)
-                        {
-                            var id = $"name-{name.GetHashCode()}";
-                            <div class="form-check">
-                                <input id="@id" type="checkbox" class="form-check-input" checked="@selectedNames.Contains(name)" @onchange="() => ToggleName(name)" />
-                                <label class="form-check-label" for="@id">@name</label>
+        <p class="validation-message">@errorMessage</p>
+    }
+    else if (!pending.Any())
+    {
+        <div class="approvals-empty">
+            <span class="oi oi-circle-check" aria-hidden="true"></span>
+            Nothing is waiting for approval.
+        </div>
+    }
+    else
+    {
+        @if (pending.Count > 1)
+        {
+            <div class="row g-2 mb-3 align-items-end">
+                <div class="col-7 col-sm-4 name-filter">
+                    <label class="form-label small mb-1">Youth</label>
+                    <button type="button" class="form-select text-start" @onclick="() => showNameFilter = !showNameFilter">@NameFilterText</button>
+                    @if (showNameFilter)
+                    {
+                        <div class="name-filter-panel">
+                            <div class="d-flex justify-content-between small mb-1">
+                                <button type="button" class="btn btn-link btn-sm p-0" @onclick="() => selectedNames.Clear()">Everyone</button>
+                                <button type="button" class="btn btn-link btn-sm p-0" @onclick="() => showNameFilter = false">Done</button>
                             </div>
+                            @foreach (var name in MemberNames)
+                            {
+                                var id = $"name-{name.GetHashCode()}";
+                                <label class="filter-row" for="@id">
+                                    <input id="@id" type="checkbox" class="form-check-input" checked="@selectedNames.Contains(name)" @onchange="() => ToggleName(name)" />
+                                    <span>@name</span>
+                                </label>
+                            }
+                        </div>
+                    }
+                </div>
+                <div class="col-5 col-sm-3">
+                    <label class="form-label small mb-1" for="groupBy">Group by</label>
+                    <select id="groupBy" class="form-select" value="@(groupByMember ? "member" : "achievement")" @onchange='e => groupByMember = e.Value?.ToString() == "member"'>
+                        <option value="achievement">Achievement</option>
+                        <option value="member">Youth</option>
+                    </select>
+                </div>
+            </div>
+        }
+
+        @foreach (var group in GroupedApprovals)
+        {
+            <div class="group-heading">@group.Key <span class="text-muted">(@group.Count())</span></div>
+            @foreach (var approval in group)
+            {
+                <div class="approval-card">
+                    <div class="fw-semibold">@(groupByMember ? approval.AchievementName : approval.MemberName)</div>
+                    <div class="small text-muted">@approval.SubmissionType · submitted @SubmittedDisplay(approval.SubmittedOn)</div>
+                    <div class="small votes">
+                        <span class="@(approval.ApprovedBy.Any() ? "text-success" : "text-muted")">
+                            <span class="oi oi-check" aria-hidden="true"></span>
+                            @approval.ApprovedBy.Count of @PendingApproval.VotesNeeded approved@(approval.ApprovedBy.Any() ? $" ({string.Join(", ", approval.ApprovedBy)})" : "")
+                        </span>
+                        @if (approval.ImproveBy.Any())
+                        {
+                            <span class="text-danger ms-2">
+                                <span class="oi oi-action-undo" aria-hidden="true"></span>
+                                Needs improvement: @string.Join(", ", approval.ImproveBy)
+                            </span>
                         }
                     </div>
-                }
-            </div>
-            <div class="col-sm-3">
-                <label class="form-label small" for="groupBy">Group by</label>
-                <select id="groupBy" class="form-select" value="@(groupByMember ? "member" : "achievement")" @onchange='e => groupByMember = e.Value?.ToString() == "member"'>
-                    <option value="achievement">Achievement</option>
-                    <option value="member">Youth</option>
-                </select>
-            </div>
-            <div class="col-sm-5 small text-muted">@FilteredApprovals.Count of @model.Approvals.Count approvals shown.</div>
-        </div>
-
-        <div class="table-responsive">
-            <table class="table table-sm align-middle approvals-table">
-                <thead>
-                    <tr>
-                        <th>@(groupByMember ? "Achievement" : "Name")</th>
-                        <th>Type</th>
-                        <th>Awarded</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var group in GroupedApprovals)
-                    {
-                        <tr class="group-row">
-                            <td colspan="3"><strong>@group.Key</strong> <span class="text-muted small">(@group.Count())</span></td>
-                        </tr>
-                        @foreach (var approval in group)
-                        {
-                            <tr>
-                                <td class="ps-4">@(groupByMember ? approval.achievement_name : approval.member_display_name)</td>
-                                <td>@approval.submission_type</td>
-                                <td>@approval.awarded_date?.ToString("dd/MM/yyyy")</td>
-                            </tr>
-                        }
-                    }
-                </tbody>
-            </table>
-        </div>
+                </div>
+            }
+        }
     }
-    }
-
-</EditForm>
+}

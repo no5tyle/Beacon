@@ -8,7 +8,7 @@ namespace Topo.Services
 {
     public interface IApprovalsService
     {
-        public Task<List<ApprovalsListModel>> GetApprovalListItems(string unitId);
+        public Task<List<PendingApproval>> GetPendingApprovals(string unitId);
         public Task<List<ApprovalsListModel>> ReadApprovalListFromLocalStorage(string unitId);
     }
     public class ApprovalsService : IApprovalsService
@@ -150,108 +150,13 @@ namespace Topo.Services
         //    return myTI.ToTitleCase(name);
         //}
 
-        public async Task<List<ApprovalsListModel>> GetApprovalListItems(string unitId)
+        // What's waiting for the Unit Council right now
+        public async Task<List<PendingApproval>> GetPendingApprovals(string unitId)
         {
-            var pendingApprovals = await _terrainAPIService.GetUnitApprovals(unitId, "pending");
-            var finalisedApprovals = await _terrainAPIService.GetUnitApprovals(unitId, "finalised");
-            var approvals = finalisedApprovals.results.Concat(pendingApprovals.results).ToList();
-            var achievementApprovals = approvals.GroupBy(r => r.achievement.id).ToList();
-            var memberList = await _memberService.GetMembersAsync(unitId);
-            List<ApprovalsListModel> approvalList = new List<ApprovalsListModel>();
-            foreach (var result in achievementApprovals)
-            {
-                string approvalDate = "";
-                string awardedDate = "";
-                ApprovalsListModel approvalItem = new ApprovalsListModel();
-                foreach (var item in result)
-                {
-                    Console.Write($"Type:{item.achievement.type} ");
-                    approvalItem.achievement_type = item.achievement.type;
-                    approvalItem.achievement_id = item.achievement.id;
-                    switch (item.achievement.type)
-                    {
-                        case "special_interest_area":
-                            var sia_area = string.IsNullOrEmpty(item.achievement.achievement_meta?.sia_area) ? "special_interest_area" : item.achievement.achievement_meta?.sia_area;
-                            Console.Write($"Area:{sia_area} ");
-                            approvalItem.achievement_name = $"{sia_area.Replace("_", " ")}";
-                            break;
-                        case "milestone":
-                            Console.Write($"Stage:{item.achievement.achievement_meta?.stage} ");
-                            approvalItem.achievement_name = $"milestone {item.achievement.achievement_meta?.stage}";
-                            break;
-                        case "outdoor_adventure_skill":
-                            Console.Write($"Stream:{item.achievement.achievement_meta?.stream} Stage:{item.achievement.achievement_meta?.stage} ");
-                            approvalItem.achievement_name = item.achievement.achievement_meta?.stream == item.achievement.achievement_meta?.branch
-                                    ? $"OAS {item.achievement.achievement_meta?.stream} {item.achievement.achievement_meta?.stage}"
-                                    : $"OAS {item.achievement.achievement_meta?.stream} {item.achievement.achievement_meta?.branch} {item.achievement.achievement_meta?.stage}";
-                            break;
-                        case "intro_section":
-                            approvalItem.achievement_name = "intro to section";
-                            break;
-                        case "intro_scouting":
-                            approvalItem.achievement_name = "intro to scouting";
-                            break;
-                        default:
-                            approvalItem.achievement_name = item.achievement.type.Replace("_", " ");
-                            break;
-                    }
-                    TextInfo myTI = new CultureInfo("en-AU", false).TextInfo;
-                    approvalItem.achievement_name = myTI.ToTitleCase(approvalItem.achievement_name);
-
-                    approvalItem.member_id = item.member.id;
-                    approvalItem.member_first_name = item.member.first_name;
-                    approvalItem.member_last_name = item.member.last_name;
-                    Console.Write($"Name:{item.member.first_name} {item.member.last_name} ");
-
-                    approvalItem.submission_type = myTI.ToTitleCase(item.submission.type);
-                    if (item.submission.type == "review")
-                    {
-                        approvalItem.submission_date = item.submission.date;
-                    }
-                    approvalItem.submission_status = myTI.ToTitleCase(item.submission.status);
-                    approvalItem.submission_outcome = myTI.ToTitleCase(item.submission.outcome);
-
-                    Console.Write($"Submission Type:{item.submission.type} Status:{item.submission.status} Outcome:{item.submission.outcome} ");
-                    int actionCount = 0;
-                    foreach (var action in item.submission.actioned_by)
-                    {
-                        if (action.outcome == "approved")
-                        {
-                            actionCount++;
-                        }
-                        Console.Write($"Action outcome:{action.outcome} Action time:{action.time} Action date:{action.date_awarded} ");
-                        switch (item.submission.type)
-                        {
-                            case "review":
-                                if (actionCount == 2)
-                                {
-                                    approvalDate = action.time.ToShortDateString();
-                                    approvalItem.awarded_date = action.time;
-                                }
-                                break;
-                            case "award":
-                                // need to check if action.member_id is a leader
-                                var actionMember = memberList.Where(m => m.id == action.member_id).FirstOrDefault();
-                                bool isLeader = actionMember != null && actionMember.isAdultLeader == 1;
-                                if (isLeader)
-                                {
-                                    awardedDate = string.IsNullOrEmpty(action.date_awarded) ? action.time.ToShortDateString() : action.date_awarded;
-                                    approvalItem.presented_date = action.time;
-                                    if (!string.IsNullOrEmpty(action.date_awarded))
-                                    {
-                                        approvalItem.presented_date = DateTime.ParseExact(action.date_awarded, "yyyy-MM-dd", CultureInfo.InvariantCulture);
-                                    }
-                                }
-                                break;
-                        }
-                    }
-                    Console.WriteLine();
-                }
-                Console.WriteLine($"Approved: {approvalDate} Awarded:{awardedDate}");
-                approvalList.Add(approvalItem);
-            }
-            return approvalList;
+            var pending = await _terrainAPIService.GetUnitApprovals(unitId, "pending");
+            return PendingApproval.FromResults(pending?.results ?? new Result[0]);
         }
+
         //public async Task<List<ApprovalsListModel>> GetApprovalListItemsx(string unitId)
         //{
         //    var savedApprovalItems = await ReadApprovalListFromLocalStorage(unitId);

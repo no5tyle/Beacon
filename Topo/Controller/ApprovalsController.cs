@@ -1,16 +1,10 @@
-﻿using Microsoft.AspNetCore.Components;
-using Microsoft.JSInterop;
-using Newtonsoft.Json;
-using System.Net.NetworkInformation;
-using System.Reflection;
-using Topo.Model.AdditionalAwards;
+using Microsoft.AspNetCore.Components;
 using Topo.Model.Approvals;
-using Topo.Model.ReportGeneration;
 using Topo.Services;
-
 
 namespace Topo.Controller
 {
+    // Submissions waiting for the Unit Council in the chosen unit
     public class ApprovalsController : ComponentBase
     {
         [Inject]
@@ -22,24 +16,62 @@ namespace Topo.Controller
         [Inject]
         public NavigationManager NavigationManager { get; set; }
 
-        public ApprovalsPageViewModel model = new ApprovalsPageViewModel();
+        [Inject]
+        public ILogger<ApprovalsController> _logger { get; set; }
 
-        // Name filter (empty means everyone) and grouping for the approvals table and report
+        public string unitId = "";
+        public string unitName = "";
+        public List<PendingApproval> pending = new List<PendingApproval>();
+        public bool loadingApprovals;
+        public string errorMessage = "";
+
+        // Youth filter (empty means everyone) and grouping
         public HashSet<string> selectedNames = new HashSet<string>();
         public bool showNameFilter;
         public bool groupByMember;
 
-        internal List<string> MemberNames => (model.Approvals ?? new List<ApprovalsListModel>())
-            .Select(a => a.member_display_name).Distinct().OrderBy(n => n).ToList();
+        protected override async Task OnInitializedAsync()
+        {
+            if (!_storageService.IsAuthenticated)
+            {
+                NavigationManager.NavigateTo("index");
+                return;
+            }
+            unitId = _storageService.UnitId;
+            unitName = _storageService.UnitName ?? "";
+            if (!string.IsNullOrEmpty(unitId))
+                await RefreshApprovalsClick();
+        }
 
-        internal List<ApprovalsListModel> FilteredApprovals => (model.Approvals ?? new List<ApprovalsListModel>())
-            .Where(a => !selectedNames.Any() || selectedNames.Contains(a.member_display_name))
+        internal async Task RefreshApprovalsClick()
+        {
+            if (string.IsNullOrEmpty(unitId) || loadingApprovals)
+                return;
+            loadingApprovals = true;
+            errorMessage = "";
+            try
+            {
+                pending = await _approvalsService.GetPendingApprovals(unitId);
+                selectedNames.RemoveWhere(n => !MemberNames.Contains(n));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Approvals: unable to load pending approvals");
+                errorMessage = "Couldn't load approvals from Terrain. Try again in a moment.";
+            }
+            loadingApprovals = false;
+        }
+
+        internal List<string> MemberNames => pending.Select(a => a.MemberName).Distinct().OrderBy(n => n).ToList();
+
+        internal List<PendingApproval> FilteredApprovals => pending
+            .Where(a => !selectedNames.Any() || selectedNames.Contains(a.MemberName))
             .ToList();
 
-        internal IEnumerable<IGrouping<string, ApprovalsListModel>> GroupedApprovals => FilteredApprovals
-            .OrderBy(a => groupByMember ? a.member_display_name : a.achievement_name)
-            .ThenBy(a => groupByMember ? a.achievement_name : a.member_display_name)
-            .GroupBy(a => groupByMember ? a.member_display_name : a.achievement_name);
+        internal IEnumerable<IGrouping<string, PendingApproval>> GroupedApprovals => FilteredApprovals
+            .OrderBy(a => groupByMember ? a.MemberName : a.AchievementName)
+            .ThenBy(a => a.SubmittedOn)
+            .GroupBy(a => groupByMember ? a.MemberName : a.AchievementName);
 
         internal void ToggleName(string name)
         {
@@ -48,43 +80,17 @@ namespace Topo.Controller
         }
 
         internal string NameFilterText => selectedNames.Count == 0 ? "Everyone" : selectedNames.Count == 1 ? selectedNames.First() : $"{selectedNames.Count} youth";
-        protected override void OnInitialized()
-        {
-            if (!_storageService.IsAuthenticated)
-                NavigationManager.NavigateTo("index");
 
-            model.GroupName = _storageService.UnitNameDisplay;
-            model.Units = _storageService.Units;
-            model.ApprovalSearchFromDate = DateTime.Now.AddMonths(-2);
-            model.ApprovalSearchToDate = DateTime.Now;
-            if (!string.IsNullOrEmpty(_storageService.UnitId))
+        internal static string SubmittedDisplay(DateTime submitted)
+        {
+            var days = (DateTime.Today - submitted.ToLocalTime().Date).Days;
+            return days switch
             {
-                model.UnitId = _storageService.UnitId;
-                model.UnitName = _storageService.UnitName;
-            }
-        }
-
-        // The unit is chosen on Home, so load its approvals straight away
-        protected override async Task OnInitializedAsync()
-        {
-            if (_storageService.IsAuthenticated && !string.IsNullOrEmpty(model.UnitId))
-                await RefreshApprovalsClick();
-        }
-
-
-        public bool loadingApprovals;
-
-        internal async Task RefreshApprovalsClick()
-        {
-            if (!string.IsNullOrEmpty(model.UnitName))
-            {
-                loadingApprovals = true;
-                model.Approvals = await _approvalsService.GetApprovalListItems(_storageService.UnitId);
-                loadingApprovals = false;
-                model.Approvals = model.Approvals?.Where(a => a.submission_date >= model.ApprovalSearchFromDate && a.submission_date <= model.ApprovalSearchToDate.AddDays(1)).ToList() ?? new List<ApprovalsListModel>();
-                if (!model.ShowRejected)
-                    model.Approvals = model.Approvals.Where(a => a.submission_outcome.ToLower() != "rejected").ToList();
-            }
+                <= 0 => "today",
+                1 => "yesterday",
+                < 14 => $"{days} days ago",
+                _ => submitted.ToLocalTime().ToString("d MMM yyyy")
+            };
         }
     }
 }
