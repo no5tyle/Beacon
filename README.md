@@ -10,8 +10,7 @@ Beacon is a fork of [NomisNostab/Topo-Blazor](https://github.com/NomisNostab/Top
 
 - **Insights**: unit OAS completion, the most common missing OAS requirements, priority youth (moving up soon plus focus youth) with weighted peak award progress, and programming help.
 - **Personal Progress insights**: what each youth is missing, recurring skill themes, and activity ideas for anything they're close to completing.
-- **Record OAS**: tick a youth's I statements and submit the stage for Unit Council review on their behalf.
-- **OAS Sign Off**: tick the same I statements for several youth at once, e.g. at the end of a unit night.
+- **Record OAS**: tick the same I statements for several youth at once, e.g. at the end of a unit night. From a youth's Personal Progress page you can also record their statements and submit the stage for Unit Council review on their behalf.
 - **Beacon Reference**: every OAS I statement with Terrain's full explanation, installable as its own app and usable offline.
 
 Beacon is built for phones at the hall. The desktop reports from the original Topo (wallchart, member and patrol lists, program sign in sheets, OAS, SIA, milestone, logbook and award reports) aren't included; use [Topo](https://nomisnostab.github.io/Topo-Blazor/) for those.
