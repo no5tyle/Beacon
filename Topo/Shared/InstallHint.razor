@@ -1,0 +1,86 @@
+@* Suggests adding Beacon to the Home Screen, only when it's open in a browser rather than as the installed app *@
+@inject IJSRuntime JS
+@implements IDisposable
+
+@if (!dismissed && (state == "prompt" || state == "ios"))
+{
+    <div class="install-hint mb-3" role="note">
+        <img src="icon-192.png" width="40" height="40" class="install-icon" alt="" />
+        <div class="install-text">
+            <strong>Add Beacon to your Home Screen</strong>
+            @if (state == "ios")
+            {
+                <div class="small">Tap <span class="oi oi-share-boxed" aria-label="Share"></span> Share, then <em>Add to Home Screen</em>, to open it like an app.</div>
+            }
+            else
+            {
+                <div class="small">Open it like an app, full screen and one tap away.</div>
+            }
+        </div>
+        @if (state == "prompt")
+        {
+            <button type="button" class="btn btn-primary btn-sm" @onclick="Install">Install</button>
+        }
+        <button type="button" class="btn-close" aria-label="Don't show again" @onclick="Dismiss"></button>
+    </div>
+}
+
+@code {
+    private const string DismissedKey = "beacon-install-hint-dismissed";
+    private string state = "none";
+    private bool dismissed;
+    private DotNetObjectReference<InstallHint>? dotNetReference;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+        try
+        {
+            dismissed = await JS.InvokeAsync<string?>("localStorage.getItem", DismissedKey) == "true";
+            dotNetReference = DotNetObjectReference.Create(this);
+            state = await JS.InvokeAsync<string>("beaconInstallState", dotNetReference);
+            StateHasChanged();
+        }
+        catch (JSException)
+        {
+            // Storage blocked or no install support: just don't show the hint
+        }
+    }
+
+    // Called from JavaScript when the browser offers its install prompt or the app gets installed
+    [JSInvokable]
+    public async Task InstallStateChanged()
+    {
+        state = await JS.InvokeAsync<string>("beaconInstallState", (object?)null);
+        StateHasChanged();
+    }
+
+    private async Task Install()
+    {
+        var outcome = await JS.InvokeAsync<string>("beaconInstall");
+        state = await JS.InvokeAsync<string>("beaconInstallState", (object?)null);
+        if (outcome == "dismissed" && state == "none")
+            dismissed = true;
+    }
+
+    private async Task Dismiss()
+    {
+        dismissed = true;
+        try
+        {
+            await JS.InvokeVoidAsync("localStorage.setItem", DismissedKey, "true");
+        }
+        catch (JSException)
+        {
+        }
+    }
+
+    public void Dispose()
+    {
+        if (dotNetReference != null)
+        {
+            _ = JS.InvokeVoidAsync("beaconStopInstallWatch", dotNetReference).AsTask().ContinueWith(_ => dotNetReference.Dispose());
+        }
+    }
+}

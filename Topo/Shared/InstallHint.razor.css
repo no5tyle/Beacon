@@ -1,0 +1,34 @@
+.install-hint {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 0.9rem;
+    border: 1px solid #d6dbec;
+    border-radius: 0.6rem;
+    background: #f4f6fc;
+}
+
+.install-icon {
+    flex-shrink: 0;
+    border-radius: 0.6rem;
+}
+
+.install-text {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.install-hint .btn-primary {
+    flex-shrink: 0;
+    min-height: 36px;
+}
+
+.install-hint .btn-close {
+    flex-shrink: 0;
+    align-self: flex-start;
+}
+
+.install-hint .oi {
+    font-size: 0.8rem;
+    top: 0;
+}

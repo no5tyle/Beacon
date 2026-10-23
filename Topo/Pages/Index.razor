@@ -6,6 +6,9 @@
 <EditForm Model="@indexPageViewModel">
     @if (indexPageViewModel.IsAuthenticated)
     {
+        <div class="mt-3">
+            <InstallHint />
+        </div>
         <div class="mt-3 mb-3 row">
             <h2>Welcome @indexPageViewModel.FullName</h2>
         </div>

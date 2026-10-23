@@ -64,8 +64,22 @@ namespace Topo.Controller
             OpenSharedStatement();
         }
 
+        public bool runningAsInstalledApp;
+
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
+            if (firstRender && !AppMode)
+            {
+                try
+                {
+                    runningAsInstalledApp = await JS.InvokeAsync<bool>("beaconIsInstalledApp");
+                    if (runningAsInstalledApp)
+                        StateHasChanged();
+                }
+                catch (JSException)
+                {
+                }
+            }
             if (firstRender && AppMode)
             {
                 offlineSupported = await JS.InvokeAsync<bool>("topoOfflineSupported");

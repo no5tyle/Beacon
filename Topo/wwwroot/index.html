@@ -159,6 +159,55 @@
         return saved;
     }
 
+    // Home Screen install: whether this copy is the installed app, and the browser's own install prompt where
+    // it offers one (Chrome and Edge; Safari has none, so iPhones get instructions instead)
+    var beaconInstallPrompt = null;
+    var beaconInstallWatchers = [];
+    window.addEventListener("beforeinstallprompt", function (e) {
+        e.preventDefault();
+        beaconInstallPrompt = e;
+        beaconInstallWatchers.forEach(function (w) { w.invokeMethodAsync("InstallStateChanged"); });
+    });
+    window.addEventListener("appinstalled", function () {
+        beaconInstallPrompt = null;
+        try { localStorage.setItem("beacon-installed", "true"); } catch (e) { }
+        beaconInstallWatchers.forEach(function (w) { w.invokeMethodAsync("InstallStateChanged"); });
+    });
+
+    function beaconIsInstalledApp() {
+        return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+    }
+
+    // "installed" when running from the Home Screen (or just installed from this tab), "prompt" when the browser
+    // can install it with one tap, "ios" when it needs Share > Add to Home Screen, otherwise "none"
+    function beaconInstallState(dotNet) {
+        if (dotNet && beaconInstallWatchers.indexOf(dotNet) < 0)
+            beaconInstallWatchers.push(dotNet);
+        var justInstalled = false;
+        try { justInstalled = localStorage.getItem("beacon-installed") === "true"; } catch (e) { }
+        if (beaconIsInstalledApp() || (justInstalled && !beaconInstallPrompt))
+            return "installed";
+        if (beaconInstallPrompt)
+            return "prompt";
+        var ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+        return ios ? "ios" : "none";
+    }
+
+    function beaconStopInstallWatch(dotNet) {
+        beaconInstallWatchers = beaconInstallWatchers.filter(function (w) { return w !== dotNet; });
+    }
+
+    // Shows the browser's install prompt. Returns "accepted", "dismissed" or "unavailable"
+    async function beaconInstall() {
+        if (!beaconInstallPrompt)
+            return "unavailable";
+        var prompt = beaconInstallPrompt;
+        beaconInstallPrompt = null;
+        prompt.prompt();
+        var choice = await prompt.userChoice;
+        return choice.outcome;
+    }
+
     // Login page: focus the first empty field, and log in straight away when a password manager fills the
     // member number and password. Anything typed into the password field means it wasn't filled, so then
     // the leader taps Log In as usual. Only tries once per visit, so a failed login doesn't loop.
