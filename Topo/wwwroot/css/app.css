@@ -207,8 +207,8 @@ a, .btn-link {
         white-space: nowrap;
     }
 
-    /* Big enough to tap */
-    .btn, .form-select, .form-control {
+    /* Big enough to tap (main app pages only; the Reference app has its own layout) */
+    .content .btn, .content .form-select, .content .form-control {
         min-height: 44px;
     }
 
