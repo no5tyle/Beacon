@@ -229,13 +229,47 @@
     min-width: 90px;
 }
 
+/* Title on the left, icon buttons on the right */
+.insights-header[b-f7if1sp21m] {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
 .insights-toolbar[b-f7if1sp21m] {
     display: flex;
     gap: 0.5rem;
 }
 
-.insights-toolbar .btn[b-f7if1sp21m] {
-    min-height: 44px;
+.icon-btn[b-f7if1sp21m] {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+}
+
+.icon-btn .oi[b-f7if1sp21m] {
+    top: 0;
+}
+
+/* How many filters differ from the defaults */
+.filter-count[b-f7if1sp21m] {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    min-width: 1.15rem;
+    height: 1.15rem;
+    padding: 0 0.25rem;
+    border-radius: 999px;
+    background: #e8a33d;
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 600;
+    line-height: 1.15rem;
 }
 
 .filters-panel[b-f7if1sp21m] {
