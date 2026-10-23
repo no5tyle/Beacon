@@ -2,28 +2,70 @@
 
 *Lighting the way through the Terrain.*
 
-Beacon is a helper application to assist scout leaders in getting meaningful reports out of the Scouts Australia Terrain application.
+Beacon is a phone-first helper for Scouts Australia leaders. It reads your unit's records from [Terrain](https://terrain.scouts.com.au) and turns them into the things you need at the hall: who's close to finishing what, what to programme next, and quick OAS sign offs after a unit night.
 
-Beacon runs as a Blazor WebAssembly app in the browser. It works on phones and can be added to the home screen as an app.
+It runs in the browser at **https://no5tyle.github.io/Beacon/** and can be added to your phone's Home Screen to open like an app.
 
-Beacon is a fork of [NomisNostab/Topo-Blazor](https://github.com/NomisNostab/Topo-Blazor) (Topo), renamed, that adds:
+Beacon started as a fork of [Topo](https://github.com/NomisNostab/Topo-Blazor). Topo is built around desktop reports (wallcharts, patrol lists, sign in sheets); Beacon drops those and focuses on what's useful on a phone. Use [Topo](https://nomisnostab.github.io/Topo-Blazor/) when you need a printable report.
 
-- **Insights**: unit OAS completion, the most common missing OAS requirements, priority youth (moving up soon plus focus youth) with weighted peak award progress, and programming help.
-- **Personal Progress insights**: what each youth is missing, recurring skill themes, and activity ideas for anything they're close to completing.
-- **Record OAS**: tick the same I statements for several youth at once, e.g. at the end of a unit night. From a youth's Personal Progress page you can also record their statements and submit the stage for Unit Council review on their behalf.
-- **Beacon Reference**: every OAS I statement with Terrain's full explanation, installable as its own app and usable offline.
+## What's in it
 
-Beacon is built for phones at the hall. The desktop reports from the original Topo (wallchart, member and patrol lists, program sign in sheets, OAS, SIA, milestone, logbook and award reports) aren't included; use [Topo](https://nomisnostab.github.io/Topo-Blazor/) for those.
+Log in with your Terrain member number and password. If you lead more than one unit, pick the unit on **Home**; every page then works on that unit, and it's remembered next time.
 
-## Installation
-### Browser
-To run Beacon just go to https://no5tyle.github.io/Beacon/ and it will download and start, be patient while it downloads.
+| Tab | What it does |
+|---|---|
+| **Home** | Choose your group and unit. |
+| **Insights** | The unit at a glance: OAS completion by stream and stage, the most common missing OAS requirements, youth moving up soon (plus any focus youth you pick) with their peak award progress, and skill themes and milestone gaps to programme around. Settings are under the Filters icon. |
+| **Record** | Sign off the same OAS I statements for several youth at once: pick a stage and the statements, pick the youth, then save. Each youth shows whether the statements are new for them, already done, or locked because the stage is submitted or awarded. |
+| **Progress** | Each youth's milestones, OAS, SIAs and peak award, with what they're missing and activity ideas for anything they're close to completing. From here you can also record one youth's statements and submit a stage for Unit Council review on their behalf. |
+| **Reference** | Every OAS I statement with Terrain's full explanation, searchable and filterable. |
+| **More** | Approvals (what's currently waiting for the Unit Council, with votes so far), logging for troubleshooting, and Logout. |
 
-### Phone
-Open the address above, then use "Add to Home Screen" (iPhone) or "Install app" (Android). Do the same from https://no5tyle.github.io/Beacon/reference/ to add Beacon Reference.
+Youth members can log in too and see their own progress.
 
-## Documentation
+**Beacon Reference** is the OAS reference on its own, as a separate installable app that also works offline (handy at camp): https://no5tyle.github.io/Beacon/reference/
 
-The original project's [wiki](https://github.com/NomisNostab/Topo-Blazor/wiki) covers how to use the standard features. The features added in this fork are described above.
+## Installing on a phone
+
+Open https://no5tyle.github.io/Beacon/ and:
+
+- **iPhone / iPad:** tap Share, then *Add to Home Screen*.
+- **Android (Chrome):** tap *Install* in the hint on the login page, or *Install app* in Chrome's menu.
+
+Do the same from the `/reference/` address to add Beacon Reference as its own app.
+
+## How it works
+
+- **No Beacon server.** Beacon runs entirely in your browser and talks straight to Terrain with your own login, so it can only see and change what your Terrain account can.
+- **What's kept on your device:** your branch, chosen unit, Insights focus youth and similar preferences, plus the offline copy of Beacon's own files. Your password isn't stored (let your phone's password manager remember it; Beacon logs in as soon as it's filled). Youth records are only held in memory while Beacon is open.
+- **Background loading.** Once you're logged in and a unit is chosen, Beacon quietly loads every youth's progress so Insights opens straight away.
+- **Writing to Terrain.** Record OAS adds I statement verifications in Terrain using the same requests Terrain's own app sends when a leader records on a youth's behalf. It only ever adds statements a youth doesn't already have, never changes existing answers, and only submits a stage when you ask it to. The Unit Council still approves in Terrain.
+
+### Things to know
+
+- Terrain has no public API. Beacon uses the same requests Terrain's own app makes, so a change to Terrain can break things until Beacon is updated. Beacon isn't made or supported by Scouts Australia.
+- Approving or marking submissions for improvement from Beacon isn't available yet; use Terrain for that.
+- Leaders can't verify Stage 6 and above OAS statements (Terrain's rule), so Beacon only offers the logbook tick there.
+
+## Development
+
+Beacon is a .NET 10 Blazor WebAssembly app.
+
+```
+dotnet build Topo/Topo.csproj
+dotnet run --project Topo/Topo.csproj     # http://localhost:5064
+dotnet test TopoInsightsTest              # Insights, OAS recording, sign off and approvals logic
+```
+
+| Folder | Contents |
+|---|---|
+| `Topo/` | The app: pages, services that call Terrain, styles and the two web app manifests |
+| `Model/` | Models and the logic for Insights, OAS recording, sign off and approvals (covered by `TopoInsightsTest`) |
+| `TopoInsightsTest/` | Unit tests |
+| `TopoReportFunction/`, `Services/` | Topo's PDF/XLSX report service, kept from the original project but not used by Beacon |
+
+Every push to `main` builds the app and publishes it to GitHub Pages (`.github/workflows/main.yml`); the site's address follows the repository name.
 
 The code and project names still use the original Topo name.
+
+The original project's [wiki](https://github.com/NomisNostab/Topo-Blazor/wiki) documents Topo's features.
