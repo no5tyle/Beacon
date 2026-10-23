@@ -1,5 +1,5 @@
-// Service worker for the installed Topo app (Topo Reference has its own under reference/).
-// Network first so every release is picked up straight away. Only Topo's own files are kept,
+// Service worker for the installed Beacon app (Beacon Reference has its own under reference/).
+// Network first so every release is picked up straight away. Only Beacon's own files are kept,
 // never Terrain's data, so the app still opens without signal but no youth details are stored.
 const CACHE_PREFIX = "topo-app-";
 const CACHE = CACHE_PREFIX + "v1";
@@ -8,7 +8,7 @@ self.addEventListener("install", () => self.skipWaiting());
 
 self.addEventListener("activate", event => {
     event.waitUntil((async () => {
-        // Leave Topo Reference's cache alone
+        // Leave Beacon Reference's cache alone
         for (const key of await caches.keys()) {
             if (key.startsWith(CACHE_PREFIX) && key !== CACHE)
                 await caches.delete(key);

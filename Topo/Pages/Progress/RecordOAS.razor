@@ -2,7 +2,7 @@
 @inherits Controller.RecordOASController
 @using Topo.Model.OAS
 
-<PageTitle>Topo / Record OAS</PageTitle>
+<PageTitle>Beacon / Record OAS</PageTitle>
 
 <div class="mt-3 mb-3">
     <h2>Record OAS for @member.first_name @member.last_name</h2>
@@ -128,7 +128,7 @@ else if (state != null)
                 {
                     <div class="confirm-box mt-3">
                         <strong>Save to Terrain as @member.first_name?</strong>
-                        <p class="small mb-2">Topo will switch to @member.first_name's profile, add these @NewlyTicked().Count statement@(NewlyTicked().Count == 1 ? "" : "s") to @StageTitle, then switch back. Nothing already recorded is changed.</p>
+                        <p class="small mb-2">Beacon will switch to @member.first_name's profile, add these @NewlyTicked().Count statement@(NewlyTicked().Count == 1 ? "" : "s") to @StageTitle, then switch back. Nothing already recorded is changed.</p>
                         <ul class="small">
                             @foreach (var statement in NewlyTicked())
                             {
@@ -148,7 +148,7 @@ else if (state != null)
                 {
                     <div class="confirm-box mt-3">
                         <strong>Submit @StageTitle for review?</strong>
-                        <p class="small mb-2">Topo will submit it on @member.first_name's behalf. It then goes to the Unit Council to approve in Terrain, and can't be changed here while it's waiting.</p>
+                        <p class="small mb-2">Beacon will submit it on @member.first_name's behalf. It then goes to the Unit Council to approve in Terrain, and can't be changed here while it's waiting.</p>
                         <button type="button" class="btn btn-sm btn-success" @onclick="ConfirmSubmit" disabled="@working">@(working ? "Submitting..." : "Yes, submit")</button>
                         <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="() => confirmingSubmit = false" disabled="@working">Cancel</button>
                     </div>

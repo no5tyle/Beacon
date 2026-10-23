@@ -5,11 +5,11 @@
 
 @if (AppMode)
 {
-    <PageTitle>Topo Reference</PageTitle>
+    <PageTitle>Beacon Reference</PageTitle>
 
     <div class="app-top">
         <header class="app-bar">
-            <span class="app-title">Topo Reference</span>
+            <span class="app-title">Beacon Reference</span>
             <span class="flex-grow-1"></span>
             <button type="button" class="btn app-menu-button me-2 @(starredOnly ? "active" : "")" aria-label="Starred statements" aria-pressed="@(starredOnly ? "true" : "false")" @onclick="() => ShowStarred(!starredOnly)">★<span class="small ms-1">@starred.Count</span></button>
             <button type="button" class="btn app-menu-button" aria-label="Filters" aria-expanded="@(filtersOpen ? "true" : "false")" @onclick="() => filtersOpen = !filtersOpen">
@@ -46,7 +46,7 @@
                     }
                     else
                     {
-                        <p class="small text-muted mb-0">Add Topo Reference to your home screen and open it from there to save it for offline use.</p>
+                        <p class="small text-muted mb-0">Add Beacon Reference to your home screen and open it from there to save it for offline use.</p>
                     }
                     @if (!string.IsNullOrEmpty(offlineStatus))
                     {
@@ -65,13 +65,13 @@
 }
 else
 {
-    <PageTitle>Topo / OAS reference</PageTitle>
+    <PageTitle>Beacon / OAS reference</PageTitle>
 
     <div class="mt-3 mb-3">
         <h2>OAS reference</h2>
         <p class="text-muted mb-0">
             Every Outdoor Adventure Skills I statement, with the fuller explanation Terrain gives. Click a statement to expand it.
-            <button type="button" class="btn btn-link btn-sm p-0 align-baseline" @onclick="OpenApp">Open as the Topo Reference app</button> to add it to your phone's home screen.
+            <button type="button" class="btn btn-link btn-sm p-0 align-baseline" @onclick="OpenApp">Open as the Beacon Reference app</button> to add it to your phone's home screen.
         </p>
     </div>
 

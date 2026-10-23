@@ -1,6 +1,6 @@
 {
-  "name": "Topo Reference",
-  "short_name": "Topo Reference",
+  "name": "Beacon Reference",
+  "short_name": "Beacon Reference",
   "description": "Every OAS I statement with Terrain's full explanation, filterable by stream, stage and skill.",
   "start_url": "./",
   "scope": "./",

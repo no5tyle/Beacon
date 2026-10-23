@@ -21,7 +21,7 @@ namespace Topo.Model.Insights
             var peakAward = insights.Rules.PeakAwardName;
             var sb = new StringBuilder();
 
-            sb.AppendLine($"I'm a Scouts Australia leader. Help me plan how {heading} can complete their outstanding achievements before they move up from {section}. The facts below come from Terrain via Topo.");
+            sb.AppendLine($"I'm a Scouts Australia leader. Help me plan how {heading} can complete their outstanding achievements before they move up from {section}. The facts below come from Terrain via Beacon.");
             sb.AppendLine();
 
             sb.AppendLine("## Timing");

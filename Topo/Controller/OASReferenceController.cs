@@ -275,17 +275,17 @@ namespace Topo.Controller
         internal async Task ShareView()
         {
             var count = Results.Count;
-            await Share($"{count} OAS statement{(count == 1 ? "" : "s")} in Topo Reference", AppUrl(CurrentLink.ToQuery()));
+            await Share($"{count} OAS statement{(count == 1 ? "" : "s")} in Beacon Reference", AppUrl(CurrentLink.ToQuery()));
         }
 
         internal async Task ShareStarred()
         {
-            await Share(OASReference.ChecklistText(Results, "Starred OAS statements, from Topo Reference"), "");
+            await Share(OASReference.ChecklistText(Results, "Starred OAS statements, from Beacon Reference"), "");
         }
 
         private async Task Share(string text, string url)
         {
-            var result = await JS.InvokeAsync<string>("topoShare", "Topo Reference", text, url);
+            var result = await JS.InvokeAsync<string>("topoShare", "Beacon Reference", text, url);
             if (result == "copied")
                 await ShowToast(string.IsNullOrEmpty(url) ? "Copied to the clipboard" : "Link copied to the clipboard");
             else if (result == "failed")

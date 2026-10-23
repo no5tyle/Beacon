@@ -18,7 +18,7 @@ namespace Topo.Model.Insights
             leaderNotes = PromptPrivacy.ScrubNames(leaderNotes, report.MemberNames.Values);
             var sb = new StringBuilder();
 
-            sb.AppendLine($"I'm a Scouts Australia leader. Help me plan one {minutes} minute unit night for my {section} that ticks off as many outstanding {streams} requirements as possible. It doesn't need to cover everything, just one high value night. The facts below come from Terrain via Topo.");
+            sb.AppendLine($"I'm a Scouts Australia leader. Help me plan one {minutes} minute unit night for my {section} that ticks off as many outstanding {streams} requirements as possible. It doesn't need to cover everything, just one high value night. The facts below come from Terrain via Beacon.");
             sb.AppendLine();
 
             sb.AppendLine("## The unit");
