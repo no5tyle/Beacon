@@ -133,6 +133,18 @@ a, .btn-link {
         margin-bottom: 0.25rem;
     }
 
+    /* A select checkbox sits beside the card heading; tapping the heading ticks it */
+    .stack-list > .row.striped > .col-auto .form-check-input {
+        width: 1.4rem;
+        height: 1.4rem;
+        margin-top: 0;
+    }
+
+    .stack-list label.stack-title {
+        cursor: pointer;
+        padding-left: 0;
+    }
+
     /*
         Tables with table-stack become one card per row the same way: data-label on each cell,
         and stack-title on the cell to show first as the card heading.
@@ -201,8 +213,9 @@ a, .btn-link {
     }
 
     .stack-list .btn-link {
-        display: flex;
+        display: inline-flex;
         align-items: center;
         padding-left: 0;
+        margin-right: 1rem;
     }
 }

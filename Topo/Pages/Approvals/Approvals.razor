@@ -41,26 +41,32 @@
     </div>
 
     <div class="mt-3 mb-3 row">
-        <label class="col-sm-2 form-check-label" for="toBePresented">
-            To be presented
-        </label>
-        <div class="col-sm-1">
-            <InputCheckbox id="toBePresented" class="form-check-input"
-                           @bind-Value="model.ToBePresented" />
+        <div class="col-sm-3">
+            <div class="form-check">
+                <InputCheckbox id="toBePresented" class="form-check-input"
+                               @bind-Value="model.ToBePresented" />
+                <label class="form-check-label" for="toBePresented">
+                    To be presented
+                </label>
+            </div>
         </div>
-        <label class="col-sm-2 form-check-label" for="isPresented">
-            Has been presented
-        </label>
-        <div class="col-sm-1">
-            <InputCheckbox id="isPresented" class="form-check-input"
-                           @bind-Value="model.IsPresented" />
+        <div class="col-sm-3">
+            <div class="form-check">
+                <InputCheckbox id="isPresented" class="form-check-input"
+                               @bind-Value="model.IsPresented" />
+                <label class="form-check-label" for="isPresented">
+                    Has been presented
+                </label>
+            </div>
         </div>
-        <label class="col-sm-2 form-check-label" for="showRejected">
-            Show Rejected
-        </label>
-        <div class="col-sm-1">
-            <InputCheckbox id="showRejected" class="form-check-input"
-                           @bind-Value="model.ShowRejected" />
+        <div class="col-sm-3">
+            <div class="form-check">
+                <InputCheckbox id="showRejected" class="form-check-input"
+                               @bind-Value="model.ShowRejected" />
+                <label class="form-check-label" for="showRejected">
+                    Show Rejected
+                </label>
+            </div>
         </div>
     </div>
 
@@ -142,7 +148,7 @@
     @if (model.Approvals != null && model.Approvals.Any())
     {
         <div class="mt-3 mb-3 row">
-            <div class="col-sm">
+            <div class="col-sm button-row">
                 <button type="submit" name="button" @onclick="ApprovalsReportPdfClick" class="btn btn-primary">Approvals Report (pdf)</button>
                 <button type="submit" name="button" @onclick="ApprovalsReportXlsxClick" class="btn btn-success">Approvals Report (xlsx)</button>
             </div>
