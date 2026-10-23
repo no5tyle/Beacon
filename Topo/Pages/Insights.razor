@@ -171,13 +171,13 @@
         </div>
     </div>
 
-    <ul class="nav nav-tabs nav-tabs-scroll mb-3">
+    <ul class="nav nav-tabs nav-justified insights-tabs mb-3">
         <li class="nav-item">
             <button class="nav-link @(model.SelectedTab == InsightsTab.OASGaps ? "active" : "")" @onclick="() => SelectTab(InsightsTab.OASGaps)">OAS gaps</button>
         </li>
         <li class="nav-item">
             <button class="nav-link @(model.SelectedTab == InsightsTab.MovingUp ? "active" : "")" @onclick="() => SelectTab(InsightsTab.MovingUp)">
-                Priority youth <span class="badge bg-danger">@report.MoveUpCandidates.Count</span>
+                Priority<span class="d-none d-sm-inline"> youth</span> <span class="badge bg-danger">@report.MoveUpCandidates.Count</span>
             </button>
         </li>
         <li class="nav-item">
