@@ -21,9 +21,6 @@ namespace Topo.Controller
         IJSRuntime JS { get; set; }
 
         [Inject]
-        public IReportService _reportService { get; set; }
-
-        [Inject]
         public NavigationManager NavigationManager { get; set; }
 
         public MembersPageViewModel model = new MembersPageViewModel();

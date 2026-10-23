@@ -17,12 +17,6 @@ namespace Topo.Controller
         public StorageService _storageService { get; set; }
 
         [Inject]
-        IJSRuntime JS { get; set; }
-
-        [Inject]
-        public IReportService _reportService { get; set; }
-
-        [Inject]
         public IApprovalsService _approvalsService { get; set; }
 
         [Inject]
@@ -85,44 +79,9 @@ namespace Topo.Controller
             {
                 model.Approvals = await _approvalsService.GetApprovalListItems(_storageService.UnitId);
                 model.Approvals = model.Approvals?.Where(a => a.submission_date >= model.ApprovalSearchFromDate && a.submission_date <= model.ApprovalSearchToDate.AddDays(1)).ToList() ?? new List<ApprovalsListModel>();
-                if (model.ToBePresented)
-                    model.Approvals = model.Approvals.Where(a => a.submission_type == "Award" && !a.presented_date.HasValue).ToList();
-                if (model.IsPresented)
-                    model.Approvals = model.Approvals.Where(a => a.presented_date.HasValue && a.presented_date != a.awarded_date).ToList();
                 if (!model.ShowRejected)
                     model.Approvals = model.Approvals.Where(a => a.submission_outcome.ToLower() != "rejected").ToList();
             }
-        }
-
-        internal async Task ApprovalsReportPdfClick()
-        {
-            byte[] report = await ApprovalsReport(OutputType.PDF);
-            var fileName = $"Approvals_{model.UnitName.Replace(' ', '_')}.pdf";
-
-            // Send the data to JS to actually download the file
-            await JS.InvokeVoidAsync("BlazorDownloadFile", fileName, "application/pdf", report);
-        }
-
-        internal async Task ApprovalsReportXlsxClick()
-        {
-            byte[] report = await ApprovalsReport(OutputType.Excel);
-            var fileName = $"Approvals_{model.UnitName.Replace(' ', '_')}.xlsx";
-
-            // Send the data to JS to actually download the file
-            await JS.InvokeVoidAsync("BlazorDownloadFile", fileName, "application/vnd.ms-excel", report);
-        }
-
-        internal async Task<byte[]> ApprovalsReport(OutputType outputType = OutputType.PDF)
-        {
-            var selectedApprovals = FilteredApprovals;
-            var groupName = _storageService.GroupName ?? "";
-            var unitName = _storageService.UnitName ?? "";
-            var section = _storageService.Section;
-
-            var serialisedReportData = JsonConvert.SerializeObject(selectedApprovals);
-
-            var report = await _reportService.GetApprovalsReport(groupName, section, unitName, outputType, serialisedReportData, model.ApprovalSearchFromDate, model.ApprovalSearchToDate, groupByMember);
-            return report;
         }
     }
 }

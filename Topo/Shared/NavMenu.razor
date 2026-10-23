@@ -33,16 +33,6 @@
             if (_storageService.IsYouthMember)
             {
                 <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="logbook">
-                        <span class="oi oi-book" aria-hidden="true"></span> Logbook
-                    </NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="awards">
-                        <span class="oi oi-shield" aria-hidden="true"></span> Additional Awards
-                    </NavLink>
-                </div>
-                <div class="nav-item px-3">
                     <NavLink class="nav-link" href="progress/progress">
                         <span class="oi oi-person" aria-hidden="true"></span> Personal Progress
                     </NavLink>
@@ -51,53 +41,8 @@
             else
             {
                 <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="insights">
-                        <span class="oi oi-graph" aria-hidden="true"></span> Insights
-                    </NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="members">
-                        <span class="oi oi-people" aria-hidden="true"></span> Members
-                    </NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="program">
-                        <span class="oi oi-calendar" aria-hidden="true"></span> Program
-                    </NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="oas" Match="NavLinkMatch.All">
-                        <span class="oi oi-compass" aria-hidden="true"></span> OAS
-                    </NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="sia">
-                        <span class="oi oi-clipboard" aria-hidden="true"></span> SIA
-                    </NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="milestone">
-                        <span class="oi oi-flag" aria-hidden="true"></span> Milestone
-                    </NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="logbook">
-                        <span class="oi oi-book" aria-hidden="true"></span> Logbook
-                    </NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="wallchart">
-                        <span class="oi oi-bar-chart" aria-hidden="true"></span> Wallchart
-                    </NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="awards">
-                        <span class="oi oi-shield" aria-hidden="true"></span> Additional Awards
-                    </NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="approvals/approvals">
-                        <span class="oi oi-thumb-up" aria-hidden="true"></span> Approvals
+                    <NavLink class="nav-link" href="oas/sign-off">
+                        <span class="oi oi-check" aria-hidden="true"></span> OAS Sign Off
                     </NavLink>
                 </div>
                 <div class="nav-item px-3">
@@ -106,16 +51,15 @@
                     </NavLink>
                 </div>
                 <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="oas/sign-off">
-                        <span class="oi oi-check" aria-hidden="true"></span> OAS Sign Off
+                    <NavLink class="nav-link" href="insights">
+                        <span class="oi oi-graph" aria-hidden="true"></span> Insights
                     </NavLink>
                 </div>
                 <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="logging">
-                        <span class="oi oi-document" aria-hidden="true"></span> @(_storageService.LogToQueue ? "Stop Logging" : "Enable Logging")
+                    <NavLink class="nav-link" href="approvals/approvals">
+                        <span class="oi oi-thumb-up" aria-hidden="true"></span> Approvals
                     </NavLink>
                 </div>
-
             }
             <div class="nav-item px-3">
                 <NavLink class="nav-link" href="logout">

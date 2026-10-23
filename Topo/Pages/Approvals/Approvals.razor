@@ -43,24 +43,6 @@
     <div class="mt-3 mb-3 row">
         <div class="col-sm-3">
             <div class="form-check">
-                <InputCheckbox id="toBePresented" class="form-check-input"
-                               @bind-Value="model.ToBePresented" />
-                <label class="form-check-label" for="toBePresented">
-                    To be presented
-                </label>
-            </div>
-        </div>
-        <div class="col-sm-3">
-            <div class="form-check">
-                <InputCheckbox id="isPresented" class="form-check-input"
-                               @bind-Value="model.IsPresented" />
-                <label class="form-check-label" for="isPresented">
-                    Has been presented
-                </label>
-            </div>
-        </div>
-        <div class="col-sm-3">
-            <div class="form-check">
                 <InputCheckbox id="showRejected" class="form-check-input"
                                @bind-Value="model.ShowRejected" />
                 <label class="form-check-label" for="showRejected">
@@ -111,7 +93,7 @@
                     <option value="member">Youth</option>
                 </select>
             </div>
-            <div class="col-sm-5 small text-muted">@FilteredApprovals.Count of @model.Approvals.Count approvals shown. The report includes the approvals shown.</div>
+            <div class="col-sm-5 small text-muted">@FilteredApprovals.Count of @model.Approvals.Count approvals shown.</div>
         </div>
 
         <div class="table-responsive">
@@ -121,14 +103,13 @@
                         <th>@(groupByMember ? "Achievement" : "Name")</th>
                         <th>Type</th>
                         <th>Awarded</th>
-                        <th>Presented</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach (var group in GroupedApprovals)
                     {
                         <tr class="group-row">
-                            <td colspan="4"><strong>@group.Key</strong> <span class="text-muted small">(@group.Count())</span></td>
+                            <td colspan="3"><strong>@group.Key</strong> <span class="text-muted small">(@group.Count())</span></td>
                         </tr>
                         @foreach (var approval in group)
                         {
@@ -136,7 +117,6 @@
                                 <td class="ps-4">@(groupByMember ? approval.achievement_name : approval.member_display_name)</td>
                                 <td>@approval.submission_type</td>
                                 <td>@approval.awarded_date?.ToString("dd/MM/yyyy")</td>
-                                <td>@approval.presented_date?.ToString("dd/MM/yyyy")</td>
                             </tr>
                         }
                     }
@@ -145,14 +125,5 @@
         </div>
     }
 
-    @if (model.Approvals != null && model.Approvals.Any())
-    {
-        <div class="mt-3 mb-3 row">
-            <div class="col-sm button-row">
-                <button type="submit" name="button" @onclick="ApprovalsReportPdfClick" class="btn btn-primary">Approvals Report (pdf)</button>
-                <button type="submit" name="button" @onclick="ApprovalsReportXlsxClick" class="btn btn-success">Approvals Report (xlsx)</button>
-            </div>
-        </div>
-    }
 
 </EditForm>
