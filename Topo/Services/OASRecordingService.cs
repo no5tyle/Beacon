@@ -90,7 +90,9 @@ namespace Topo.Services
             try
             {
                 await _terrainAPIService.RevokeAssumedProfiles();
-                await _terrainAPIService.AssumeProfile(state.MemberId);
+                var assumed = await _terrainAPIService.AssumeProfile(state.MemberId);
+                if (!assumed.Success)
+                    return CouldNotActAsYouth(assumed);
 
                 TerrainWriteResult result;
                 if (state.Achievement == null)
@@ -140,7 +142,9 @@ namespace Topo.Services
             try
             {
                 await _terrainAPIService.RevokeAssumedProfiles();
-                await _terrainAPIService.AssumeProfile(state.MemberId);
+                var assumed = await _terrainAPIService.AssumeProfile(state.MemberId);
+                if (!assumed.Success)
+                    return CouldNotActAsYouth(assumed);
                 var result = await _terrainAPIService.SubmitAchievementOnBehalf(state.MemberId, state.AchievementId, OASRecording.SubmitBody(_storageService.UnitId, LeaderMemberId()));
                 if (result.Success)
                     ClearUnitCaches();
@@ -196,6 +200,17 @@ namespace Topo.Services
             {
                 State = SignOffOutcomeState.Failed,
                 Message = result.StatusCode > 0 ? $"Terrain didn't accept it (response {result.StatusCode})." : result.Body
+            };
+        }
+
+        // Saving without the switch would send the change as the leader, so stop and say so
+        private static TerrainWriteResult CouldNotActAsYouth(TerrainWriteResult assumed)
+        {
+            var reason = assumed.StatusCode > 0 ? $"Terrain said {assumed.StatusCode}." : assumed.Body;
+            return new TerrainWriteResult
+            {
+                Success = false,
+                Body = $"Terrain wouldn't let Beacon act as this youth, so nothing was saved. {reason}".Trim()
             };
         }
 

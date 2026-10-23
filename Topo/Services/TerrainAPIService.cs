@@ -34,7 +34,7 @@ namespace Topo.Services
         public Task<GetSIAResultModel> GetSIAResultForMember(string memberId, string achievementId);
         public Task<GetGroupLifeResultModel> GetGroupLifeForUnit(string unitId);
         public Task RevokeAssumedProfiles();
-        public Task AssumeProfile(string memberId);
+        public Task<TerrainWriteResult> AssumeProfile(string memberId);
         public Task<GetMemberLogbookMetricsResultModel> GetMemberLogbookMetrics(string memberId);
         public Task<GetMemberLogbookSummaryResultModel> GetMemberLogbookSummary(string memberId);
         public Task<GetMemberLogbookDetailResultModel> GetMemberLogbookDetail(string memberId, string logbookId);
@@ -334,17 +334,18 @@ namespace Topo.Services
             var result = await SendRequest(HttpMethod.Post, requestUri);
         }
 
-        public async Task AssumeProfile(string memberId)
+        // Says whether Terrain agreed, so a write never goes ahead as the leader when the switch didn't happen
+        public async Task<TerrainWriteResult> AssumeProfile(string memberId)
         {
             if (_storageService.IsYouthMember)
             {
-                return;
+                return new TerrainWriteResult { Success = true };
             }
 
             await RefreshTokenAsync();
 
             var requestUri = $"{membersAddress}members/{memberId}/assume-profiles";
-            var result = await SendRequest(HttpMethod.Post, requestUri);
+            return await SendActionRequest(HttpMethod.Post, requestUri);
         }
 
         public async Task<GetMemberLogbookMetricsResultModel> GetMemberLogbookMetrics(string memberId)
@@ -597,6 +598,37 @@ namespace Topo.Services
         }
 
         // Unlike SendRequest, reports the status code so callers know whether Terrain accepted the change
+        // A request with no body whose only answer that matters is whether Terrain accepted it
+        private async Task<TerrainWriteResult> SendActionRequest(HttpMethod httpMethod, string requestUri)
+        {
+            HttpRequestMessage httpRequest = new HttpRequestMessage(httpMethod, requestUri);
+            httpRequest.Headers.Add("authorization", _storageService?.AuthenticationResult?.IdToken);
+            httpRequest.Headers.Add("accept", "application/json, text/plain, */*");
+            try
+            {
+                HttpResponseMessage response;
+                using (await _profileGate.Request())
+                    response = await _httpClient.SendAsync(httpRequest);
+                var result = await response.Content.ReadAsStringAsync();
+                _logger.LogInformation($"Version: {_storageService.Version}; Date: {DateTime.Now.ToString("dd/MM/yyyy : HH:mm:ss")}; Request: {httpMethod} {requestUri}; StatusCode: {response.StatusCode}");
+                return new TerrainWriteResult { Success = response.IsSuccessStatusCode, StatusCode = (int)response.StatusCode, Body = result };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogInformation($"Version: {_storageService.Version}; Date: {DateTime.Now.ToString("dd/MM/yyyy : HH:mm:ss")}; Request: {httpMethod} {requestUri}; Exception: {ex}");
+                return new TerrainWriteResult { Success = false, Body = RefusedMessage(ex) };
+            }
+        }
+
+        // The browser hides the reason when Terrain turns a request away (Safari says "Load failed", Chrome "Failed to fetch")
+        private static string RefusedMessage(Exception ex)
+        {
+            var message = ex.Message ?? "";
+            if (message.Contains("Load failed") || message.Contains("Failed to fetch") || message.Contains("NetworkError"))
+                return "Terrain turned the request away without saying why, or there was no signal.";
+            return message;
+        }
+
         private async Task<TerrainWriteResult> SendWriteRequest(HttpMethod httpMethod, string requestUri, JsonObject body, HttpStatusCode expectedStatus)
         {
             HttpRequestMessage httpRequest = new HttpRequestMessage(httpMethod, requestUri);
@@ -616,7 +648,7 @@ namespace Topo.Services
             catch (Exception ex)
             {
                 _logger.LogInformation($"Version: {_storageService.Version}; Date: {DateTime.Now.ToString("dd/MM/yyyy : HH:mm:ss")}; Request: {httpMethod} {requestUri}; Exception: {ex}");
-                return new TerrainWriteResult { Success = false, Body = ex.Message };
+                return new TerrainWriteResult { Success = false, Body = RefusedMessage(ex) };
             }
         }
 
