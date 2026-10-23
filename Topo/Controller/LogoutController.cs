@@ -14,7 +14,7 @@ namespace Topo.Controller
         protected override void OnInitialized()
         {
             _storageService.Logout();
-            NavigationManager.NavigateTo("index");
+            NavigationManager.NavigateTo("login", replace: true);
         }
     }
 }

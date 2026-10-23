@@ -10,10 +10,20 @@ namespace Topo.Controller
         [Inject]
         public StorageService _storageService { get; set; }
 
+        [Inject]
+        public NavigationManager NavigationManager { get; set; }
+
         public IndexPageViewModel indexPageViewModel = new IndexPageViewModel();
 
         protected override void OnInitialized()
         {
+            // Signed out, the home page is the login page. Replacing the history entry keeps Back from bouncing here again
+            if (!_storageService.IsAuthenticated)
+            {
+                NavigationManager.NavigateTo("login", replace: true);
+                return;
+            }
+
             indexPageViewModel.IsAuthenticated = _storageService.IsAuthenticated;
             indexPageViewModel.FullName = _storageService.MemberName ?? "";
             indexPageViewModel.Groups = _storageService.Groups;
