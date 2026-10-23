@@ -4,6 +4,24 @@ html, body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
+:root {
+    /* Height of the tab bar along the bottom on phones, including the iPhone home indicator area */
+    --tab-bar-height: calc(3.6rem + env(safe-area-inset-bottom));
+}
+
+@media (max-width: 640.98px) {
+    /* Keep the end of each page clear of the tab bar */
+    body:has(.tab-bar) main {
+        padding-bottom: var(--tab-bar-height);
+    }
+
+    /* A page's own bottom action bar sits just above the tab bar */
+    body:has(.tab-bar) .action-bar {
+        bottom: var(--tab-bar-height);
+        padding-bottom: 0.6rem;
+    }
+}
+
 h1:focus {
     outline: none;
 }

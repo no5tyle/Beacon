@@ -83,7 +83,7 @@ namespace Topo.Controller
                 _storageService.GroupId = _storageService.Groups.Count == 1 ? _storageService.Groups.FirstOrDefault().Key : "";
                 _storageService.GroupName = _storageService.Groups.Count == 1 ? _storageService.Groups.FirstOrDefault().Value : "";
 
-                NavigationManager.NavigateTo("index");
+                NavigationManager.NavigateTo("");
             }
             if (authenticationResult != null && authenticationResult.AuthenticationErrorResultModel != null)
             {

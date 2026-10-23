@@ -1,4 +1,4 @@
-﻿@inject Topo.Services.StorageService _storageService
+@inject Topo.Services.StorageService _storageService
 @implements IDisposable
 
 <div class="top-row ps-3 navbar navbar-dark">
@@ -7,13 +7,24 @@
             <img src="beacon-64.png" width="22" height="22" class="d-inline-block align-top rounded-1" alt="">
             Beacon
         </a>
-        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
-            <span class="navbar-toggler-icon"></span>
-        </button>
+        @* Phones: the pages are in the tab bar, so the top bar only needs these *@
+        @if (_storageService.IsAuthenticated)
+        {
+            <NavLink class="top-action" href="logout" title="Log out">
+                <span class="oi oi-account-logout" aria-hidden="true"></span> Logout
+            </NavLink>
+        }
+        else
+        {
+            <NavLink class="top-action" href="oas-reference">
+                <span class="oi oi-book" aria-hidden="true"></span> Reference
+            </NavLink>
+        }
     </div>
 </div>
 
-<div class="@NavMenuCssClass" @onclick="ToggleNavMenu">
+@* Desktop sidebar *@
+<div class="sidebar-nav">
     <nav class="flex-column">
         @if (!_storageService.IsAuthenticated)
         {
@@ -30,34 +41,14 @@
         }
         else
         {
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                    <span class="oi oi-home" aria-hidden="true"></span> Home
-                </NavLink>
-            </div>
-            if (!_storageService.IsYouthMember)
+            @foreach (var item in Pages())
             {
                 <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="insights">
-                        <span class="oi oi-graph" aria-hidden="true"></span> Insights
-                    </NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="oas/sign-off">
-                        <span class="oi oi-check" aria-hidden="true"></span> Record OAS
+                    <NavLink class="nav-link" href="@item.Href" Match="@item.Match">
+                        <span class="oi @item.Icon" aria-hidden="true"></span> @item.Title
                     </NavLink>
                 </div>
             }
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="progress/progress">
-                    <span class="oi oi-person" aria-hidden="true"></span> Personal Progress
-                </NavLink>
-            </div>
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="oas-reference">
-                    <span class="oi oi-book" aria-hidden="true"></span> Reference
-                </NavLink>
-            </div>
             <div class="nav-item px-3">
                 <NavLink class="nav-link" href="logout">
                     <span class="oi oi-lock-locked" aria-hidden="true"></span> Logout
@@ -72,14 +63,33 @@
     </nav>
 </div>
 
+@* Phones: the same pages as a tab bar along the bottom, within thumb reach *@
+@if (_storageService.IsAuthenticated)
+{
+    <nav class="tab-bar" aria-label="Main">
+        @foreach (var item in Pages())
+        {
+            <NavLink class="tab" href="@item.Href" Match="@item.Match">
+                <span class="oi @item.Icon" aria-hidden="true"></span>
+                <span class="tab-label">@item.ShortTitle</span>
+            </NavLink>
+        }
+    </nav>
+}
+
 @code {
-    private bool collapseNavMenu = true;
+    private record MenuPage(string Href, string Icon, string Title, string ShortTitle, NavLinkMatch Match = NavLinkMatch.Prefix);
 
-    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
-
-    private void ToggleNavMenu()
+    private IEnumerable<MenuPage> Pages()
     {
-        collapseNavMenu = !collapseNavMenu;
+        yield return new MenuPage("", "oi-home", "Home", "Home", NavLinkMatch.All);
+        if (!_storageService.IsYouthMember)
+        {
+            yield return new MenuPage("insights", "oi-graph", "Insights", "Insights");
+            yield return new MenuPage("oas/sign-off", "oi-check", "Record OAS", "Record");
+        }
+        yield return new MenuPage("progress/progress", "oi-person", "Personal Progress", "Progress");
+        yield return new MenuPage("oas-reference", "oi-book", "Reference", "Reference");
     }
 
     protected override void OnInitialized()
