@@ -687,10 +687,6 @@ main[b-6wbl9fsfs3] {
     }
 }
 /* /Shared/NavMenu.razor.rz.scp.css */
-.navbar-toggler[b-8dz3jqa64m] {
-    background-color: rgba(255, 255, 255, 0.1);
-}
-
 .top-row[b-8dz3jqa64m] {
     height: 3.5rem;
     background-color: rgba(0,0,0,0.4);
@@ -739,14 +735,79 @@ main[b-6wbl9fsfs3] {
     color: white;
 }
 
-@media (min-width: 641px) {
-    .navbar-toggler[b-8dz3jqa64m] {
+/* Top bar button on phones: Logout, or Reference when signed out */
+[b-8dz3jqa64m] .top-action {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 0.5rem;
+    color: #d7d7d7;
+    font-size: 0.9rem;
+    text-decoration: none;
+}
+
+[b-8dz3jqa64m] .top-action .oi {
+    width: 1.5rem;
+}
+
+[b-8dz3jqa64m] .top-action.active, [b-8dz3jqa64m] .top-action:hover {
+    color: #fff;
+}
+
+/* Tab bar along the bottom of the screen on phones */
+.tab-bar[b-8dz3jqa64m] {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 20;
+    display: flex;
+    height: var(--tab-bar-height);
+    padding-bottom: env(safe-area-inset-bottom);
+    background: #0b1a4a;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.tab-bar[b-8dz3jqa64m]  .tab {
+    flex: 1 1 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.15rem;
+    min-width: 0;
+    color: #aab3d6;
+    font-size: 0.7rem;
+    text-decoration: none;
+}
+
+.tab-bar[b-8dz3jqa64m]  .tab .oi {
+    width: auto;
+    font-size: 1.2rem;
+    top: 0;
+}
+
+.tab-bar[b-8dz3jqa64m]  .tab.active {
+    color: #fff;
+    box-shadow: inset 0 3px 0 #e8a33d;
+}
+
+.tab-label[b-8dz3jqa64m] {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@media (max-width: 640.98px) {
+    .sidebar-nav[b-8dz3jqa64m] {
         display: none;
     }
+}
 
-    .collapse[b-8dz3jqa64m] {
-        /* Never collapse the sidebar for wide screens */
-        display: block;
+@media (min-width: 641px) {
+    [b-8dz3jqa64m] .top-action, .tab-bar[b-8dz3jqa64m] {
+        display: none;
     }
 }
 /* /Shared/OASReferenceView.razor.rz.scp.css */
