@@ -1,20 +1,15 @@
 @inject Topo.Services.StorageService _storageService
+@inject NavigationManager NavigationManager
 @implements IDisposable
 
-<div class="top-row ps-3 navbar navbar-dark">
+@* Header: always on desktop; on phones only when signed out, since the tab bar covers everything once signed in *@
+<div class="top-row ps-3 navbar navbar-dark @(_storageService.IsAuthenticated ? "signed-in" : "")">
     <div class="container-fluid">
         <a class="navbar-brand" href="">
             <img src="beacon-64.png" width="22" height="22" class="d-inline-block align-top rounded-1" alt="">
             Beacon
         </a>
-        @* Phones: the pages are in the tab bar, so the top bar only needs these *@
-        @if (_storageService.IsAuthenticated)
-        {
-            <NavLink class="top-action" href="logout" title="Log out">
-                <span class="oi oi-account-logout" aria-hidden="true"></span> Logout
-            </NavLink>
-        }
-        else
+        @if (!_storageService.IsAuthenticated)
         {
             <NavLink class="top-action" href="oas-reference">
                 <span class="oi oi-book" aria-hidden="true"></span> Reference
@@ -41,7 +36,7 @@
         }
         else
         {
-            @foreach (var item in Pages())
+            @foreach (var item in Pages().Concat(MorePages()))
             {
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="@item.Href" Match="@item.Match">
@@ -49,11 +44,6 @@
                     </NavLink>
                 </div>
             }
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="logout">
-                    <span class="oi oi-lock-locked" aria-hidden="true"></span> Logout
-                </NavLink>
-            </div>
         }
         <div class="nav-item px-3">
             <a class="nav-link disabled" aria-disabled="true">
@@ -63,22 +53,41 @@
     </nav>
 </div>
 
-@* Phones: the same pages as a tab bar along the bottom, within thumb reach *@
+@* Phones: the pages as a tab bar along the bottom, within thumb reach, with the rest under More *@
 @if (_storageService.IsAuthenticated)
 {
+    @if (moreOpen)
+    {
+        <div class="more-backdrop" @onclick="CloseMore"></div>
+        <div class="more-menu" role="menu">
+            @foreach (var item in MorePages())
+            {
+                <NavLink class="more-item" href="@item.Href" role="menuitem" @onclick="CloseMore">
+                    <span class="oi @item.Icon" aria-hidden="true"></span> @item.Title
+                </NavLink>
+            }
+            <div class="more-version">Beacon version @_storageService.Version</div>
+        </div>
+    }
     <nav class="tab-bar" aria-label="Main">
         @foreach (var item in Pages())
         {
-            <NavLink class="tab" href="@item.Href" Match="@item.Match">
+            <NavLink class="tab" href="@item.Href" Match="@item.Match" @onclick="CloseMore">
                 <span class="oi @item.Icon" aria-hidden="true"></span>
                 <span class="tab-label">@item.ShortTitle</span>
             </NavLink>
         }
+        <button type="button" class="tab @(moreOpen || OnMorePage ? "active" : "")" aria-haspopup="menu" aria-expanded="@(moreOpen ? "true" : "false")" @onclick="ToggleMore">
+            <span class="oi oi-ellipses" aria-hidden="true"></span>
+            <span class="tab-label">More</span>
+        </button>
     </nav>
 }
 
 @code {
     private record MenuPage(string Href, string Icon, string Title, string ShortTitle, NavLinkMatch Match = NavLinkMatch.Prefix);
+
+    private bool moreOpen;
 
     private IEnumerable<MenuPage> Pages()
     {
@@ -92,13 +101,36 @@
         yield return new MenuPage("oas-reference", "oi-book", "Reference", "Reference");
     }
 
+    // Less used pages: in the sidebar on desktop, under More on phones
+    private IEnumerable<MenuPage> MorePages()
+    {
+        if (!_storageService.IsYouthMember)
+            yield return new MenuPage("approvals/approvals", "oi-thumb-up", "Approvals", "Approvals");
+        yield return new MenuPage("logging", "oi-document", _storageService.LogToQueue ? "Stop logging" : "Turn on logging", "Logging");
+        yield return new MenuPage("logout", "oi-account-logout", "Logout", "Logout");
+    }
+
+    private bool OnMorePage => MorePages().Any(p => NavigationManager.ToBaseRelativePath(NavigationManager.Uri).StartsWith(p.Href, StringComparison.OrdinalIgnoreCase));
+
+    private void ToggleMore() => moreOpen = !moreOpen;
+
+    private void CloseMore() => moreOpen = false;
+
+    private void LocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        moreOpen = false;
+        InvokeAsync(StateHasChanged);
+    }
+
     protected override void OnInitialized()
     {
         _storageService.OnChange += StateHasChanged;
+        NavigationManager.LocationChanged += LocationChanged;
     }
 
     public void Dispose()
     {
         _storageService.OnChange -= StateHasChanged;
+        NavigationManager.LocationChanged -= LocationChanged;
     }
 }
