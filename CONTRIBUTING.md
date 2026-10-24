@@ -26,7 +26,7 @@ Before pushing, run `npm run check && npm run lint && npm run test:unit -- --run
 src/
   lib/
     terrain/       Talking to Terrain (from phase 2). No Svelte in here
-    model/         Beacon's rules: Insights, OAS recording, sign off (from phase 1). No Svelte, no fetch
+    model/         Beacon's rules: Insights, OAS recording, sign off and the OAS reference. No Svelte, no fetch
     components/    Shared Svelte components (AppNav, Icon, ...)
     styles/        theme.css (colours, light and dark) and base.css (buttons, forms, cards, ...)
     icons.ts       The Open Iconic icons Beacon uses, as SVG paths
@@ -35,6 +35,9 @@ src/
   routes/          One folder per page
   service-worker/  Keeps Beacon's own files for opening without signal
 tests/
+  unit/            Vitest tests for src/lib/model
+  fixtures/        A made-up unit's progress and OAS answers, and Terrain's public OAS templates
+  golden/          Results from the Blazor version of Beacon that the port must match (see its README)
   e2e/             Playwright page tests
 static/            Icons and the two web app manifests (Beacon and Beacon Reference)
 ```
@@ -61,7 +64,7 @@ Beacon is phone first: check changes at about 390 px wide, keep buttons at least
 ## Rules for anything that talks to Terrain
 
 - **Never store passwords or tokens** on the device, or send them anywhere but Terrain.
-- **Writes must match what the current app sends.** Saving or submitting OAS records has golden tests comparing request bodies with the current Beacon's output. Change them only with a real Terrain capture to back it up.
+- **Writes must match what the current app sends.** Saving or submitting OAS records has golden tests (`tests/golden`) comparing request bodies with the Blazor version of Beacon. Change them only with a real Terrain capture to back it up.
 - **Acting as a youth is exclusive.** While Beacon has switched Terrain to a youth's profile, nothing else may talk to Terrain. All requests go through the profile gate.
 - **Don't guess Terrain's API.** If you need a request Beacon doesn't make yet, capture it from Terrain's own app first and leave out the `authorization` header when sharing it.
 - **Test data is made up.** Tests and screenshots use the fake "Mt Example Scouts" unit, never real youth.

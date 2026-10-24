@@ -4,7 +4,7 @@ Beacon is a phone-first helper for Scouts Australia leaders. It reads your unit'
 
 This repository is Beacon being rebuilt in [Svelte](https://svelte.dev) and [SvelteKit](https://svelte.dev/docs/kit), to make it easier to contribute to and much quicker to open on a phone. Until the rebuild is finished, use the current Beacon at **https://no5tyle.github.io/Beacon/** ([source](https://github.com/no5tyle/Beacon)).
 
-- **Progress:** see [the plan](docs/plan.md). Phase 0 (the project, styles and app shell) is done; nothing talks to Terrain yet.
+- **Progress:** see [the plan](docs/plan.md). Phases 0 and 1 are done: the project, styles and app shell, and Beacon's Insights, OAS recording, sign off and reference logic with its tests. Nothing talks to Terrain yet.
 - **Preview:** https://no5tyle.github.io/beacon-next/ is published from `main` on every push.
 
 ## Contributing

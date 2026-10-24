@@ -1,0 +1,218 @@
+{
+    "title": "Alpine",
+    "stream_id": "alpine",
+    "description": "Ski, board, camp and snow shoe through the alpine world while building your winter adventure skills.",
+    "achievement_type": "outdoor_adventure_skill",
+    "tree": {
+        "branch_id": "alpine",
+        "title": "Alpine",
+        "stage": 1,
+        "template_link": "oas/alpine/1/latest.json",
+        "children": [
+            {
+                "branch_id": "alpine",
+                "title": "Alpine",
+                "stage": 2,
+                "template_link": "oas/alpine/2/latest.json",
+                "children": [
+                    {
+                        "branch_id": "alpine",
+                        "title": "Alpine",
+                        "template_link": "oas/alpine/3/latest.json",
+                        "stage": 3,
+                        "children": [
+                            {
+                                "branch_id": "cross-country-skiing",
+                                "title": "Cross Country Skiing",
+                                "template_link": "oas/alpine/cross-country-skiing/4/latest.json",
+                                "stage": 4,
+                                "children": [
+                                    {
+                                        "branch_id": "cross-country-skiing",
+                                        "title": "Cross Country Skiing",
+                                        "template_link": "oas/alpine/cross-country-skiing/5/latest.json",
+                                        "stage": 5,
+                                        "children": [
+                                            {
+                                                "branch_id": "cross-country-skiing",
+                                                "title": "Cross Country Skiing",
+                                                "template_link": "oas/alpine/cross-country-skiing/6/latest.json",
+                                                "stage": 6,
+                                                "children": [
+                                                    {
+                                                        "branch_id": "cross-country-skiing",
+                                                        "title": "Cross Country Skiing",
+                                                        "template_link": "oas/alpine/cross-country-skiing/7/latest.json",
+                                                        "stage": 7,
+                                                        "children": [
+                                                            {
+                                                                "branch_id": "cross-country-skiing",
+                                                                "title": "Cross Country Skiing",
+                                                                "template_link": "oas/alpine/cross-country-skiing/8/latest.json",
+                                                                "stage": 8,
+                                                                "children": [
+                                                                    {
+                                                                        "branch_id": "cross-country-skiing",
+                                                                        "title": "Cross Country Skiing",
+                                                                        "template_link": "oas/alpine/cross-country-skiing/9/latest.json",
+                                                                        "stage": 9,
+                                                                        "children": []
+                                                                    }
+                                                                ]
+                                                            }
+                                                        ]
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "branch_id": "snow-camping-and-hiking",
+                                "title": "Snow Camping and Hiking",
+                                "template_link": "oas/alpine/snow-camping-and-hiking/4/latest.json",
+                                "stage": 4,
+                                "children": [
+                                    {
+                                        "branch_id": "snow-camping-and-hiking",
+                                        "title": "Snow Camping and Hiking",
+                                        "template_link": "oas/alpine/snow-camping-and-hiking/5/latest.json",
+                                        "stage": 5,
+                                        "children": [
+                                            {
+                                                "branch_id": "snow-camping-and-hiking",
+                                                "title": "Snow Camping and Hiking",
+                                                "template_link": "oas/alpine/snow-camping-and-hiking/6/latest.json",
+                                                "stage": 6,
+                                                "children": [
+                                                    {
+                                                        "branch_id": "snow-camping-and-hiking",
+                                                        "title": "Snow Camping and Hiking",
+                                                        "template_link": "oas/alpine/snow-camping-and-hiking/7/latest.json",
+                                                        "stage": 7,
+                                                        "children": [
+                                                            {
+                                                                "branch_id": "snow-camping-and-hiking",
+                                                                "title": "Snow Camping and Hiking",
+                                                                "template_link": "oas/alpine/snow-camping-and-hiking/8/latest.json",
+                                                                "stage": 8,
+                                                                "children": [
+                                                                    {
+                                                                        "branch_id": "snow-camping-and-hiking",
+                                                                        "title": "Snow Camping and Hiking",
+                                                                        "template_link": "oas/alpine/snow-camping-and-hiking/9/latest.json",
+                                                                        "stage": 9,
+                                                                        "children": []
+                                                                    }
+                                                                ]
+                                                            }
+                                                        ]
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "branch_id": "downhill-skiing",
+                                "title": "Downhill Skiing",
+                                "template_link": "oas/alpine/downhill-skiing/4/latest.json",
+                                "stage": 4,
+                                "children": [
+                                    {
+                                        "branch_id": "downhill-skiing",
+                                        "title": "Downhill Skiing",
+                                        "template_link": "oas/alpine/downhill-skiing/5/latest.json",
+                                        "stage": 5,
+                                        "children": [
+                                            {
+                                                "branch_id": "downhill-skiing",
+                                                "title": "Downhill Skiing",
+                                                "template_link": "oas/alpine/downhill-skiing/6/latest.json",
+                                                "stage": 6,
+                                                "children": [
+                                                    {
+                                                        "branch_id": "downhill-skiing",
+                                                        "title": "Downhill Skiing",
+                                                        "template_link": "oas/alpine/downhill-skiing/7/latest.json",
+                                                        "stage": 7,
+                                                        "children": [
+                                                            {
+                                                                "branch_id": "downhill-skiing",
+                                                                "title": "Downhill Skiing",
+                                                                "template_link": "oas/alpine/downhill-skiing/8/latest.json",
+                                                                "stage": 8,
+                                                                "children": [
+                                                                    {
+                                                                        "branch_id": "downhill-skiing",
+                                                                        "title": "Downhill Skiing",
+                                                                        "template_link": "oas/alpine/downhill-skiing/9/latest.json",
+                                                                        "stage": 9,
+                                                                        "children": []
+                                                                    }
+                                                                ]
+                                                            }
+                                                        ]
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                "branch_id": "snowboarding",
+                                "title": "Snowboarding",
+                                "template_link": "oas/alpine/snowboarding/4/latest.json",
+                                "stage": 4,
+                                "children": [
+                                    {
+                                        "branch_id": "snowboarding",
+                                        "title": "Snowboarding",
+                                        "template_link": "oas/alpine/snowboarding/5/latest.json",
+                                        "stage": 5,
+                                        "children": [
+                                            {
+                                                "branch_id": "snowboarding",
+                                                "title": "Snowboarding",
+                                                "template_link": "oas/alpine/snowboarding/6/latest.json",
+                                                "stage": 6,
+                                                "children": [
+                                                    {
+                                                        "branch_id": "snowboarding",
+                                                        "title": "Snowboarding",
+                                                        "template_link": "oas/alpine/snowboarding/7/latest.json",
+                                                        "stage": 7,
+                                                        "children": [
+                                                            {
+                                                                "branch_id": "snowboarding",
+                                                                "title": "Snowboarding",
+                                                                "template_link": "oas/alpine/snowboarding/8/latest.json",
+                                                                "stage": 8,
+                                                                "children": [
+                                                                    {
+                                                                        "branch_id": "snowboarding",
+                                                                        "title": "Snowboarding",
+                                                                        "template_link": "oas/alpine/snowboarding/9/latest.json",
+                                                                        "stage": 9,
+                                                                        "children": []
+                                                                    }
+                                                                ]
+                                                            }
+                                                        ]
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}
