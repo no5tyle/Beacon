@@ -210,8 +210,10 @@
     }
 
     // Login page: focus the first empty field, and log in straight away when a password manager fills the
-    // member number and password. Anything typed into the password field means it wasn't filled, so then
-    // the leader taps Log In as usual. Only tries once per visit, so a failed login doesn't loop.
+    // member number and password. A fill is told apart from typing by the password arriving all at once:
+    // iOS fires key events (key "Unidentified") when filling from the QuickType bar, and sometimes fills
+    // without any input event, so the fields are also checked on a timer. Only tries once per visit, so a
+    // failed login doesn't loop. iOS only shows the keyboard for a tap, so there the focus does nothing.
     function beaconLoginPage() {
         var branch = document.getElementById("branch");
         var member = document.getElementById("memberNumber");
@@ -224,13 +226,32 @@
         if (firstEmpty)
             firstEmpty.focus();
 
-        var typed = false;
+        var keys = 0;
         var tried = false;
-        password.addEventListener("keydown", function () { typed = true; });
+        password.addEventListener("keydown", function (e) {
+            if (e.key && e.key !== "Unidentified")
+                keys++;
+        });
+        password.addEventListener("input", function (e) {
+            // Typing or pasting adds a character or a word at a time; a password manager replaces the lot
+            if (e.inputType === "insertReplacementText" || e.inputType === "insertFromPaste" || !e.inputType)
+                return;
+            if (e.inputType === "insertText" && e.data && e.data.length === 1)
+                keys = Math.max(keys, password.value.length);
+        });
+        function filled() {
+            return password.value.length > 0 && password.value.length > keys + 1;
+        }
+        var watch;
         function loginIfFilled() {
-            if (typed || tried || !branch.value || !member.value || !password.value)
+            if (tried || !document.body.contains(button)) {
+                clearInterval(watch);
+                return;
+            }
+            if (!branch.value || !member.value || !password.value || !filled())
                 return;
             tried = true;
+            clearInterval(watch);
             // Make sure Blazor has the filled values before logging in
             member.dispatchEvent(new Event("change", { bubbles: true }));
             password.dispatchEvent(new Event("change", { bubbles: true }));
@@ -239,8 +260,11 @@
         function soon() { setTimeout(loginIfFilled, 150); }
         password.addEventListener("input", soon);
         password.addEventListener("change", soon);
+        member.addEventListener("change", soon);
         // The branch isn't filled by password managers; picking it after the fill also logs in
-        branch.addEventListener("change", function () { if (password.value) soon(); });
+        branch.addEventListener("change", soon);
+        watch = setInterval(loginIfFilled, 400);
+        setTimeout(function () { clearInterval(watch); }, 10 * 60 * 1000);
     }
 
     // Copy text to the clipboard, falling back to a hidden textarea where the Clipboard API is blocked
