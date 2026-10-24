@@ -4,6 +4,7 @@
 -->
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { page } from '$app/state';
 	import ChooseUnit from '#lib/components/ChooseUnit.svelte';
 	import Icon from '#lib/components/Icon.svelte';
 	import { isCoreStream } from '#lib/model/insights/insightsCalculator.js';
@@ -20,6 +21,7 @@
 	} from '#lib/model/oas/signOff.js';
 	import type { OASStage } from '#lib/model/oas/templates.js';
 	import { asc, distinct, groupBy, sortBy } from '#lib/model/util.js';
+	import { pagePath } from '#lib/paths.js';
 	import { app, members, oas, recording } from '#lib/services/index.js';
 	import type { MemberSummary } from '#lib/services/members.js';
 
@@ -53,7 +55,26 @@
 			message = "Couldn't load the OAS stages from Terrain.";
 		}
 		loading = false;
+		await openFromLink();
 	});
+
+	// Opened from a stage's analysis on Insights: start with its stage, statements and youth picked
+	async function openFromLink() {
+		const params = page.url.searchParams;
+		const picked = allStages.find((s) => s.templateLink === params.get('template'));
+		if (!picked) return;
+		const list = (name: string) => (params.get(name) ?? '').split(',').filter((id) => id);
+		showNonCore = !isCoreStream(picked.stream.toLowerCase());
+		selectStream(picked.stream);
+		await selectStage(picked);
+		selectedStatements = list('statements').filter((id) =>
+			statements.some((s) => s.inputId === id && canSelect(s))
+		);
+		if (selectedStatements.length === 0) return;
+		// Moving to the youth step keeps only those who still need something
+		selectedYouth = list('youth');
+		await goToYouth();
+	}
 
 	const streams = $derived(
 		sortBy(
@@ -347,9 +368,17 @@
 			{/if}
 			<div class="heading-row">
 				<strong>{stageName}</strong>
-				<button type="button" class="btn btn-link btn-sm" onclick={selectAllStatements}
-					>Select all</button
-				>
+				<span>
+					<a
+						class="btn btn-link btn-sm"
+						href={pagePath(
+							`insights/stage/?stream=${stage.stream.toLowerCase()}&stage=${stage.stage}&branch=${stage.branch}`
+						)}>Which first?</a
+					>
+					<button type="button" class="btn btn-link btn-sm" onclick={selectAllStatements}
+						>Select all</button
+					>
+				</span>
 			</div>
 			{#each groupBy(statements, (s) => s.group) as group (group.key)}
 				<div class="group-title">{group.key}</div>

@@ -3,6 +3,18 @@
 
 export const BRANCH_KEY = 'LoginBranch';
 export const UNIT_KEY = 'beacon-unit';
+/** Focus youth picked on Insights, per unit, as the Blazor app kept them */
+export const focusKey = (unitId: string) => `insights-focus-youth-${unitId}`;
+
+/** The focus youth picked on Insights for a unit */
+export function readFocusIds(unitId: string): string[] {
+	try {
+		const saved = JSON.parse(readSetting(focusKey(unitId)) || '[]') as unknown;
+		return Array.isArray(saved) ? saved.filter((id): id is string => typeof id === 'string') : [];
+	} catch {
+		return [];
+	}
+}
 
 export function readSetting(key: string): string {
 	try {
