@@ -12,13 +12,12 @@
 		type StageYouth,
 		type StatementPriority
 	} from '#lib/model/insights/stageAnalysis.js';
-	import { defaultInsightsSettings } from '#lib/model/insights/settings.js';
 	import { MAX_LEADER_VERIFIABLE_STAGE } from '#lib/model/oas/recording.js';
 	import { asc, compareText, distinct, sortBy } from '#lib/model/util.js';
 	import { pagePath } from '#lib/paths.js';
 	import { app, insights } from '#lib/services/index.js';
 	import type { StageReport } from '#lib/services/insights.js';
-	import { readFocusIds } from '#lib/stores/storage.js';
+	import { readFocusIds, readInsightsSettings } from '#lib/stores/storage.js';
 
 	const stream = $derived((page.url.searchParams.get('stream') ?? '').toLowerCase());
 	const stageNumber = $derived(Number(page.url.searchParams.get('stage')));
@@ -39,7 +38,7 @@
 		try {
 			const loaded = await insights.stageReport(
 				unitId,
-				defaultInsightsSettings(),
+				readInsightsSettings(),
 				readFocusIds(unitId),
 				stream,
 				stageNumber,

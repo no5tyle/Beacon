@@ -22,14 +22,16 @@
 		type TaskCategory,
 		type Urgency
 	} from '#lib/model/insights/models.js';
-	import {
-		defaultInsightsSettings,
-		rulesFor,
-		type SectionRules
-	} from '#lib/model/insights/settings.js';
+	import { rulesFor, type SectionRules } from '#lib/model/insights/settings.js';
 	import { asc, compareText, desc, formatOneDecimal, sortBy } from '#lib/model/util.js';
 	import { app, insights, members, unitProgress } from '#lib/services/index.js';
-	import { focusKey, readFocusIds, writeSetting } from '#lib/stores/storage.js';
+	import {
+		focusKey,
+		readFocusIds,
+		readInsightsSettings,
+		saveInsightsSettings,
+		writeSetting
+	} from '#lib/stores/storage.js';
 
 	type Tab = 'gaps' | 'moving-up' | 'programme';
 
@@ -37,7 +39,8 @@
 	const MOST_COMMON_LIMIT = 20;
 	const STAGES = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
-	let settings = $state(defaultInsightsSettings());
+	// The filters chosen earlier in this browser tab, if any
+	let settings = $state(readInsightsSettings());
 	let report = $state<InsightsReport | null>(null);
 	let analysing = $state(false);
 	let errorMessage = $state('');
@@ -111,7 +114,10 @@
 		errorMessage = '';
 		app.suppressLastName = suppressLastName;
 		try {
-			report = await insights.report(unitId, $state.snapshot(settings), $state.snapshot(focusIds));
+			const used = $state.snapshot(settings);
+			// Remembered for the rest of the tab, so a stage's analysis and youth details use the same filters
+			saveInsightsSettings(used);
+			report = await insights.report(unitId, used, $state.snapshot(focusIds));
 			if (report.youthCount === 0) errorMessage = 'No youth members found for this unit.';
 		} catch (error) {
 			console.error('Insights: analysis failed', error);
