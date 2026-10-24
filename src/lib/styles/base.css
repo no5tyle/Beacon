@@ -393,3 +393,42 @@ small {
 		display: none !important;
 	}
 }
+
+/* Pull to refresh: the circle that follows the finger down from the top, then spins while refreshing */
+.pull-indicator {
+	position: fixed;
+	top: calc(env(safe-area-inset-top) + 0.5rem);
+	left: 50%;
+	z-index: 30;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 2.5rem;
+	height: 2.5rem;
+	border-radius: 50%;
+	background: var(--surface);
+	color: var(--muted);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+	opacity: 0;
+	transform: translate(-50%, -48px);
+	pointer-events: none;
+}
+
+.pull-indicator.ready {
+	color: var(--brand-text);
+}
+
+.pull-indicator.spinning svg {
+	animation: pull-spin 0.8s linear infinite;
+}
+
+@keyframes pull-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+/* Signed in, the browser's own pull to refresh would reload the page and sign the leader out */
+html:has(.tab-bar) {
+	overscroll-behavior-y: contain;
+}

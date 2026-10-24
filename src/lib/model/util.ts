@@ -55,6 +55,17 @@ export function distinct<T>(items: readonly T[]): T[] {
 	return [...new Set(items)];
 }
 
+/** The first item for each key, in order of first appearance, like LINQ's DistinctBy */
+export function distinctBy<T, K>(items: readonly T[], key: (item: T) => K): T[] {
+	const seen = new Set<K>();
+	return items.filter((item) => {
+		const k = key(item);
+		if (seen.has(k)) return false;
+		seen.add(k);
+		return true;
+	});
+}
+
 export function sum(values: readonly number[]): number {
 	return values.reduce((total, value) => total + value, 0);
 }

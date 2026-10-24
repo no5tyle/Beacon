@@ -2,20 +2,46 @@
 	import '#lib/styles/theme.css';
 	import '#lib/styles/base.css';
 	import { asset } from '$app/paths';
-	import { pagePath } from '#lib/paths.js';
+	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import AppNav from '#lib/components/AppNav.svelte';
+	import { pagePath } from '#lib/paths.js';
+	import { app, preload } from '#lib/services/index.js';
+	import { VERSION } from '#lib/stores/app.svelte.js';
+	import { requestLog } from '#lib/stores/log.svelte.js';
+	import '#lib/stores/install.svelte.js';
 	import type { LayoutProps } from './$types';
 
 	let { children }: LayoutProps = $props();
 
+	// The current address within the app, without the base path
+	const path = $derived(page.url.pathname.slice(pagePath('').length - 1));
+
+	// Pages that work signed out: the login, the Reference (and its installable app) and the style guide
+	const PUBLIC = ['/login/', '/oas-reference/', '/reference/', '/styles/'];
+	const isPublic = $derived(PUBLIC.some((p) => path.startsWith(p)));
+
 	// Beacon Reference installs as its own app from /reference/, with its own name and icon
-	const isReferenceApp = $derived(page.url.pathname.startsWith(pagePath('reference/')));
+	const isReferenceApp = $derived(path.startsWith('/reference/'));
 	const appName = $derived(isReferenceApp ? 'Beacon Reference' : 'Beacon');
 	const iconDir = $derived(isReferenceApp ? 'reference/' : '');
 
-	// Phase 0: the shell shows a signed-in leader's navigation; sign in arrives in Phase 3
-	const navOptions = { isYouth: false, logging: false };
+	// Signed out, every other page is the login page. Replacing the history entry keeps Back from bouncing back
+	$effect(() => {
+		if (!app.isSignedIn && !isPublic) goto(pagePath('login/'), { replaceState: true });
+	});
+
+	// Start loading the unit's progress in the background once a leader is signed in with a unit chosen
+	$effect(() => {
+		void [app.isSignedIn, app.unitId, path];
+		preload.startIfReady();
+	});
+
+	const navOptions = $derived({
+		signedIn: app.isSignedIn,
+		isYouth: app.isYouth,
+		logging: requestLog.enabled
+	});
 </script>
 
 <svelte:head>
@@ -25,9 +51,11 @@
 </svelte:head>
 
 <div class="page">
-	<AppNav options={navOptions} version={__BEACON_VERSION__} />
+	<AppNav options={navOptions} version={VERSION} />
 	<main>
-		{@render children()}
+		{#if app.isSignedIn || isPublic}
+			{@render children()}
+		{/if}
 	</main>
 </div>
 
@@ -46,7 +74,7 @@
 
 	/* Keep the end of each page clear of the tab bar */
 	@media (max-width: 640.98px) {
-		main {
+		.page:has(:global(.tab-bar)) main {
 			padding-bottom: calc(var(--tab-bar-height) + 1rem);
 		}
 	}

@@ -13,6 +13,8 @@ export interface NavPage {
 }
 
 export interface NavOptions {
+	/** Signed out, only Login and the Reference are offered */
+	signedIn: boolean;
 	/** Youth members see their own progress and the reference, not the leader pages */
 	isYouth: boolean;
 	/** Whether request logging is on, which changes the logging item's name */
@@ -47,6 +49,14 @@ export function morePages({ logging }: NavOptions): NavPage[] {
 			shortTitle: 'Logging'
 		},
 		{ href: 'logout/', icon: 'account-logout', title: 'Logout', shortTitle: 'Logout' }
+	];
+}
+
+/** Signed out: the login page and the Reference, which needs no login */
+export function signedOutPages(): NavPage[] {
+	return [
+		{ href: 'login/', icon: 'lock-unlocked', title: 'Login', shortTitle: 'Login' },
+		{ href: 'oas-reference/', icon: 'book', title: 'Reference', shortTitle: 'Reference' }
 	];
 }
 

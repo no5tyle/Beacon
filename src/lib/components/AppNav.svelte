@@ -10,6 +10,7 @@
 		isActive,
 		mainPages,
 		morePages,
+		signedOutPages,
 		type NavOptions,
 		type NavPage
 	} from '#lib/navigation.js';
@@ -18,8 +19,9 @@
 	let { options, version }: { options: NavOptions; version: string } = $props();
 
 	let moreOpen = $state(false);
-	const main = $derived(mainPages(options));
-	const more = $derived(morePages(options));
+	const main = $derived(options.signedIn ? mainPages(options) : []);
+	const more = $derived(options.signedIn ? morePages(options) : []);
+	const sidebar = $derived(options.signedIn ? [...main, ...more] : signedOutPages());
 	// The current address within the app, without the base path
 	const path = $derived(page.url.pathname.slice(pagePath('').length - 1));
 	const onMorePage = $derived(more.some((item) => isActive(item, path)));
@@ -41,7 +43,7 @@
 		Beacon
 	</a>
 	<nav aria-label="Main">
-		{#each [...main, ...more] as item (item.href)}
+		{#each sidebar as item (item.href)}
 			<a class="side-link" class:active={isActive(item, path)} href={href(item)}>
 				<Icon name={item.icon} />
 				{item.title}
@@ -50,6 +52,22 @@
 		<span class="side-version">Version {version}</span>
 	</nav>
 </aside>
+
+{#if !options.signedIn}
+	<header class="top-bar no-print">
+		<a class="brand" href={pagePath('')}>
+			<img src={asset('beacon-64.png')} width="22" height="22" alt="" />
+			Beacon
+		</a>
+		<a
+			class="top-action"
+			class:active={path.startsWith('/oas-reference')}
+			href={pagePath('oas-reference/')}
+		>
+			<Icon name="book" /> Reference
+		</a>
+	</header>
+{/if}
 
 {#if moreOpen}
 	<button class="more-backdrop" aria-label="Close menu" onclick={() => (moreOpen = false)}></button>
@@ -64,25 +82,27 @@
 	</div>
 {/if}
 
-<nav class="tab-bar no-print" aria-label="Main">
-	{#each main as item (item.href)}
-		<a class="tab" class:active={isActive(item, path)} href={href(item)}>
-			<Icon name={item.icon} />
-			<span class="tab-label">{item.shortTitle}</span>
-		</a>
-	{/each}
-	<button
-		type="button"
-		class="tab"
-		class:active={moreOpen || onMorePage}
-		aria-haspopup="menu"
-		aria-expanded={moreOpen}
-		onclick={() => (moreOpen = !moreOpen)}
-	>
-		<Icon name="ellipses" />
-		<span class="tab-label">More</span>
-	</button>
-</nav>
+{#if options.signedIn}
+	<nav class="tab-bar no-print" aria-label="Main">
+		{#each main as item (item.href)}
+			<a class="tab" class:active={isActive(item, path)} href={href(item)}>
+				<Icon name={item.icon} />
+				<span class="tab-label">{item.shortTitle}</span>
+			</a>
+		{/each}
+		<button
+			type="button"
+			class="tab"
+			class:active={moreOpen || onMorePage}
+			aria-haspopup="menu"
+			aria-expanded={moreOpen}
+			onclick={() => (moreOpen = !moreOpen)}
+		>
+			<Icon name="ellipses" />
+			<span class="tab-label">More</span>
+		</button>
+	</nav>
+{/if}
 
 <style>
 	/* Desktop sidebar */
@@ -156,6 +176,42 @@
 
 	.side-version {
 		color: rgba(255, 255, 255, 0.45);
+	}
+
+	/* Phone header when signed out: Beacon and a way to the Reference */
+	.top-bar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		height: 3.5rem;
+		padding-right: 0.75rem;
+		background-image: linear-gradient(180deg, var(--brand) 0%, var(--brand-deep) 95%);
+	}
+
+	.top-bar .brand {
+		background: none;
+	}
+
+	.top-action {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		min-height: 44px;
+		padding: 0 0.5rem;
+		color: #d7d7d7;
+		font-size: 0.9rem;
+		text-decoration: none;
+	}
+
+	.top-action.active,
+	.top-action:hover {
+		color: #fff;
+	}
+
+	@media (min-width: 641px) {
+		.top-bar {
+			display: none;
+		}
 	}
 
 	/* Phone tab bar */
