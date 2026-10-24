@@ -20,6 +20,17 @@ namespace TopoInsightsTest
         }
 
         [TestMethod]
+        public void ReadyToSubmitNeedsEveryStatementOnAnOpenStage()
+        {
+            var all = new[] { "plan_a", "do_b", "logbook_up_to_date" };
+
+            Assert.IsTrue(OASSignOff.ReadyToSubmit(Record("y1", "in_progress", DateTime.Today, all), all));
+            Assert.IsFalse(OASSignOff.ReadyToSubmit(Record("y1", "in_progress", DateTime.Today, "plan_a", "do_b"), all));
+            Assert.IsFalse(OASSignOff.ReadyToSubmit(Record("y1", "awarded", DateTime.Today, all), all));
+            Assert.IsFalse(OASSignOff.ReadyToSubmit(null, all));
+        }
+
+        [TestMethod]
         public void NotStartedNeedsEverything()
         {
             var state = OASSignOff.ForYouth(null, Selected);

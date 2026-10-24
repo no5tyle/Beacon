@@ -1,14 +1,14 @@
 .stat-tile {
-    border: 1px solid #dee2e6;
+    border: 1px solid var(--border);
     border-radius: 0.5rem;
     padding: 0.75rem 1rem;
     height: 100%;
-    background: #fff;
+    background: var(--surface);
 }
 
 .stat-label {
     font-size: 0.8rem;
-    color: #6c757d;
+    color: var(--muted);
     text-transform: uppercase;
     letter-spacing: 0.03em;
 }
@@ -21,7 +21,7 @@
 
 .stat-note {
     font-size: 0.85rem;
-    color: #6c757d;
+    color: var(--muted);
 }
 
 .heatmap td, .heatmap th {
@@ -29,7 +29,7 @@
     font-size: 0.85rem;
 }
 
-.heatmap td.heat-0 { background: #f8f9fa; color: #adb5bd; }
+.heatmap td.heat-0 { background: var(--surface-2); color: var(--faint); }
 .heatmap td.heat-1 { background: #d6eef0; }
 .heatmap td.heat-2 { background: #9fd6db; }
 .heatmap td.heat-3 { background: #4fb3bd; color: #fff; }
@@ -49,7 +49,7 @@
 
 .bar-track {
     flex: 1 1 auto;
-    background: #f1f3f5;
+    background: var(--surface-3);
     border-radius: 4px;
     height: 18px;
     overflow: hidden;
@@ -84,11 +84,11 @@
 .bar-value {
     flex: 0 0 220px;
     font-size: 0.85rem;
-    color: #495057;
+    color: var(--text-2);
 }
 
 .mini-track {
-    background: #f1f3f5;
+    background: var(--surface-3);
     border-radius: 3px;
     height: 6px;
     overflow: hidden;
@@ -112,7 +112,7 @@
 .count-line .count-label {
     flex: 0 0 85px;
     font-size: 0.75rem;
-    color: #6c757d;
+    color: var(--muted);
 }
 
 .count-line .mini-track {
@@ -120,7 +120,7 @@
 }
 
 .task-card {
-    border: 1px solid #dee2e6;
+    border: 1px solid var(--border);
     border-left: 4px solid #6c757d;
     border-radius: 0.4rem;
     padding: 0.6rem 0.8rem;
@@ -136,7 +136,7 @@
 }
 
 .task-list li.done {
-    color: #6c757d;
+    color: var(--muted);
 }
 
 .task-list li.done .oi {
@@ -163,8 +163,8 @@
 .prompt-preview {
     white-space: pre-wrap;
     font-size: 0.8rem;
-    background: #f8f9fa;
-    border: 1px solid #dee2e6;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
     border-radius: 0.3rem;
     padding: 0.75rem;
     max-height: 400px;
@@ -176,13 +176,13 @@
 }
 
 .gap-row.expanded td {
-    background: #f8fbfc;
+    background: var(--surface-2);
 }
 
 .statement-detail {
     white-space: pre-line;
     font-size: 0.85rem;
-    color: #495057;
+    color: var(--text-2);
     margin-top: 0.35rem;
 }
 
@@ -200,7 +200,7 @@
     font-size: 0.75rem;
     white-space: normal;
     vertical-align: top;
-    background: #fff;
+    background: var(--surface);
     min-width: 90px;
 }
 
@@ -248,14 +248,14 @@
 }
 
 .filters-panel {
-    border: 1px solid #dee2e6;
+    border: 1px solid var(--border);
     border-radius: 0.5rem;
     padding: 0.25rem 0.9rem 0.75rem;
 }
 
 .filters-section {
     padding: 0.6rem 0;
-    border-bottom: 1px solid #f1f3f5;
+    border-bottom: 1px solid var(--border-soft);
 }
 
 .filters-section summary {
@@ -298,7 +298,7 @@
 
 .loading-note {
     max-width: 28rem;
-    color: #495057;
+    color: var(--text-2);
 }
 
 @media (max-width: 575.98px) {
@@ -307,7 +307,7 @@
         position: sticky;
         left: 0;
         z-index: 1;
-        background: #fff;
+        background: var(--surface);
         box-shadow: 1px 0 0 #dee2e6;
     }
 
@@ -326,4 +326,9 @@
         padding: 0.5rem 0.25rem;
         font-size: 0.875rem;
     }
+}
+
+@media screen and (prefers-color-scheme: dark) {
+    .heatmap td.heat-1 { background: #1d4448; }
+    .heatmap td.heat-2 { background: #2a6a70; color: #fff; }
 }

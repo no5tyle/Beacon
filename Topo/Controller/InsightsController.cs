@@ -99,6 +99,13 @@ namespace Topo.Controller
             await AnalyseClick();
         }
 
+        internal async Task PullRefresh()
+        {
+            if (analysing || string.IsNullOrEmpty(model.UnitId))
+                return;
+            await RefreshClick();
+        }
+
         protected override void OnInitialized()
         {
             if (!_storageService.IsAuthenticated)

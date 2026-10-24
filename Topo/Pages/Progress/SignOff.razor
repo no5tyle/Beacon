@@ -87,10 +87,20 @@
         }
         else if (youth.Any())
         {
+            @if (Patrols().Count > 1)
+            {
+                <div class="chip-group mb-2" aria-label="Patrol">
+                    <button type="button" class="btn chip @(patrolFilter == "" ? "btn-primary" : "btn-outline-primary")" @onclick='() => patrolFilter = ""'>Everyone</button>
+                    @foreach (var patrol in Patrols())
+                    {
+                        <button type="button" class="btn chip @(patrol == patrolFilter ? "btn-primary" : "btn-outline-primary")" @onclick="() => FilterPatrol(patrol)">@patrol</button>
+                    }
+                </div>
+            }
             <div class="d-flex justify-content-end mb-1">
-                <button type="button" class="btn btn-link btn-sm p-0" @onclick="SelectAllYouth">Select everyone who needs it</button>
+                <button type="button" class="btn btn-link btn-sm p-0" @onclick="SelectAllYouth">@(patrolFilter == "" ? "Select everyone who needs it" : $"Select {patrolFilter} youth who need it")</button>
             </div>
-            @foreach (var member in youth)
+            @foreach (var member in VisibleYouth())
             {
                 var state = YouthState(member.id);
                 var id = $"youth-{member.id}";
@@ -151,7 +161,7 @@
 
             <p class="small text-muted">
                 Beacon switches to each youth's profile in turn, adds only the statements they don't already have, then switches back.
-                Nothing already recorded is changed, and the stages aren't submitted. Keep this page open until it finishes.
+                Nothing already recorded is changed, and nothing is submitted unless you choose to afterwards. Keep this page open until it finishes.
             </p>
 
             <div class="action-bar">
@@ -216,9 +226,56 @@
                 <div class="alert @(OutcomeCount(SignOffOutcomeState.Failed) > 0 ? "alert-warning" : "alert-success") mt-3 py-2">
                     Saved for @OutcomeCount(SignOffOutcomeState.Saved) youth@(OutcomeCount(SignOffOutcomeState.Skipped) > 0 ? $", {OutcomeCount(SignOffOutcomeState.Skipped)} skipped" : "")@(OutcomeCount(SignOffOutcomeState.Failed) > 0 ? $", {OutcomeCount(SignOffOutcomeState.Failed)} failed. Check them in Terrain before trying again." : ".")
                 </div>
+                var ready = ReadyToSubmit();
+                @if (ready.Any())
+                {
+                    <div class="review-card mt-3">
+                        <div class="fw-semibold">Ready for the Unit Council</div>
+                        <div class="small mb-2">
+                            @string.Join(", ", ready.Select(m => m.first_name)) now @(ready.Count == 1 ? "has" : "have") every statement for @StageName, including the logbook.
+                        </div>
+                        <button type="button" class="btn btn-success" @onclick="SubmitReady" disabled="@working">Submit @ready.Count for review</button>
+                    </div>
+                }
+                @if (submitOutcomes.Any())
+                {
+                    <div class="fw-semibold mt-3">Submitting for review</div>
+                    @foreach (var (memberId, outcome) in submitOutcomes)
+                    {
+                        var member = youth.FirstOrDefault(m => m.id == memberId);
+                        <div class="result-row">
+                            <span class="result-icon @outcome.State.ToString().ToLower()">
+                                @if (outcome.State == SignOffOutcomeState.Saved)
+                                {
+                                    <span class="oi oi-check" aria-hidden="true"></span>
+                                }
+                                else if (outcome.State == SignOffOutcomeState.Failed)
+                                {
+                                    <span class="oi oi-x" aria-hidden="true"></span>
+                                }
+                                else if (outcome.State == SignOffOutcomeState.Saving)
+                                {
+                                    <span class="spinner-border spinner-border-sm" role="status"></span>
+                                }
+                            </span>
+                            <span class="flex-grow-1">
+                                @member?.first_name @member?.last_name
+                                <small class="d-block text-muted">
+                                    @(outcome.State switch
+                                    {
+                                        SignOffOutcomeState.Saved => "Submitted for review",
+                                        SignOffOutcomeState.Saving => "Submitting...",
+                                        SignOffOutcomeState.Waiting => "Waiting",
+                                        _ => outcome.Message
+                                    })
+                                </small>
+                            </span>
+                        </div>
+                    }
+                }
                 <div class="action-bar">
-                    <button type="button" class="btn btn-outline-primary" @onclick="MoreYouth">Same statements, more youth</button>
-                    <button type="button" class="btn btn-primary" @onclick="StartAgain">New sign off</button>
+                    <button type="button" class="btn btn-outline-primary" @onclick="MoreYouth" disabled="@Submitting">Same statements, more youth</button>
+                    <button type="button" class="btn btn-primary" @onclick="StartAgain" disabled="@Submitting">New sign off</button>
                 </div>
             }
         }

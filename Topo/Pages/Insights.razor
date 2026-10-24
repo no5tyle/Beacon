@@ -3,6 +3,7 @@
 @using Topo.Model.Insights
 
 <PageTitle>Beacon / Insights</PageTitle>
+<PullToRefresh OnRefresh="PullRefresh" />
 
 <EditForm Model="@model">
     <DataAnnotationsValidator />

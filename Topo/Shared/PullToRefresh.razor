@@ -1,0 +1,46 @@
+@* Pull down from the top of the page to refresh it, as in most phone apps *@
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+@code {
+    // An EventCallback, so the page re-renders with what the refresh loaded
+    [Parameter, EditorRequired]
+    public EventCallback OnRefresh { get; set; }
+
+    private DotNetObjectReference<PullToRefresh>? dotNetReference;
+    private IJSObjectReference? handle;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+        dotNetReference = DotNetObjectReference.Create(this);
+        try
+        {
+            handle = await JS.InvokeAsync<IJSObjectReference>("beaconPullToRefresh", dotNetReference);
+        }
+        catch (JSException)
+        {
+            // An older cached page without the script; the page's own refresh still works
+        }
+    }
+
+    [JSInvokable]
+    public Task Refresh() => OnRefresh.InvokeAsync();
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (handle != null)
+            {
+                await JS.InvokeVoidAsync("beaconStopPullToRefresh", handle);
+                await handle.DisposeAsync();
+            }
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+        dotNetReference?.Dispose();
+    }
+}

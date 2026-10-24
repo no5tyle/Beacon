@@ -44,6 +44,8 @@ namespace Topo.Controller
         public HashSet<string> selectedYouth = new HashSet<string>();
         public OASVerifier verifier = new OASVerifier();
         public Dictionary<string, SignOffOutcome> outcomes = new Dictionary<string, SignOffOutcome>();
+        public Dictionary<string, SignOffOutcome> submitOutcomes = new Dictionary<string, SignOffOutcome>();
+        public string patrolFilter = "";
         public bool loading;
         public bool working;
         public string message = "";
@@ -192,8 +194,24 @@ namespace Topo.Controller
 
         internal void SelectAllYouth()
         {
-            foreach (var member in youth.Where(m => YouthState(m.id).State == SignOffState.ToAdd))
+            foreach (var member in VisibleYouth().Where(m => YouthState(m.id).State == SignOffState.ToAdd))
                 selectedYouth.Add(member.id);
+        }
+
+        internal List<string> Patrols()
+        {
+            return youth.Select(m => m.patrol_name).Where(p => !string.IsNullOrEmpty(p)).Distinct().OrderBy(p => p).ToList();
+        }
+
+        // Handy when a patrol did the activity together; anyone already picked in another patrol stays picked
+        internal IEnumerable<MemberListModel> VisibleYouth()
+        {
+            return string.IsNullOrEmpty(patrolFilter) ? youth : youth.Where(m => m.patrol_name == patrolFilter);
+        }
+
+        internal void FilterPatrol(string patrol)
+        {
+            patrolFilter = patrolFilter == patrol ? "" : patrol;
         }
 
         internal void GoToStatements()
@@ -208,6 +226,7 @@ namespace Topo.Controller
                 return;
             step = SignOffStep.Review;
             outcomes.Clear();
+            submitOutcomes.Clear();
             message = "";
         }
 
@@ -245,6 +264,38 @@ namespace Topo.Controller
             await LoadYouth();
         }
 
+        // Youth this round left with every statement ticked, including the logbook
+        internal List<MemberListModel> ReadyToSubmit()
+        {
+            var allInputIds = statements.Select(s => s.InputId).ToList();
+            return youth
+                .Where(m => outcomes.TryGetValue(m.id, out var o) && o.State == SignOffOutcomeState.Saved)
+                .Where(m => !submitOutcomes.ContainsKey(m.id))
+                .Where(m => OASSignOff.ReadyToSubmit(unitRecords.GetValueOrDefault(m.id), allInputIds))
+                .ToList();
+        }
+
+        internal async Task SubmitReady()
+        {
+            if (stage == null || working)
+                return;
+            working = true;
+            var ready = ReadyToSubmit().Select(m => m.id).ToList();
+            foreach (var memberId in ready)
+                submitOutcomes[memberId] = new SignOffOutcome();
+            foreach (var memberId in ready)
+            {
+                submitOutcomes[memberId].State = SignOffOutcomeState.Saving;
+                StateHasChanged();
+                submitOutcomes[memberId] = await _recordingService.SubmitStage(memberId, stage);
+                StateHasChanged();
+            }
+            working = false;
+            await LoadYouth();
+        }
+
+        internal bool Submitting => submitOutcomes.Values.Any(o => o.State == SignOffOutcomeState.Waiting || o.State == SignOffOutcomeState.Saving);
+
         internal List<MemberListModel> SelectedYouthInOrder()
         {
             return youth.Where(m => selectedYouth.Contains(m.id)).ToList();
@@ -257,6 +308,7 @@ namespace Topo.Controller
         {
             selectedYouth.Clear();
             outcomes.Clear();
+            submitOutcomes.Clear();
             step = SignOffStep.Youth;
         }
 
@@ -265,6 +317,8 @@ namespace Topo.Controller
             selectedYouth.Clear();
             selectedStatements.Clear();
             outcomes.Clear();
+            submitOutcomes.Clear();
+            patrolFilter = "";
             step = SignOffStep.Statements;
         }
 

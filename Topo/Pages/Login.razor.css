@@ -7,7 +7,7 @@
     padding: 0.5rem 1rem max(env(safe-area-inset-bottom), 0.5rem);
     text-align: center;
     font-size: 0.75rem;
-    color: #adb5bd;
+    color: var(--faint);
     pointer-events: none;
 }
 

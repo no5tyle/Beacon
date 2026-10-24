@@ -125,7 +125,7 @@
     z-index: 22;
     min-width: 13rem;
     padding: 0.35rem 0;
-    background: #fff;
+    background: var(--surface);
     border-radius: 0.6rem;
     box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
 }
@@ -135,26 +135,26 @@
     align-items: center;
     min-height: 48px;
     padding: 0 1rem;
-    color: #212529;
+    color: var(--text);
     text-decoration: none;
 }
 
 .more-menu ::deep .more-item.active {
-    color: #052767;
+    color: var(--brand-text);
     font-weight: 600;
 }
 
 .more-menu ::deep .more-item .oi {
     width: 1.75rem;
-    color: #6c757d;
+    color: var(--muted);
     top: 0;
 }
 
 .more-version {
     padding: 0.4rem 1rem 0.3rem;
-    border-top: 1px solid #f1f3f5;
+    border-top: 1px solid var(--border-soft);
     font-size: 0.75rem;
-    color: #adb5bd;
+    color: var(--faint);
 }
 
 .tab-label {

@@ -16,6 +16,18 @@ body {
        everywhere else so the tabs stay clear of rounded screen corners */
     --tab-bar-bottom: max(env(safe-area-inset-bottom), 0.75rem);
     --tab-bar-height: calc(3.6rem + var(--tab-bar-bottom));
+
+    /* Page colours; the main app's css/dark.css swaps these when the phone is in dark mode */
+    --surface: #fff;
+    --surface-2: #f8f9fa;
+    --surface-3: #f1f3f5;
+    --border: #dee2e6;
+    --border-soft: #f1f3f5;
+    --text: #212529;
+    --text-2: #495057;
+    --muted: #6c757d;
+    --faint: #adb5bd;
+    --brand-text: #052767;
 }
 
 @media (max-width: 640.98px) {
@@ -127,7 +139,7 @@ a.row-link:hover {
 
 .row-chevron {
     align-self: center;
-    color: #adb5bd;
+    color: var(--faint);
     font-size: 1.4rem;
     line-height: 1;
 }
@@ -153,7 +165,7 @@ a.row-link:hover {
     .stack-list > .row.striped {
         margin: 0 0 0.5rem;
         padding: 0.5rem 0;
-        border: 1px solid #dee2e6;
+        border: 1px solid var(--border);
         border-radius: 0.375rem;
         background: none;
     }
@@ -166,7 +178,7 @@ a.row-link:hover {
     .stack-list > .row.striped > [data-label]::before {
         content: attr(data-label);
         flex: 0 0 9.5rem;
-        color: #6c757d;
+        color: var(--muted);
     }
 
     .stack-list > .row.striped > [data-label]:empty {
@@ -222,7 +234,7 @@ a.row-link:hover {
         flex-direction: column;
         margin-bottom: 0.5rem;
         padding: 0.5rem 0.75rem;
-        border: 1px solid #dee2e6;
+        border: 1px solid var(--border);
         border-radius: 0.375rem;
     }
 
@@ -238,7 +250,7 @@ a.row-link:hover {
     .table-stack td[data-label]::before {
         content: attr(data-label);
         flex: 0 0 9.5rem;
-        color: #6c757d;
+        color: var(--muted);
     }
 
     .table-stack td.stack-title {
@@ -278,4 +290,41 @@ a.row-link:hover {
         padding-left: 0;
         margin-right: 1rem;
     }
+}
+
+/* Pull to refresh: the circle that follows the finger down from the top, then spins while refreshing */
+.pull-indicator {
+    position: fixed;
+    top: calc(env(safe-area-inset-top) + 0.5rem);
+    left: 50%;
+    z-index: 1050;
+    width: 2.5rem;
+    height: 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--surface);
+    color: var(--muted);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    opacity: 0;
+    transform: translate(-50%, -48px);
+    pointer-events: none;
+}
+
+.pull-indicator.ready {
+    color: var(--brand-text);
+}
+
+.pull-indicator.spinning .oi {
+    animation: pull-spin 0.8s linear infinite;
+}
+
+@keyframes pull-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Signed in, the browser's own pull to refresh would reload the page and sign the leader out */
+html:has(.tab-bar) {
+    overscroll-behavior-y: contain;
 }

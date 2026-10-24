@@ -12,6 +12,7 @@ namespace Topo.Services
         public Task<GetOASTemplateResultModel> LoadTemplate(OASStageListModel stage);
         public Task<Dictionary<string, Result>> LoadUnitStage(string unitId, OASStageListModel stage);
         public Task<SignOffOutcome> SignOff(string memberId, OASStageListModel stage, IReadOnlyCollection<string> inputIds, OASVerifier verifier);
+        public Task<SignOffOutcome> SubmitStage(string memberId, OASStageListModel stage);
     }
 
     // One youth's OAS stage as Topo shows it on the Record OAS page
@@ -196,6 +197,30 @@ namespace Topo.Services
             var result = await SaveVerifications(state, newlyTicked, verifier);
             if (result.Success)
                 return new SignOffOutcome { State = SignOffOutcomeState.Saved, SavedCount = newlyTicked.Count };
+            return new SignOffOutcome
+            {
+                State = SignOffOutcomeState.Failed,
+                Message = result.StatusCode > 0 ? $"Terrain didn't accept it (response {result.StatusCode})." : result.Body
+            };
+        }
+
+        // Submits one youth's stage for Unit Council review, reading their record fresh from Terrain first
+        public async Task<SignOffOutcome> SubmitStage(string memberId, OASStageListModel stage)
+        {
+            OASRecordingState state;
+            try
+            {
+                state = await LoadStage(memberId, stage);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "OAS sign off: load before submit failed");
+                return new SignOffOutcome { State = SignOffOutcomeState.Failed, Message = "Couldn't load their record from Terrain." };
+            }
+
+            var result = await SubmitForReview(state);
+            if (result.Success)
+                return new SignOffOutcome { State = SignOffOutcomeState.Saved };
             return new SignOffOutcome
             {
                 State = SignOffOutcomeState.Failed,

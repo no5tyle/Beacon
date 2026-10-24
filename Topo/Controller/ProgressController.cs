@@ -41,6 +41,15 @@ namespace Topo.Controller
 
         public bool loadingMembers;
 
+        // Pull to refresh: fetch the unit's youth from Terrain again
+        internal async Task RefreshMembers()
+        {
+            if (loadingMembers || string.IsNullOrEmpty(_storageService.UnitId))
+                return;
+            _membersService.ClearMemberCache(_storageService.UnitId);
+            await populateMembers();
+        }
+
         async Task populateMembers()
         {
             loadingMembers = true;

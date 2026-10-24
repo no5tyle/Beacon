@@ -11,7 +11,7 @@
     list-style: none;
     counter-reset: step;
     font-size: 0.85rem;
-    color: #6c757d;
+    color: var(--muted);
 }
 
 .steps li {
@@ -27,12 +27,12 @@
     height: 1.4rem;
     margin-right: 0.3rem;
     border-radius: 50%;
-    background: #e9ecef;
+    background: var(--surface-3);
     font-size: 0.75rem;
 }
 
 .steps li.current {
-    color: #052767;
+    color: var(--brand-text);
     font-weight: 600;
 }
 
@@ -65,7 +65,7 @@
     margin-top: 0.75rem;
     font-weight: 600;
     font-size: 0.9rem;
-    color: #495057;
+    color: var(--text-2);
 }
 
 /* The whole row is the tap target */
@@ -74,7 +74,7 @@
     align-items: flex-start;
     gap: 0.75rem;
     padding: 0.7rem 0.25rem;
-    border-bottom: 1px solid #f1f3f5;
+    border-bottom: 1px solid var(--border-soft);
     cursor: pointer;
 }
 
@@ -86,12 +86,12 @@
 }
 
 .pick-row.disabled {
-    color: #adb5bd;
+    color: var(--faint);
     cursor: default;
 }
 
 .review-card {
-    border: 1px solid #dee2e6;
+    border: 1px solid var(--border);
     border-radius: 0.4rem;
     padding: 0.75rem 0.9rem;
 }
@@ -101,7 +101,7 @@
     align-items: center;
     gap: 0.75rem;
     padding: 0.5rem 0.25rem;
-    border-bottom: 1px solid #f1f3f5;
+    border-bottom: 1px solid var(--border-soft);
 }
 
 .result-icon {
@@ -129,7 +129,7 @@
 
 .result-icon.saving {
     background: none;
-    color: #052767;
+    color: var(--brand-text);
 }
 
 .result-icon .oi {
@@ -150,8 +150,8 @@
     justify-content: space-between;
     gap: 0.5rem;
     padding: 0.6rem max(env(safe-area-inset-right), 1rem) calc(0.6rem + env(safe-area-inset-bottom)) max(env(safe-area-inset-left), 1rem);
-    background: #fff;
-    border-top: 1px solid #dee2e6;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
     box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.06);
 }
 

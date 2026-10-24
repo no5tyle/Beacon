@@ -3,7 +3,7 @@
     align-items: flex-start;
     gap: 0.5rem;
     padding: 0.3rem 0;
-    border-bottom: 1px solid #f1f3f5;
+    border-bottom: 1px solid var(--border-soft);
 }
 
 .statement-list li .form-check-input {
@@ -16,7 +16,7 @@
 }
 
 .statement-list li.done label {
-    color: #6c757d;
+    color: var(--muted);
 }
 
 .confirm-box {
@@ -40,5 +40,12 @@
 
     .statement-list li .form-check-label {
         cursor: pointer;
+    }
+}
+
+@media screen and (prefers-color-scheme: dark) {
+    .confirm-box {
+        background: #332a12;
+        border-color: #8a6d1c;
     }
 }

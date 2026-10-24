@@ -31,6 +31,15 @@ namespace Topo.Model.OAS
                     .First());
         }
 
+        // An in progress stage with every statement ticked, including the logbook, can go to the Unit Council
+        public static bool ReadyToSubmit(Result? record, IEnumerable<string> allInputIds)
+        {
+            return record != null
+                && OASRecording.IsEditable(record.status)
+                && allInputIds.Any()
+                && allInputIds.All(id => IsDone(record, id));
+        }
+
         private static bool IsDone(Result? record, string inputId)
         {
             return record != null
