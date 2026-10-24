@@ -1,7 +1,5 @@
 # Beacon
 
-*Lighting the way through the Terrain.*
-
 Beacon is a phone-first helper for Scouts Australia leaders. It reads your unit's records from [Terrain](https://terrain.scouts.com.au) and turns them into the things you need at the hall: who's close to finishing what, what to programme next, and quick OAS sign offs after a unit night.
 
 It runs in the browser at **https://no5tyle.github.io/Beacon/** and can be added to your phone's Home Screen to open like an app.
