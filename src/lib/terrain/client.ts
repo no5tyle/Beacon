@@ -74,6 +74,7 @@ interface Shared {
 	fetch: typeof fetch;
 	now: () => number;
 	log: (entry: RequestLogEntry) => void;
+	onSessionExpired: () => void;
 	gate: ProfileGate;
 }
 
@@ -94,6 +95,7 @@ export class Terrain {
 			fetch: options.fetch ?? ((input, init) => globalThis.fetch(input, init)),
 			now: options.now ?? (() => Date.now()),
 			log: options.log ?? (() => {}),
+			onSessionExpired: () => {},
 			gate: options.gate ?? new ProfileGate()
 		};
 		this.insideYouthSpan = insideYouthSpan;
@@ -110,6 +112,11 @@ export class Terrain {
 	/** Marks the login as a youth member's or a leader's, once their profiles are known */
 	setYouth(isYouth: boolean): void {
 		if (this.shared.session) this.shared.session.isYouth = isYouth;
+	}
+
+	/** Called when Terrain won't renew the login, so the app can ask the leader to log in again */
+	onSessionExpired(listener: () => void): void {
+		this.shared.onSessionExpired = listener;
 	}
 
 	logout(): void {
@@ -193,6 +200,7 @@ export class Terrain {
 		const tokens = response?.AuthenticationResult as AuthenticationResult | undefined;
 		if (!tokens) {
 			this.logout();
+			this.shared.onSessionExpired();
 			throw new SessionExpiredError();
 		}
 		session.accessToken = tokens.AccessToken;

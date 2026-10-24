@@ -647,6 +647,32 @@ describe('app state', () => {
 		expect(app.user?.UserAttributes?.[0].Value).toBe('sam@example.com');
 	});
 
+	it('signs out and says why when Terrain won’t renew the login', async () => {
+		let time = 0;
+		let refuse = false;
+		const unit: FakeUnit = {
+			profiles: leaderProfiles(),
+			members: [],
+			records: {},
+			override: (call) =>
+				refuse && call.body?.includes('REFRESH_TOKEN_AUTH')
+					? { status: 400, body: { __type: 'NotAuthorizedException' } }
+					: undefined
+		};
+		const app = new AppState(new Terrain({ fetch: fakeTerrain(unit).fetch, now: () => time }));
+		await app.login('sa', '1234567', 'secret');
+
+		refuse = true;
+		time = 3600 * 1000;
+		await expect(app.terrain.profiles()).rejects.toThrow();
+		expect(app.isSignedIn).toBe(false);
+		expect(app.sessionExpired).toBe(true);
+
+		refuse = false;
+		await app.login('sa', '1234567', 'secret');
+		expect(app.sessionExpired).toBe(false);
+	});
+
 	it('picks up the unit chosen last time, if it is still one of theirs', async () => {
 		const units = [
 			{ id: 'unit-1', name: 'Mt Example Scouts', section: 'scout' },

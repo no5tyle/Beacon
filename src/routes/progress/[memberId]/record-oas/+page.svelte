@@ -511,7 +511,7 @@
 		margin: 0.4rem 0 0.5rem;
 	}
 
-	@media (prefers-color-scheme: dark) {
+	@media screen and (prefers-color-scheme: dark) {
 		.confirm-box {
 			border-color: #8a6d1c;
 			background: #332a12;

@@ -173,25 +173,35 @@ Dropping Bootstrap adds a little time here, since each page's layout is written 
 
 ## Parity checklist
 
-These are the features to tick off in Phase 5.
+These are the features to tick off in Phase 5. Ticked items are covered by the automated tests and checks (unit tests, page tests against a fake Terrain, and the daily Terrain check). The rest need a real phone, real Terrain or both; [the field test](field-test.md) walks through them.
 
-- [ ] Login: branch remembered, autofill auto-login on iOS and Android, version line, diagnostics panel, errors
-- [ ] Signed out goes to login; youth members see only Home, Progress and Reference
-- [ ] Home: group and unit selectors, unit remembered, help text, link to Topo
-- [ ] Tab bar: Home, Insights, Record, Progress, Reference, More; More has logging, Logout and the version
-- [ ] Background preload of the unit's progress once a unit is chosen
-- [ ] Insights: tiles, heatmap with stream drill-down, priority and programming tabs, filters, focus youth, refresh
-- [ ] Record OAS: streams and stages, statements, youth states (to add / already done / locked), patrol filter, verifier, per-youth results, submit ready stages
-- [ ] Leaders can't verify stages above 5; only the logbook can be ticked there
-- [ ] Joey records without `last_updated` save correctly (golden test and a real save)
-- [ ] Progress list, youth details, single-youth record and submit
-- [ ] Reference: filters, search, starred, share links; Beacon Reference installs separately and works offline
-- [ ] Logging: turn on and off, download
-- [ ] Pull to refresh on Insights and Progress; the browser's own pull to refresh is off while signed in
-- [ ] Dark mode follows the phone; printing stays light
-- [ ] Install hint, and the Home Screen install of both apps
-- [ ] Safe areas on phones with notches and rounded corners
-- [ ] The daily Terrain check runs from the new repository
+- [ ] Login: branch remembered, autofill auto-login on iOS and Android, version line, diagnostics panel, errors (all but the real autofill on iOS and Android are page tested)
+- [x] Signed out goes to login; youth members see only Home, Progress and Reference
+- [x] Home: group and unit selectors, unit remembered, help text, link to Topo
+- [x] Tab bar: Home, Insights, Record, Progress, Reference, More; More has logging, Logout and the version
+- [x] Background preload of the unit's progress once a unit is chosen
+- [x] Insights: tiles, heatmap with stream drill-down, priority and programming tabs, filters, focus youth, refresh
+- [ ] Record OAS: streams and stages, statements, youth states (to add / already done / locked), patrol filter, verifier, per-youth results, submit ready stages (page tested; needs a real sign off)
+- [x] Leaders can't verify stages above 5; only the logbook can be ticked there
+- [ ] Joey records without `last_updated` save correctly (golden test and page test done; needs a real save)
+- [ ] Progress list, youth details, single-youth record and submit (page tested; needs a real save and submit)
+- [ ] Reference: filters, search, starred, share links; Beacon Reference installs separately and works offline (filters, search, starred and share links page tested; install and offline need a phone)
+- [x] Logging: turn on and off, download
+- [ ] Pull to refresh on Insights and Progress; the browser's own pull to refresh is off while signed in (needs a phone)
+- [x] Dark mode follows the phone; printing stays light
+- [ ] Install hint, and the Home Screen install of both apps (needs a phone)
+- [ ] Safe areas on phones with notches and rounded corners (needs a phone)
+- [x] The daily Terrain check runs from the new repository
+
+### Intended changes
+
+Differences from the current app that are on purpose, so they aren't reported as bugs:
+
+- No Bootstrap, approvals or AI prompts, as decided in the plan.
+- When Terrain won't renew the login, Beacon now signs out and the login page says the Terrain login expired. The current app carried on and pages failed to load.
+- Beacon Reference saves Terrain's public OAS templates for offline use through Beacon's one service worker, rather than a second one of its own.
+
+To fix after the switch: statements verified on a stage that is still `in_progress` aren't counted in Insights or a youth's outstanding requirements, as in the current app.
 
 ## How contributing will work
 

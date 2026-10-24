@@ -1256,7 +1256,7 @@
 		}
 	}
 
-	@media (prefers-color-scheme: dark) {
+	@media screen and (prefers-color-scheme: dark) {
 		.heatmap td.heat-1 {
 			background: #1d4448;
 		}
