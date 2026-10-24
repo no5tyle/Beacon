@@ -27,7 +27,11 @@ src/
   lib/
     terrain/       Talking to Terrain: login, every request, and the profile gate. No Svelte in here
     model/         Beacon's rules: Insights, OAS recording, sign off and the OAS reference. No Svelte, no fetch
-    components/    Shared Svelte components (AppNav, Icon, ...)
+    services/      Loading and saving data for the pages: members, unit progress, Insights, Progress,
+                   Record OAS and the Reference. Plain TypeScript, tested against a fake Terrain
+    stores/        The signed in leader and chosen unit (app.svelte.ts), request logging, install state
+    components/    Shared Svelte components (AppNav, Icon, InstallHint, ChooseUnit, ...)
+    actions/       Svelte actions, e.g. pull to refresh
     styles/        theme.css (colours, light and dark) and base.css (buttons, forms, cards, ...)
     icons.ts       The Open Iconic icons Beacon uses, as SVG paths
     navigation.ts  Which pages appear in the tab bar, sidebar and More menu
@@ -68,4 +72,5 @@ Beacon is phone first: check changes at about 390 px wide, keep buttons at least
 - **Acting as a youth is exclusive.** While Beacon has switched Terrain to a youth's profile, nothing else may talk to Terrain. Every request goes through `Terrain` in `src/lib/terrain/client.ts`, whose profile gate holds other requests back; anything done as a youth goes inside `terrain.actAsYouth(...)`, using the client it's given.
 - **Never `fetch` Terrain directly** from a page or service; add a method to `Terrain` instead, with a test in `tests/unit/terrain.test.ts`.
 - **Don't guess Terrain's API.** If you need a request Beacon doesn't make yet, capture it from Terrain's own app first and leave out the `authorization` header when sharing it.
+- **The login lives in memory only.** Reloading the page signs the leader out, as in the Blazor app. Page tests move around with `navigate()` from `tests/e2e/terrain.ts` rather than `page.goto()` for that reason.
 - **Test data is made up.** Tests and screenshots use the fake "Mt Example Scouts" unit, never real youth.

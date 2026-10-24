@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { isActive, mainPages, morePages } from './navigation.js';
+import { isActive, mainPages, morePages, signedOutPages } from './navigation.js';
 
-const leader = { isYouth: false, logging: false };
-const youth = { isYouth: true, logging: false };
+const leader = { signedIn: true, isYouth: false, logging: false };
+const youth = { signedIn: true, isYouth: true, logging: false };
 
 describe('navigation', () => {
 	it('gives leaders every main page, in tab order', () => {
@@ -22,6 +22,10 @@ describe('navigation', () => {
 	it('puts logging and Logout under More, naming logging by whether it is on', () => {
 		expect(morePages(leader).map((p) => p.title)).toEqual(['Turn on logging', 'Logout']);
 		expect(morePages({ ...leader, logging: true })[0].title).toBe('Stop logging');
+	});
+
+	it('offers only Login and the Reference when signed out', () => {
+		expect(signedOutPages().map((p) => p.title)).toEqual(['Login', 'Reference']);
 	});
 
 	it('marks Home active only on the home page', () => {
