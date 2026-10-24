@@ -210,10 +210,11 @@
     }
 
     // Login page: focus the first empty field, and log in straight away when a password manager fills the
-    // member number and password. A fill is told apart from typing by the password arriving all at once:
-    // iOS fires key events (key "Unidentified") when filling from the QuickType bar, and sometimes fills
-    // without any input event, so the fields are also checked on a timer. Only tries once per visit, so a
-    // failed login doesn't loop. iOS only shows the keyboard for a tap, so there the focus does nothing.
+    // member number and password. A fill is spotted by the browser marking the field :autofill (Safari and
+    // Chrome both do), or by the password arriving several characters at once rather than one keystroke at
+    // a time; the fields are also checked on a timer in case the fill fires no events. Only tries once per
+    // visit, so a failed login doesn't loop. iOS only shows the keyboard for a tap, so there the focus does
+    // nothing. Tapping the version line shows what happened (event names and lengths, never the values).
     function beaconLoginPage() {
         var branch = document.getElementById("branch");
         var member = document.getElementById("memberNumber");
@@ -222,49 +223,100 @@
         if (!branch || !member || !password || !button)
             return;
 
+        var log = [];
+        function note(text) {
+            log.push(((performance.now() / 1000).toFixed(2)) + "s " + text);
+            if (log.length > 40)
+                log.shift();
+            var shown = document.getElementById("loginDiagnostics");
+            if (shown)
+                shown.textContent = log.join("\n");
+        }
+        var version = document.querySelector(".login-version");
+        if (version) {
+            version.addEventListener("click", function () {
+                var shown = document.getElementById("loginDiagnostics");
+                if (shown) {
+                    shown.remove();
+                    return;
+                }
+                shown = document.createElement("pre");
+                shown.id = "loginDiagnostics";
+                shown.className = "login-diagnostics";
+                shown.textContent = log.join("\n");
+                version.before(shown);
+            });
+        }
+
         var firstEmpty = [branch, member, password].find(function (field) { return !field.value; });
         if (firstEmpty)
             firstEmpty.focus();
 
-        var keys = 0;
-        var tried = false;
-        password.addEventListener("keydown", function (e) {
-            if (e.key && e.key !== "Unidentified")
-                keys++;
-        });
-        password.addEventListener("input", function (e) {
-            // Typing or pasting adds a character or a word at a time; a password manager replaces the lot
-            if (e.inputType === "insertReplacementText" || e.inputType === "insertFromPaste" || !e.inputType)
-                return;
-            if (e.inputType === "insertText" && e.data && e.data.length === 1)
-                keys = Math.max(keys, password.value.length);
-        });
-        function filled() {
-            return password.value.length > 0 && password.value.length > keys + 1;
+        function autofilled(field) {
+            for (var selector of [":autofill", ":-webkit-autofill"]) {
+                try {
+                    if (field.matches(selector))
+                        return true;
+                } catch (e) {
+                    // Selector not supported by this browser
+                }
+            }
+            return false;
         }
+
+        // Length of the password the last time it changed by a keystroke; a jump of several characters is a fill
+        var lastLength = 0;
+        var jumped = false;
+        function sawPassword(source) {
+            var length = password.value.length;
+            if (length - lastLength >= 3)
+                jumped = true;
+            if (length < lastLength || length - lastLength === 1)
+                jumped = false;
+            if (length !== lastLength)
+                note(source + " password " + lastLength + "\u2192" + length + (autofilled(password) ? " autofill" : ""));
+            lastLength = length;
+        }
+
+        var tried = false;
         var watch;
-        function loginIfFilled() {
+        function loginIfFilled(source) {
             if (tried || !document.body.contains(button)) {
                 clearInterval(watch);
                 return;
             }
-            if (!branch.value || !member.value || !password.value || !filled())
+            sawPassword(source);
+            if (!branch.value || !member.value || !password.value)
+                return;
+            if (!jumped && !autofilled(password))
                 return;
             tried = true;
             clearInterval(watch);
+            note("logging in (" + (autofilled(password) ? "autofill" : "filled at once") + ")");
             // Make sure Blazor has the filled values before logging in
             member.dispatchEvent(new Event("change", { bubbles: true }));
             password.dispatchEvent(new Event("change", { bubbles: true }));
             setTimeout(function () { button.click(); }, 50);
         }
-        function soon() { setTimeout(loginIfFilled, 150); }
-        password.addEventListener("input", soon);
-        password.addEventListener("change", soon);
-        member.addEventListener("change", soon);
+
+        for (var field of [member, password]) {
+            for (var type of ["keydown", "input", "change"]) {
+                field.addEventListener(type, function (e) {
+                    note(e.target.id + " " + e.type + (e.key ? " key=" + (e.key.length === 1 ? "char" : e.key) : "") +
+                        (e.inputType !== undefined ? " inputType=" + (e.inputType || "''") : "") +
+                        (e.target === member ? " length=" + member.value.length : ""));
+                    if (e.target === password && e.type === "input")
+                        sawPassword("input");
+                    if (e.type !== "keydown")
+                        setTimeout(function () { loginIfFilled(e.type); }, 150);
+                });
+            }
+        }
         // The branch isn't filled by password managers; picking it after the fill also logs in
-        branch.addEventListener("change", soon);
-        watch = setInterval(loginIfFilled, 400);
+        branch.addEventListener("change", function () { loginIfFilled("branch"); });
+        watch = setInterval(function () { loginIfFilled("timer"); }, 400);
         setTimeout(function () { clearInterval(watch); }, 10 * 60 * 1000);
+        note("ready, branch " + (branch.value ? "set" : "empty"));
     }
 
     // Copy text to the clipboard, falling back to a hidden textarea where the Clipboard API is blocked
