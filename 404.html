@@ -28,6 +28,7 @@
                 add("meta", { name: "apple-mobile-web-app-capable", content: "yes" });
                 add("meta", { name: "mobile-web-app-capable", content: "yes" });
                 add("meta", { name: "theme-color", content: "#052767" });
+                add("link", { rel: "stylesheet", href: "css/dark.css" });
                 if ("serviceWorker" in navigator)
                     navigator.serviceWorker.register(new URL("service-worker.js", document.baseURI), { scope: base });
                 return;
@@ -209,8 +210,10 @@
     }
 
     // Login page: focus the first empty field, and log in straight away when a password manager fills the
-    // member number and password. Anything typed into the password field means it wasn't filled, so then
-    // the leader taps Log In as usual. Only tries once per visit, so a failed login doesn't loop.
+    // member number and password. A fill is told apart from typing by the password arriving all at once:
+    // iOS fires key events (key "Unidentified") when filling from the QuickType bar, and sometimes fills
+    // without any input event, so the fields are also checked on a timer. Only tries once per visit, so a
+    // failed login doesn't loop. iOS only shows the keyboard for a tap, so there the focus does nothing.
     function beaconLoginPage() {
         var branch = document.getElementById("branch");
         var member = document.getElementById("memberNumber");
@@ -223,13 +226,32 @@
         if (firstEmpty)
             firstEmpty.focus();
 
-        var typed = false;
+        var keys = 0;
         var tried = false;
-        password.addEventListener("keydown", function () { typed = true; });
+        password.addEventListener("keydown", function (e) {
+            if (e.key && e.key !== "Unidentified")
+                keys++;
+        });
+        password.addEventListener("input", function (e) {
+            // Typing or pasting adds a character or a word at a time; a password manager replaces the lot
+            if (e.inputType === "insertReplacementText" || e.inputType === "insertFromPaste" || !e.inputType)
+                return;
+            if (e.inputType === "insertText" && e.data && e.data.length === 1)
+                keys = Math.max(keys, password.value.length);
+        });
+        function filled() {
+            return password.value.length > 0 && password.value.length > keys + 1;
+        }
+        var watch;
         function loginIfFilled() {
-            if (typed || tried || !branch.value || !member.value || !password.value)
+            if (tried || !document.body.contains(button)) {
+                clearInterval(watch);
+                return;
+            }
+            if (!branch.value || !member.value || !password.value || !filled())
                 return;
             tried = true;
+            clearInterval(watch);
             // Make sure Blazor has the filled values before logging in
             member.dispatchEvent(new Event("change", { bubbles: true }));
             password.dispatchEvent(new Event("change", { bubbles: true }));
@@ -238,8 +260,11 @@
         function soon() { setTimeout(loginIfFilled, 150); }
         password.addEventListener("input", soon);
         password.addEventListener("change", soon);
+        member.addEventListener("change", soon);
         // The branch isn't filled by password managers; picking it after the fill also logs in
-        branch.addEventListener("change", function () { if (password.value) soon(); });
+        branch.addEventListener("change", soon);
+        watch = setInterval(loginIfFilled, 400);
+        setTimeout(function () { clearInterval(watch); }, 10 * 60 * 1000);
     }
 
     // Copy text to the clipboard, falling back to a hidden textarea where the Clipboard API is blocked
@@ -258,6 +283,89 @@
             document.body.removeChild(textArea);
             return copied;
         }
+    }
+
+    // Pull down from the top of a page to refresh it. The page's PullToRefresh component passes a .NET object
+    // with a Refresh method; the indicator spins until that finishes. Returns a handle for beaconStopPullToRefresh.
+    function beaconPullToRefresh(dotNet) {
+        var threshold = 70, maxPull = 110;
+        var indicator = document.createElement("div");
+        indicator.className = "pull-indicator";
+        indicator.innerHTML = '<span class="oi oi-reload" aria-hidden="true"></span>';
+        document.body.appendChild(indicator);
+        var startY = null, pull = 0, busy = false;
+
+        function show(distance) {
+            indicator.style.transform = "translate(-50%, " + (distance - 48) + "px) rotate(" + (distance * 3) + "deg)";
+            indicator.style.opacity = Math.min(distance / threshold, 1);
+            indicator.classList.toggle("ready", distance >= threshold);
+        }
+        function reset() {
+            indicator.classList.remove("ready", "spinning");
+            indicator.style.transition = "transform .2s, opacity .2s";
+            show(0);
+            setTimeout(function () { indicator.style.transition = ""; }, 200);
+        }
+        function onStart(e) {
+            // Only from the very top, with one finger, and not while a menu or dialog is open
+            if (busy || window.scrollY > 0 || e.touches.length !== 1 || document.querySelector(".more-menu, .modal.show"))
+                return;
+            startY = e.touches[0].clientY;
+            pull = 0;
+        }
+        function onMove(e) {
+            if (startY === null)
+                return;
+            var distance = e.touches[0].clientY - startY;
+            if (distance <= 0 || window.scrollY > 0) {
+                if (pull > 0) reset();
+                startY = distance < 0 ? null : startY;
+                pull = 0;
+                return;
+            }
+            // Resist the pull the further it goes
+            pull = Math.min(maxPull, distance * 0.5);
+            show(pull);
+            if (e.cancelable)
+                e.preventDefault();
+        }
+        async function onEnd() {
+            if (startY === null)
+                return;
+            startY = null;
+            if (pull < threshold) {
+                reset();
+                return;
+            }
+            busy = true;
+            indicator.classList.add("spinning");
+            show(threshold);
+            try {
+                await dotNet.invokeMethodAsync("Refresh");
+            } catch (e) {
+                console.error(e);
+            }
+            busy = false;
+            reset();
+        }
+        window.addEventListener("touchstart", onStart, { passive: true });
+        window.addEventListener("touchmove", onMove, { passive: false });
+        window.addEventListener("touchend", onEnd);
+        window.addEventListener("touchcancel", onEnd);
+        return {
+            stop: function () {
+                window.removeEventListener("touchstart", onStart);
+                window.removeEventListener("touchmove", onMove);
+                window.removeEventListener("touchend", onEnd);
+                window.removeEventListener("touchcancel", onEnd);
+                indicator.remove();
+            }
+        };
+    }
+
+    function beaconStopPullToRefresh(handle) {
+        if (handle)
+            handle.stop();
     }
 
 </script>
