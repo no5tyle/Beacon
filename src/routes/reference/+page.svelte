@@ -1,5 +1,6 @@
+<!-- The installable Beacon Reference app: just the reference, with no other pages -->
 <script lang="ts">
-	import ComingSoon from '#lib/components/ComingSoon.svelte';
+	import OASReference from '#lib/components/OASReference.svelte';
 </script>
 
-<ComingSoon title="Beacon Reference" phase={4} />
+<OASReference appMode />

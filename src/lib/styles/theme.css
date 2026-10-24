@@ -58,10 +58,18 @@
 	   everywhere else so the tabs stay clear of rounded screen corners */
 	--tab-bar-bottom: max(env(safe-area-inset-bottom), 0.75rem);
 	--tab-bar-height: calc(3.6rem + var(--tab-bar-bottom));
+
+	/* Reference: an open statement, and the starred list's banner */
+	--ref-open-bg: #f8fbfc;
+	--ref-open-border: #9ec5fe;
+	--ref-highlight: #fff8e1;
 }
 
 @media screen and (prefers-color-scheme: dark) {
 	:root {
+		--ref-open-bg: #232a33;
+		--ref-open-border: #4d7fc4;
+		--ref-highlight: #3a3320;
 		--bg: #121417;
 		--surface: #1e2227;
 		--surface-2: #23282e;

@@ -160,6 +160,18 @@ small {
 	color: #fff;
 }
 
+.btn-danger {
+	background: var(--danger);
+	border-color: var(--danger);
+	color: #fff;
+}
+
+.btn-warning {
+	background: var(--warning);
+	border-color: var(--warning);
+	color: #212529;
+}
+
 .btn-outline-primary {
 	border-color: var(--primary);
 	color: var(--link);
@@ -431,4 +443,320 @@ small {
 /* Signed in, the browser's own pull to refresh would reload the page and sign the leader out */
 html:has(.tab-bar) {
 	overscroll-behavior-y: contain;
+}
+
+/* Pages that change Terrain: steps, rows to pick, results and a bottom action bar */
+
+/* Leaves room at the end of the page for the action bar */
+.has-action-bar {
+	padding-bottom: 5rem;
+}
+
+.steps {
+	display: flex;
+	gap: 0.5rem;
+	margin: 0 0 1rem;
+	padding: 0;
+	list-style: none;
+	counter-reset: step;
+	font-size: 0.85rem;
+	color: var(--muted);
+}
+
+.steps li {
+	counter-increment: step;
+}
+
+.steps li::before {
+	content: counter(step);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.4rem;
+	height: 1.4rem;
+	margin-right: 0.3rem;
+	border-radius: 50%;
+	background: var(--surface-3);
+	font-size: 0.75rem;
+}
+
+.steps li.current {
+	color: var(--brand-text);
+	font-weight: 600;
+}
+
+.steps li.current::before {
+	background: var(--brand);
+	color: #fff;
+}
+
+.steps li.done::before {
+	background: var(--success);
+	color: #fff;
+}
+
+.group-title {
+	margin-top: 0.75rem;
+	font-size: 0.9rem;
+	font-weight: 600;
+	color: var(--text-2);
+}
+
+/* A row whose whole width is the tap target for its checkbox */
+.pick-row {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.75rem;
+	padding: 0.7rem 0.25rem;
+	border-bottom: 1px solid var(--border-soft);
+	cursor: pointer;
+}
+
+.pick-row .form-check-input {
+	width: 1.4rem;
+	height: 1.4rem;
+	margin-top: 0;
+}
+
+.pick-row.disabled {
+	color: var(--faint);
+	cursor: default;
+}
+
+.pick-row .grow {
+	flex: 1;
+	min-width: 0;
+}
+
+.result-row {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	padding: 0.5rem 0.25rem;
+	border-bottom: 1px solid var(--border-soft);
+}
+
+.result-icon {
+	display: inline-flex;
+	flex: 0 0 1.6rem;
+	align-items: center;
+	justify-content: center;
+	height: 1.6rem;
+	border-radius: 50%;
+	background: var(--border);
+	color: #fff;
+	font-size: 0.8rem;
+}
+
+.result-icon.saved {
+	background: var(--success);
+}
+
+.result-icon.failed {
+	background: var(--danger);
+}
+
+.result-icon.skipped {
+	background: var(--faint);
+}
+
+.result-icon.saving {
+	background: none;
+	color: var(--brand-text);
+}
+
+.spinner {
+	display: inline-block;
+	width: 1rem;
+	height: 1rem;
+	border: 2px solid currentColor;
+	border-right-color: transparent;
+	border-radius: 50%;
+	animation: pull-spin 0.75s linear infinite;
+}
+
+/* The main action stays within thumb reach at the bottom of the screen */
+.action-bar {
+	position: fixed;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	z-index: 5;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+	padding: 0.6rem max(env(safe-area-inset-right), 1rem) calc(0.6rem + env(safe-area-inset-bottom))
+		max(env(safe-area-inset-left), 1rem);
+	border-top: 1px solid var(--border);
+	background: var(--surface);
+	box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.06);
+}
+
+@media (max-width: 640.98px) {
+	/* Just above the tab bar */
+	body:has(.tab-bar) .action-bar {
+		bottom: var(--tab-bar-height);
+		padding-bottom: 0.6rem;
+	}
+}
+
+/* Beside the sidebar on wider screens */
+@media (min-width: 641px) {
+	.action-bar {
+		left: 250px;
+		padding-left: 2rem;
+		padding-right: 1.5rem;
+	}
+}
+
+.text-success {
+	color: var(--success);
+}
+
+.text-danger {
+	color: var(--danger);
+}
+
+.text-muted {
+	color: var(--muted);
+}
+
+/* Badge colours beyond the default red count */
+.badge-success {
+	background: var(--success);
+}
+
+.badge-warning {
+	background: var(--warning);
+	color: #212529;
+}
+
+.badge-info {
+	background: var(--alert-info-bg);
+	color: var(--alert-info-text);
+	font-weight: 500;
+}
+
+/* A card's heading row, e.g. "Milestones" or "Insights" with its options */
+.card-head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+	margin: -0.75rem -1rem 0.75rem;
+	padding: 0.55rem 1rem;
+	border-bottom: 1px solid var(--border);
+	border-radius: var(--radius) var(--radius) 0 0;
+	background: var(--surface-2);
+	font-weight: 600;
+}
+
+.card-head label {
+	font-weight: 400;
+}
+
+.stack > * + * {
+	margin-top: 1rem;
+}
+
+/* A thin bar showing how far through something is, e.g. a stage's statements */
+.bar {
+	height: 8px;
+	border-radius: 4px;
+	background: var(--surface-3);
+	overflow: hidden;
+}
+
+.bar > div {
+	height: 100%;
+	background: var(--success);
+}
+
+/* Small tables, e.g. OAS stages and themes. Wide ones scroll within a .table-scroll */
+.table-scroll {
+	overflow-x: auto;
+}
+
+.table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 0.92rem;
+}
+
+.table th,
+.table td {
+	padding: 0.4rem 0.5rem;
+	border-bottom: 1px solid var(--border-soft);
+	text-align: left;
+	vertical-align: top;
+}
+
+.table th {
+	border-bottom-color: var(--border);
+	font-weight: 600;
+}
+
+.table tbody tr:nth-child(odd) {
+	background: var(--stripe);
+}
+
+.table .num {
+	text-align: right;
+}
+
+/* On phones a .stack-table becomes one card per row: the cell marked .stack-title is its heading and
+   every other cell shows its data-label beside its value. Empty cells are left out */
+@media (max-width: 575.98px) {
+	.stack-table thead {
+		display: none;
+	}
+
+	.stack-table,
+	.stack-table tbody,
+	.stack-table tr,
+	.stack-table td {
+		display: block;
+	}
+
+	.stack-table tr {
+		margin-bottom: 0.5rem;
+		padding: 0.4rem 0;
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+	}
+
+	.stack-table tbody tr:nth-child(odd) {
+		background: none;
+	}
+
+	.stack-table td {
+		padding: 0.15rem 0.75rem;
+		border: 0;
+		text-align: left !important;
+	}
+
+	.stack-table td[data-label] {
+		display: flex;
+		gap: 0.75rem;
+	}
+
+	.stack-table td[data-label]::before {
+		content: attr(data-label);
+		flex: 0 0 7.5rem;
+		color: var(--muted);
+	}
+
+	.stack-table td:empty {
+		display: none;
+	}
+
+	.stack-table .stack-title {
+		font-weight: 600;
+	}
+
+	.stack-table .stack-title small {
+		font-weight: 400;
+	}
 }

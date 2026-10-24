@@ -85,3 +85,10 @@ export function dayMonthYear(date: CalendarDate): string {
 	const [year, month, day] = parts(date);
 	return `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;
 }
+
+/** e.g. "22/10/26", as Beacon shows dates in tables */
+export function shortDate(date: CalendarDate | null): string {
+	if (!date) return '';
+	const [year, month, day] = parts(date);
+	return `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${String(year % 100).padStart(2, '0')}`;
+}
