@@ -160,6 +160,39 @@ export function defaultInsightsSettings(
 	};
 }
 
+/**
+ * Settings saved earlier, e.g. in session storage, laid over the defaults. Anything missing, of the wrong
+ * type or from an older version of Beacon falls back to its default, so a bad saved copy can't break Insights.
+ */
+export function restoreInsightsSettings(saved: unknown): InsightsSettings {
+	const defaults = defaultInsightsSettings();
+	if (typeof saved !== 'object' || saved === null) return defaults;
+	const copy = <T extends object>(base: T, from: Record<string, unknown>): T => {
+		const result = { ...base };
+		for (const key of Object.keys(base) as (keyof T & string)[]) {
+			const value = from[key];
+			const kind = typeof base[key];
+			if (
+				(kind === 'number' && Number.isFinite(value)) ||
+				(kind !== 'number' && typeof value === kind)
+			)
+				result[key] = value as T[typeof key];
+		}
+		return result;
+	};
+	const from = saved as Record<string, unknown>;
+	const settings = copy({ ...defaults, sections: [] as SectionRules[] }, from);
+	const savedSections = Array.isArray(from.sections) ? (from.sections as unknown[]) : [];
+	settings.sections = defaults.sections.map((section) => {
+		const match = savedSections.find(
+			(s): s is Record<string, unknown> =>
+				typeof s === 'object' && s !== null && (s as SectionRules).section === section.section
+		);
+		return match ? copy(section, match) : section;
+	});
+	return settings;
+}
+
 export function rulesFor(settings: InsightsSettings, section: string): SectionRules {
 	return (
 		settings.sections.find((s) => s.section === section) ?? rules({ section, moveUpAgeYears: 99 })

@@ -13,7 +13,7 @@
 		type ChallengeAreaNeed,
 		type MemberInsightsReport
 	} from '#lib/model/insights/memberModels.js';
-	import { defaultInsightsSettings } from '#lib/model/insights/settings.js';
+	import { readInsightsSettings } from '#lib/stores/storage.js';
 	import { asc, desc, formatOneDecimal, sortBy } from '#lib/model/util.js';
 	import { pagePath } from '#lib/paths.js';
 	import { app, insights, members, progress } from '#lib/services/index.js';
@@ -27,9 +27,11 @@
 	let insightsLoading = $state(false);
 	let insightsError = $state('');
 	// Non-core OAS streams are hidden unless the leader asks for them
-	let showNonCoreOAS = $state(false);
+	// Insights' filters from earlier in this tab: the moving up window and section rules, and where these start
+	const saved = readInsightsSettings();
+	let showNonCoreOAS = $state(saved.includeNonCoreOAS);
 	// Stages below where the section typically works are hidden unless asked for
-	let showAllStages = $state(false);
+	let showAllStages = $state(!saved.sectionStagesOnly);
 
 	$effect(() => {
 		const id = memberId;
@@ -53,14 +55,11 @@
 		insightsLoading = true;
 		insightsError = '';
 		try {
-			report = await insights.memberReport(
-				app.unitId,
-				details,
-				defaultInsightsSettings({
-					includeNonCoreOAS: showNonCoreOAS,
-					sectionStagesOnly: !showAllStages
-				})
-			);
+			report = await insights.memberReport(app.unitId, details, {
+				...saved,
+				includeNonCoreOAS: showNonCoreOAS,
+				sectionStagesOnly: !showAllStages
+			});
 		} catch {
 			insightsError = 'Unable to build insights for this member.';
 		}

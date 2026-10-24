@@ -76,3 +76,31 @@ test('Record OAS links to the stage to see which statements come first', async (
 	await expect(page.locator('.stat-tile').nth(1)).toContainText('Started 1');
 	await expect(page.locator('.ranked .statement')).toHaveCount(3);
 });
+
+test("Insights' filters carry over to a stage for the rest of the tab", async ({ page }) => {
+	await fakeTerrain(page);
+	await logIn(page);
+	await navigate(page, 'insights/stage/?stream=bushwalking&stage=4');
+	const ava = page.locator('.ranked .statement').first();
+	await ava.locator('.statement-text').click();
+	// Ava turns 15 in about two months, so she is moving up soon by default
+	await expect(ava.locator('.who li', { hasText: 'Ava Nguyen' })).toContainText('moving up');
+
+	await navigate(page, 'insights/');
+	await expect(page.locator('.stat-tile').first()).toContainText('Youth analysed 4');
+	await page.getByRole('button', { name: 'Filters' }).click();
+	await page.getByText('Advanced settings').click();
+	await page.getByLabel('Moving up window (months)').fill('1');
+	await page.getByRole('button', { name: 'Apply' }).click();
+	await expect(page.locator('.stat-tile').nth(1)).toContainText('Moving up within 1 months 0');
+
+	await navigate(page, 'insights/stage/?stream=bushwalking&stage=4');
+	await page.locator('.ranked .statement').first().locator('.statement-text').click();
+	await expect(
+		page.locator('.ranked .statement').first().locator('.who li', { hasText: 'Ava Nguyen' })
+	).not.toContainText('moving up');
+
+	// And back on Insights the filter is still set
+	await navigate(page, 'insights/');
+	await expect(page.locator('.stat-tile').nth(1)).toContainText('Moving up within 1 months 0');
+});
