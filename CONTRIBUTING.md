@@ -25,7 +25,7 @@ Before pushing, run `npm run check && npm run lint && npm run test:unit -- --run
 ```
 src/
   lib/
-    terrain/       Talking to Terrain (from phase 2). No Svelte in here
+    terrain/       Talking to Terrain: login, every request, and the profile gate. No Svelte in here
     model/         Beacon's rules: Insights, OAS recording, sign off and the OAS reference. No Svelte, no fetch
     components/    Shared Svelte components (AppNav, Icon, ...)
     styles/        theme.css (colours, light and dark) and base.css (buttons, forms, cards, ...)
@@ -65,6 +65,7 @@ Beacon is phone first: check changes at about 390 px wide, keep buttons at least
 
 - **Never store passwords or tokens** on the device, or send them anywhere but Terrain.
 - **Writes must match what the current app sends.** Saving or submitting OAS records has golden tests (`tests/golden`) comparing request bodies with the Blazor version of Beacon. Change them only with a real Terrain capture to back it up.
-- **Acting as a youth is exclusive.** While Beacon has switched Terrain to a youth's profile, nothing else may talk to Terrain. All requests go through the profile gate.
+- **Acting as a youth is exclusive.** While Beacon has switched Terrain to a youth's profile, nothing else may talk to Terrain. Every request goes through `Terrain` in `src/lib/terrain/client.ts`, whose profile gate holds other requests back; anything done as a youth goes inside `terrain.actAsYouth(...)`, using the client it's given.
+- **Never `fetch` Terrain directly** from a page or service; add a method to `Terrain` instead, with a test in `tests/unit/terrain.test.ts`.
 - **Don't guess Terrain's API.** If you need a request Beacon doesn't make yet, capture it from Terrain's own app first and leave out the `authorization` header when sharing it.
 - **Test data is made up.** Tests and screenshots use the fake "Mt Example Scouts" unit, never real youth.
