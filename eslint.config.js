@@ -36,7 +36,10 @@ export default defineConfig(
 	{
 		rules: {
 			// Links and goto() go through pagePath() in src/lib/paths.ts, which adds the base path with resolve()
-			'svelte/no-navigation-without-resolve': ['error', { ignoreLinks: true, ignoreGoto: true }]
+			'svelte/no-navigation-without-resolve': [
+				'error',
+				{ ignoreLinks: true, ignoreGoto: true, ignoreReplaceState: true }
+			]
 		}
 	}
 );

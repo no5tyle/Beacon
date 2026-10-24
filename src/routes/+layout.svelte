@@ -50,14 +50,19 @@
 	<meta name="apple-mobile-web-app-title" content={appName} />
 </svelte:head>
 
-<div class="page">
-	<AppNav options={navOptions} version={VERSION} />
-	<main>
-		{#if app.isSignedIn || isPublic}
-			{@render children()}
-		{/if}
-	</main>
-</div>
+{#if isReferenceApp}
+	<!-- Beacon Reference is an app of its own: just the reference, with its own bar and no Beacon pages -->
+	{@render children()}
+{:else}
+	<div class="page">
+		<AppNav options={navOptions} version={VERSION} />
+		<main>
+			{#if app.isSignedIn || isPublic}
+				{@render children()}
+			{/if}
+		</main>
+	</div>
+{/if}
 
 <style>
 	.page {
