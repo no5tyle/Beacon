@@ -26,12 +26,15 @@ export class AppState implements BeaconContext {
 	groupId = $state('');
 	groupName = $state('');
 	suppressLastName = $state(false);
+	/** Set when Terrain wouldn't renew the login, so the login page can say why the leader is back there */
+	sessionExpired = $state(false);
 	private chosenUnitId = $state('');
 	/** Called when the signed in leader changes or logs out, so services can forget what they loaded */
 	private resetListeners: (() => void)[] = [];
 
 	constructor(terrain?: Terrain) {
 		this.terrain = terrain ?? new Terrain({ log: (entry) => requestLog.add(entry, VERSION) });
+		this.terrain.onSessionExpired(() => this.expireSession());
 	}
 
 	/** The leader's groups, in name order */
@@ -113,6 +116,7 @@ export class AppState implements BeaconContext {
 			this.groupName = groups.length === 1 ? groups[0].name : '';
 			this.useRememberedUnit();
 			this.isSignedIn = true;
+			this.sessionExpired = false;
 			return { ok: true };
 		} catch (error) {
 			this.logout();
@@ -141,6 +145,13 @@ export class AppState implements BeaconContext {
 	private useRememberedUnit(): void {
 		const saved = readSetting(UNIT_KEY);
 		if (saved && this.units.some((u) => u.id === saved)) this.chosenUnitId = saved;
+	}
+
+	/** Terrain wouldn't renew the login: sign out, and the layout takes the leader to the login page */
+	expireSession(): void {
+		if (!this.isSignedIn) return;
+		this.logout();
+		this.sessionExpired = true;
 	}
 
 	logout(): void {

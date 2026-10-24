@@ -673,7 +673,7 @@
 		}
 	}
 
-	@media (prefers-color-scheme: dark) {
+	@media screen and (prefers-color-scheme: dark) {
 		.task-chip {
 			background: #3a1a1d;
 			color: #f2a7ad;

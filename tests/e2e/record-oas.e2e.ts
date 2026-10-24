@@ -81,3 +81,20 @@ test('leaders can only tick the logbook from Stage 6', async ({ page }) => {
 	await expect(page.getByLabel('I can tie a reef knot and a clove hitch.')).toBeDisabled();
 	await expect(page.getByLabel('My logbook is up to date.')).toBeEnabled();
 });
+
+test('saves to a record that has no last_updated, without sending one', async ({ page }) => {
+	const terrain = await fakeTerrain(page);
+	await logIn(page);
+	await navigate(page, 'progress/unit-1-m2/record-oas/');
+	await page.selectOption('#stage', { label: 'Bushcraft 1' });
+	await expect(page.getByText('3 of 7 done in Terrain')).toBeVisible();
+	await page.getByLabel('I can tie a reef knot and a clove hitch.').check();
+	await page.getByRole('button', { name: 'Save 1 to Terrain' }).click();
+	await page.getByRole('button', { name: 'Yes, save' }).click();
+	await expect(page.locator('.alert-success')).toHaveText('Saved 1 statement to Terrain.');
+	const save = terrain.writes.find((w) =>
+		w.request.startsWith('PUT achievements/members/unit-1-m2')
+	);
+	expect(save?.body).not.toHaveProperty('last_updated');
+	expect(save?.body).toMatchObject({ answers: { bushcraft_1_knots: true } });
+});

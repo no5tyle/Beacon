@@ -114,6 +114,10 @@
 	</div>
 	{#if error}
 		<div class="alert alert-danger" role="alert">{error}</div>
+	{:else if app.sessionExpired}
+		<div class="alert alert-info" role="status">
+			Your Terrain login expired. Log in again to carry on.
+		</div>
 	{/if}
 	<button id="logIn" type="submit" class="btn btn-primary" disabled={loggingIn}>
 		{loggingIn ? 'Logging in...' : 'Log In'}

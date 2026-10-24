@@ -10,6 +10,8 @@ const pages = [
 	'insights/',
 	'oas/sign-off/',
 	'progress/',
+	'progress/unit-1-m0/',
+	'progress/unit-1-m0/record-oas/',
 	'oas-reference/',
 	'logging/',
 	'styles/'
@@ -33,6 +35,17 @@ test('dark mode follows the phone', async ({ page }) => {
 	await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(18, 20, 23)');
 	await page.emulateMedia({ colorScheme: 'light' });
 	await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+});
+
+test('printing stays light when the phone is in dark mode', async ({ page }) => {
+	await page.emulateMedia({ colorScheme: 'dark' });
+	await logIn(page);
+	await navigate(page, 'progress/unit-1-m0/');
+	const chip = page.locator('.task-chip.done').first();
+	await expect(chip).toHaveCSS('background-color', 'rgb(22, 48, 31)');
+	await page.emulateMedia({ colorScheme: 'dark', media: 'print' });
+	await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+	await expect(chip).toHaveCSS('background-color', 'rgb(232, 245, 238)');
 });
 
 test('Beacon Reference has its own web app manifest', async ({ page }) => {

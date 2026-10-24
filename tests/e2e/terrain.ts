@@ -163,6 +163,8 @@ function records(unitId: string): Fixture[] {
 	oas(2, 'bushwalking', 1, 'awarded');
 	oas(2, 'camping', 1, 'awarded');
 	oas(2, 'bushcraft', 1, 'in_progress', 3);
+	// Like older Joey records ticked through events, this one has no last_updated
+	delete list[list.length - 1].last_updated;
 
 	const events = (areas: string[], credit = 'participant') =>
 		areas.map((area, i) => ({

@@ -303,10 +303,13 @@ describe('renewing the login', () => {
 					: { body: {} },
 			{ now: () => time }
 		);
+		let told = 0;
+		terrain.onSessionExpired(() => told++);
 		time = 3600 * 1000;
 
 		await expect(terrain.profiles()).rejects.toBeInstanceOf(SessionExpiredError);
 		expect(terrain.isSignedIn).toBe(false);
+		expect(told).toBe(1);
 	});
 });
 
