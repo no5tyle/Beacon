@@ -1,0 +1,102 @@
+/*
+	Beacon's colours. Everything else uses these variables, so dark mode only swaps them here.
+	Beacon follows the phone's light or dark setting on screen; printing always uses light.
+*/
+:root {
+	color-scheme: light dark;
+
+	--bg: #fff;
+	--surface: #fff;
+	--surface-2: #f8f9fa;
+	--surface-3: #f1f3f5;
+	--border: #dee2e6;
+	--border-soft: #f1f3f5;
+	--input-border: #ced4da;
+	--text: #212529;
+	--text-2: #495057;
+	--muted: #6c757d;
+	--faint: #adb5bd;
+
+	--brand: #052767;
+	--brand-text: #052767;
+	--brand-deep: #3a0647;
+	--tab-bar-bg: #0b1a4a;
+	--tab-bar-text: #aab3d6;
+	--accent: #e8a33d;
+
+	--link: #0071c1;
+	--primary: #1b6ec2;
+	--primary-hover: #1861ac;
+	--primary-text: #fff;
+	--focus-ring: rgba(27, 110, 194, 0.35);
+	--success: #198754;
+	--danger: #dc3545;
+	--warning: #ffc107;
+
+	--alert-success-bg: #d1e7dd;
+	--alert-success-border: #badbcc;
+	--alert-success-text: #0f5132;
+	--alert-warning-bg: #fff3cd;
+	--alert-warning-border: #ffecb5;
+	--alert-warning-text: #664d03;
+	--alert-danger-bg: #f8d7da;
+	--alert-danger-border: #f5c2c7;
+	--alert-danger-text: #842029;
+	--alert-info-bg: #e7f1ff;
+	--alert-info-border: #c5dcfb;
+	--alert-info-text: #084298;
+
+	--stripe: rgba(0, 0, 0, 0.04);
+	--hover: rgba(5, 39, 103, 0.06);
+	--shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+
+	--radius: 0.375rem;
+	--font:
+		'Helvetica Neue', Helvetica, Arial, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+	/* Space below the tabs: the home indicator area where the phone reports one, and at least a little
+	   everywhere else so the tabs stay clear of rounded screen corners */
+	--tab-bar-bottom: max(env(safe-area-inset-bottom), 0.75rem);
+	--tab-bar-height: calc(3.6rem + var(--tab-bar-bottom));
+}
+
+@media screen and (prefers-color-scheme: dark) {
+	:root {
+		--bg: #121417;
+		--surface: #1e2227;
+		--surface-2: #23282e;
+		--surface-3: #2c3239;
+		--border: #3a4048;
+		--border-soft: #2c3239;
+		--input-border: #3a4048;
+		--text: #e4e6e9;
+		--text-2: #c3c9d0;
+		--muted: #9aa3ad;
+		--faint: #6f7882;
+
+		--brand-text: #9dbbff;
+		--link: #7fb0ff;
+		--primary: #2f6fd0;
+		--primary-hover: #3d7be0;
+		--focus-ring: rgba(127, 176, 255, 0.35);
+		--success: #2e9e68;
+		--danger: #e05260;
+
+		--alert-success-bg: #16301f;
+		--alert-success-border: #24563a;
+		--alert-success-text: #9fdcb5;
+		--alert-warning-bg: #332a12;
+		--alert-warning-border: #5c4a1a;
+		--alert-warning-text: #f0d58a;
+		--alert-danger-bg: #3a1a1d;
+		--alert-danger-border: #6a2a30;
+		--alert-danger-text: #f2a7ad;
+		--alert-info-bg: #122b33;
+		--alert-info-border: #1f4c5a;
+		--alert-info-text: #9fd8e8;
+
+		--stripe: rgba(255, 255, 255, 0.04);
+		--hover: rgba(157, 187, 255, 0.08);
+		--shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+	}
+}

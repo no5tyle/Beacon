@@ -1,0 +1,58 @@
+name: Build and deploy
+
+# Every push to main is checked, tested and published to GitHub Pages; pull requests are checked and tested
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Types, lint and format
+        run: npm run check && npm run lint
+      - name: Unit tests
+        run: npm run test:unit -- --run
+      - name: Page tests
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:e2e
+      # The site is served from /<repository name>/, and shows the short commit hash as its version
+      - name: Build
+        run: npm run build
+        env:
+          BASE_PATH: /${{ github.event.repository.name }}
+          BEACON_VERSION: ${{ github.sha }}
+      - uses: actions/upload-pages-artifact@v3
+        if: github.ref == 'refs/heads/main'
+        with:
+          path: build
+
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
