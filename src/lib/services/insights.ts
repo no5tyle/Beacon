@@ -13,6 +13,13 @@ import {
 	STREAMS
 } from '#lib/model/insights/insightsCalculator.js';
 import { buildMemberInsights } from '#lib/model/insights/memberInsightsCalculator.js';
+import {
+	stageStatements,
+	type StageCandidate,
+	type StageStatement
+} from '#lib/model/insights/stageAnalysis.js';
+import { latestByMember, type UnitOASRecord } from '#lib/model/oas/signOff.js';
+import type { OASStage } from '#lib/model/oas/templates.js';
 import type { MemberInsightsReport } from '#lib/model/insights/memberModels.js';
 import type {
 	InsightsReport,
@@ -30,6 +37,17 @@ import type { MembersService } from './members.js';
 import { OASService, worksheetAnswers } from './oas.js';
 import { progressFromDetails, type ProgressDetails } from './progress.js';
 import type { UnitProgressService } from './unitProgress.js';
+
+export interface StageReport {
+	stage: OASStage;
+	/** Every branch of the stream at this stage, e.g. Aquatics Stage 4's life saving and snorkelling */
+	branches: OASStage[];
+	statements: StageStatement[];
+	/** Youth it is the next stage for */
+	candidates: StageCandidate[];
+	/** Each youth's record for the stage, if they have one */
+	records: Map<string, UnitOASRecord>;
+}
 
 export class InsightsService {
 	// The last analysis, so the report can be rebuilt straight away when focus youth change
@@ -140,6 +158,67 @@ export class InsightsService {
 			todayDate(),
 			focusIds
 		);
+	}
+
+	/**
+	 * One stage looked at closely: its statements in the order worth programming them, for the youth it is the
+	 * next stage for. A stage with branches uses the stream's own branch unless another is asked for.
+	 */
+	async stageReport(
+		unitId: string,
+		settings: InsightsSettings,
+		focusIds: readonly string[],
+		stream: string,
+		stageNumber: number,
+		branch = ''
+	): Promise<StageReport | null> {
+		const stages = await this.oas.stageList();
+		const branches = stages.filter(
+			(s) => s.stream.toLowerCase() === stream && s.stage === stageNumber && s.templateLink
+		);
+		const stage =
+			branches.find((s) => branch && s.branch === branch) ??
+			OASService.findStage(stages, stream, stageNumber);
+		if (!stage) return null;
+
+		const section = this.context.sectionOf(unitId);
+		const members = await this.members.youth(unitId);
+		const progress = await this.unitProgress.get(unitId);
+		const youth: YouthRecord[] = progress.map((p) => ({
+			memberId: p.memberId,
+			memberName: p.memberName,
+			patrol: p.memberPatrol,
+			dateOfBirth: members.find((m) => m.id === p.memberId)?.dateOfBirth ?? null,
+			progress: p
+		}));
+		const priority = new Map(
+			moveUpCandidates(youth, rulesFor(settings, section), settings, todayDate(), [], focusIds).map(
+				(c) => [c.memberId, c.isMovingUp ? ('moving up' as const) : ('focus' as const)]
+			)
+		);
+		const candidates: StageCandidate[] = youth
+			.filter((y) => stageFor(y.progress, stream) === stageNumber - 1)
+			.map((y) => {
+				const member = members.find((m) => m.id === y.memberId);
+				return {
+					memberId: y.memberId,
+					name: member ? this.members.displayName(member) : y.memberName,
+					patrol: y.patrol,
+					priority: priority.get(y.memberId) ?? ''
+				};
+			});
+
+		const [template, records] = await Promise.all([
+			this.context.terrain.oasTemplate(stage.templateLink),
+			this.oas.unitRecords(unitId, stage)
+		]);
+		return {
+			stage,
+			branches,
+			statements: stageStatements(template),
+			candidates,
+			records: latestByMember(records as unknown as UnitOASRecord[], stage.branch)
+		};
 	}
 
 	/** Insights for one youth on the Progress details page */

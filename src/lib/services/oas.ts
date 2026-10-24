@@ -85,6 +85,9 @@ const shortDate = (value: unknown) => {
 	return full.slice(0, 6) + full.slice(8);
 };
 
+// Records still being worked on. Leaders' saves leave a record in_progress, so its verified statements count
+const IN_PROGRESS_STATUSES = ['in_progress', 'draft_review', 'feedback_review', 'pending_review'];
+
 /**
  * Who has done which statement of a stage, from the unit's records for it. Each youth gets a row per
  * statement; done statements are marked answered (and awarded, once the stage is).
@@ -138,13 +141,15 @@ export function worksheetAnswers(
 		);
 		const updated = shortDate(record.status_updated);
 
-		// Submitted for review: the verified statements count as done
-		if (record.status === 'draft_review' || record.status === 'pending_review') {
+		// Being worked on or submitted for review: the verified statements count as done
+		if (IN_PROGRESS_STATUSES.includes(record.status)) {
 			for (const [key, value] of verified) {
 				const answer = answerFor(key.replace('_verifiedDate', ''), record.member_id ?? '');
 				if (answer) {
 					answer.memberAnswer =
-						key === 'logbook_up_to_date' && value === 'true' ? 'Yes' : String(value);
+						key === 'logbook_up_to_date' && (value === true || value === 'true')
+							? 'Yes'
+							: String(value);
 					answer.answered = true;
 				}
 			}
@@ -181,10 +186,7 @@ export function worksheetAnswers(
 				}
 			}
 			const logbook = answers.find(
-				(a) =>
-					a.inputId === 'logbook_up_to_date' &&
-					a.memberId === record.member_id &&
-					a.memberAnswer === null
+				(a) => a.inputId === 'logbook_up_to_date' && a.memberId === record.member_id && !a.answered
 			);
 			if (logbook) {
 				logbook.memberAnswer = updated;

@@ -7,6 +7,7 @@
 	import ChooseUnit from '#lib/components/ChooseUnit.svelte';
 	import Icon from '#lib/components/Icon.svelte';
 	import { pullToRefresh } from '#lib/actions/pullToRefresh.js';
+	import { pagePath } from '#lib/paths.js';
 	import { monthYear } from '#lib/model/dates.js';
 	import { STREAMS } from '#lib/model/insights/insightsCalculator.js';
 	import {
@@ -28,7 +29,7 @@
 	} from '#lib/model/insights/settings.js';
 	import { asc, compareText, desc, formatOneDecimal, sortBy } from '#lib/model/util.js';
 	import { app, insights, members, unitProgress } from '#lib/services/index.js';
-	import { readSetting, writeSetting } from '#lib/stores/storage.js';
+	import { focusKey, readFocusIds, writeSetting } from '#lib/stores/storage.js';
 
 	type Tab = 'gaps' | 'moving-up' | 'programme';
 
@@ -69,8 +70,6 @@
 		loadFocusYouth(id).then(() => analyse());
 	});
 
-	const focusKey = (id: string) => `insights-focus-youth-${id}`;
-
 	async function loadFocusYouth(id: string) {
 		unitYouth = [];
 		focusIds = [];
@@ -81,8 +80,7 @@
 				asc((m) => m.lastName)
 			);
 			unitYouth = youth.map((m) => ({ id: m.id, name: `${m.firstName} ${m.lastName}` }));
-			const saved = JSON.parse(readSetting(focusKey(id)) || '[]') as unknown;
-			focusIds = Array.isArray(saved) ? saved.filter((s) => unitYouth.some((y) => y.id === s)) : [];
+			focusIds = readFocusIds(id).filter((s) => unitYouth.some((y) => y.id === s));
 		} catch (error) {
 			console.warn('Insights: unable to load focus youth', error);
 		}
@@ -474,8 +472,8 @@
 			<h3>Unit completion</h3>
 			<p class="muted">
 				How many youth have completed each stage, out of {report.youthCount} youth. Click a stream to
-				list each youth under the lowest stage they haven't completed. Pale rows are streams the unit
-				is lacking.{coreOnly
+				list each youth under the lowest stage they haven't completed, or a stage to see which of its
+				statements to programme first. Pale rows are streams the unit is lacking.{coreOnly
 					? ' Core streams only; turn on "Include non-core OAS streams" in Filters to see the others.'
 					: ''}
 			</p>
@@ -503,10 +501,13 @@
 								</td>
 								{#each STAGES as stage (stage)}
 									{@const completed = stream.reachedStage[stage]}
-									<td
-										class="center {heatClass(completed, report.youthCount)}"
-										title="{completed} of {report.youthCount} youth have completed {stream.streamDisplay} Stage {stage}"
-										>{completed}/{report.youthCount}</td
+									<td class="center {heatClass(completed, report.youthCount)}"
+										><a
+											class="stage-link"
+											href={pagePath(`insights/stage/?stream=${stream.stream}&stage=${stage}`)}
+											title="{completed} of {report.youthCount} youth have completed {stream.streamDisplay} Stage {stage}. Tap to see which statements to programme first"
+											>{completed}/{report.youthCount}</a
+										></td
 									>
 								{/each}
 							</tr>
@@ -1054,6 +1055,19 @@
 	.heatmap td.heat-4 {
 		background: #1b7f8a;
 		color: #fff;
+	}
+
+	/* The whole cell opens the stage, keeping the heatmap's colours */
+	.stage-link {
+		display: block;
+		margin: -0.4rem -0.5rem;
+		padding: 0.4rem 0.5rem;
+		color: inherit;
+		text-decoration: none;
+	}
+
+	.stage-link:hover {
+		text-decoration: underline;
 	}
 
 	.stream-toggle {

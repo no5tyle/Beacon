@@ -376,5 +376,5 @@ export async function navigate(page: Page, path: string): Promise<void> {
 		link.click();
 		link.remove();
 	}, path);
-	await page.waitForURL((url) => url.pathname.endsWith(`/${path}`));
+	await page.waitForURL((url) => (url.pathname + url.search).endsWith(`/${path}`));
 }

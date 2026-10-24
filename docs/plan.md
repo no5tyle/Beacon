@@ -201,7 +201,12 @@ Differences from the current app that are on purpose, so they aren't reported as
 - When Terrain won't renew the login, Beacon now signs out and the login page says the Terrain login expired. The current app carried on and pages failed to load.
 - Beacon Reference saves Terrain's public OAS templates for offline use through Beacon's one service worker, rather than a second one of its own.
 
-To fix after the switch: statements verified on a stage that is still `in_progress` aren't counted in Insights or a youth's outstanding requirements, as in the current app.
+- Statements verified on a stage that is still `in_progress` (as leaders' saves leave it) now count as done in Insights and a youth's outstanding requirements. The current app only counted them once the stage was submitted.
+- An awarded stage's logbook check counts as done even when the record doesn't list it.
+
+New in this app:
+
+- Tapping a stage in the Insights heatmap opens that stage's analysis: its statements ranked for youth who have it as their next stage (finishing the stage and priority youth count most), grouped by theme, with a patrol filter and "Sign these off", which opens Record OAS with the statements and youth picked.
 
 ## How contributing will work
 

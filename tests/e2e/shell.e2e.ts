@@ -9,6 +9,7 @@ const pages = [
 	'',
 	'insights/',
 	'oas/sign-off/',
+	'insights/stage/?stream=camping&stage=2',
 	'progress/',
 	'progress/unit-1-m0/',
 	'progress/unit-1-m0/record-oas/',

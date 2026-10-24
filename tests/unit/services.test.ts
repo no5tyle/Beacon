@@ -277,14 +277,14 @@ describe('OAS worksheet', () => {
 	const answer = (list: ReturnType<typeof worksheetAnswers>, memberId: string, inputId: string) =>
 		list.find((a) => a.memberId === memberId && a.inputId === inputId)!;
 
-	it("marks who has done what, as the Blazor app's worksheet did", () => {
+	it('marks who has done what, counting stages still being worked on', () => {
 		const records = [
 			oasRecord('bushwalking', 3, {
 				member_id: 'a',
 				status: 'draft_review',
 				answers: { p1: true, p1_verifiedDate: '01/10/2026' }
 			}),
-			// In progress records count nothing, exactly as the Blazor app did
+			// Leaders' saves leave a record in progress; its verified statements count too (the Blazor app missed these)
 			oasRecord('bushwalking', 3, {
 				member_id: 'b',
 				status: 'in_progress',
@@ -308,7 +308,8 @@ describe('OAS worksheet', () => {
 			memberAnswer: '01/10/2026'
 		});
 		expect(answer(list, 'a', 'd1').answered).toBe(false);
-		expect(answer(list, 'b', 'p1').answered).toBe(false);
+		expect(answer(list, 'b', 'p1')).toMatchObject({ answered: true, awarded: false });
+		expect(answer(list, 'b', 'd1').answered).toBe(false);
 		expect(
 			list
 				.filter((a) => a.memberId === 'c')
@@ -316,6 +317,12 @@ describe('OAS worksheet', () => {
 		).toBe(true);
 		expect(answer(list, 'd', 'd1')).toMatchObject({ answered: true, awarded: true });
 		expect(answer(list, 'd', 'p1').answered).toBe(false);
+		// An awarded stage's logbook counts as done even when the record doesn't list it
+		expect(answer(list, 'd', 'logbook_up_to_date')).toMatchObject({
+			answered: true,
+			awarded: true
+		});
+		expect(answer(list, 'b', 'logbook_up_to_date').answered).toBe(false);
 	});
 
 	it('lists every stage of a stream from its tree, in order', () => {
