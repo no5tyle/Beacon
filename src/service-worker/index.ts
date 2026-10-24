@@ -7,8 +7,10 @@ import { version } from '$app/env';
 
 const CACHE_PREFIX = 'beacon-';
 const CACHE = CACHE_PREFIX + version;
-// The Blazor app's caches, cleared when this app takes over its address
+// The Blazor app's caches. Both apps are served from no5tyle.github.io and share its caches, so they're
+// only cleared once this app has taken over the Blazor app's address; until then they belong to the live app
 const OLD_CACHE_PREFIXES = ['topo-app-', 'topo-reference-'];
+const tookOverBlazorApp = new URL(self.registration.scope).pathname === '/Beacon/';
 
 // Paths in the manifest are relative to where Beacon is served from, which is this worker's scope
 const inScope = (path: string) => new URL(path.replace(/^\//, ''), self.registration.scope).href;
@@ -28,8 +30,9 @@ self.addEventListener('activate', (event) => {
 		(async () => {
 			for (const key of await caches.keys()) {
 				const ours = key.startsWith(CACHE_PREFIX) && key !== CACHE;
-				if (ours || OLD_CACHE_PREFIXES.some((prefix) => key.startsWith(prefix)))
-					await caches.delete(key);
+				const oldApp =
+					tookOverBlazorApp && OLD_CACHE_PREFIXES.some((prefix) => key.startsWith(prefix));
+				if (ours || oldApp) await caches.delete(key);
 			}
 			await self.clients.claim();
 		})()
