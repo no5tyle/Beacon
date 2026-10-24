@@ -1,0 +1,21 @@
+name: Check Terrain
+
+# Daily check that Terrain's OAS templates still look as Beacon expects. A failed run emails the repo owner.
+on:
+  schedule:
+    - cron: '17 20 * * *' # early morning in Australia
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check-terrain:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Check OAS templates
+        run: node .github/scripts/check-terrain.mjs

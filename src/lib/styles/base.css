@@ -1,0 +1,395 @@
+/*
+	Beacon's own small stylesheet, in place of Bootstrap. Class names follow Bootstrap's where Beacon used
+	them (btn, form-control, alert...), so pages port across from the Blazor app with few changes.
+	Colours come from theme.css.
+*/
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+html {
+	-webkit-text-size-adjust: 100%;
+	text-size-adjust: 100%;
+}
+
+body {
+	margin: 0;
+	/* The page fills the whole screen (viewport-fit=cover), so keep content clear of notches and corners */
+	padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
+	font-family: var(--font);
+	font-size: 1rem;
+	line-height: 1.5;
+	color: var(--text);
+	background: var(--bg);
+}
+
+h1,
+h2,
+h3,
+h4 {
+	margin: 0 0 0.5rem;
+	font-weight: 500;
+	line-height: 1.2;
+}
+
+h1 {
+	font-size: 2rem;
+}
+
+h2 {
+	font-size: 1.75rem;
+}
+
+h3 {
+	font-size: 1.4rem;
+}
+
+h4 {
+	font-size: 1.15rem;
+}
+
+p {
+	margin: 0 0 1rem;
+}
+
+ul,
+ol {
+	margin: 0 0 1rem;
+	padding-left: 1.5rem;
+}
+
+a {
+	color: var(--link);
+}
+
+hr {
+	border: 0;
+	border-top: 1px solid var(--border);
+	margin: 1rem 0;
+}
+
+:focus-visible {
+	outline: 2px solid var(--link);
+	outline-offset: 2px;
+}
+
+h1:focus,
+h2:focus {
+	outline: none;
+}
+
+/* Text */
+
+.small,
+small {
+	font-size: 0.875em;
+}
+
+.muted {
+	color: var(--muted);
+}
+
+.strong {
+	font-weight: 600;
+}
+
+.visually-hidden {
+	position: absolute !important;
+	width: 1px !important;
+	height: 1px !important;
+	padding: 0 !important;
+	margin: -1px !important;
+	overflow: hidden !important;
+	clip: rect(0, 0, 0, 0) !important;
+	white-space: nowrap !important;
+	border: 0 !important;
+}
+
+/* Buttons */
+
+.btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.4rem;
+	min-height: 44px;
+	padding: 0.375rem 0.75rem;
+	border: 1px solid transparent;
+	border-radius: var(--radius);
+	background: transparent;
+	color: var(--text);
+	font: inherit;
+	line-height: 1.5;
+	text-align: center;
+	text-decoration: none;
+	cursor: pointer;
+	user-select: none;
+	-webkit-tap-highlight-color: transparent;
+}
+
+.btn:disabled,
+.btn[aria-disabled='true'] {
+	opacity: 0.65;
+	cursor: default;
+	pointer-events: none;
+}
+
+.btn-sm {
+	min-height: 32px;
+	padding: 0.2rem 0.5rem;
+	font-size: 0.875rem;
+}
+
+.btn-primary {
+	background: var(--primary);
+	border-color: var(--primary);
+	color: var(--primary-text);
+}
+
+.btn-primary:hover {
+	background: var(--primary-hover);
+	border-color: var(--primary-hover);
+}
+
+.btn-success {
+	background: var(--success);
+	border-color: var(--success);
+	color: #fff;
+}
+
+.btn-outline-primary {
+	border-color: var(--primary);
+	color: var(--link);
+}
+
+.btn-outline-primary:hover {
+	background: var(--primary);
+	color: var(--primary-text);
+}
+
+.btn-outline-secondary {
+	border-color: var(--faint);
+	color: var(--text-2);
+}
+
+.btn-outline-secondary:hover {
+	background: var(--surface-3);
+}
+
+.btn-link {
+	min-height: auto;
+	padding: 0;
+	border: 0;
+	color: var(--link);
+	text-decoration: underline;
+}
+
+/* A square button holding only an icon, e.g. Refresh */
+.icon-btn {
+	width: 44px;
+	padding: 0;
+}
+
+.button-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+/* Forms */
+
+.form-label {
+	display: inline-block;
+	margin-bottom: 0.4rem;
+}
+
+.form-control,
+.form-select {
+	display: block;
+	width: 100%;
+	min-height: 44px;
+	padding: 0.375rem 0.75rem;
+	border: 1px solid var(--input-border);
+	border-radius: var(--radius);
+	background-color: var(--surface);
+	color: var(--text);
+	font: inherit;
+	line-height: 1.5;
+	appearance: none;
+}
+
+.form-control::placeholder {
+	color: var(--faint);
+}
+
+.form-control:focus,
+.form-select:focus {
+	border-color: var(--primary);
+	outline: 0;
+	box-shadow: 0 0 0 0.2rem var(--focus-ring);
+}
+
+.form-control:disabled,
+.form-select:disabled {
+	background-color: var(--surface-3);
+}
+
+.form-select {
+	padding-right: 2.25rem;
+	background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%236c757d' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+	background-repeat: no-repeat;
+	background-position: right 0.75rem center;
+	background-size: 16px 12px;
+}
+
+.form-check-input {
+	flex-shrink: 0;
+	width: 1.25em;
+	height: 1.25em;
+	margin: 0.125em 0 0;
+	accent-color: var(--primary);
+	cursor: pointer;
+}
+
+.field {
+	margin-bottom: 1rem;
+}
+
+/* Chips: a row of small toggle buttons, e.g. streams and stages */
+
+.chip-group {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.4rem;
+}
+
+.chip {
+	min-height: 40px;
+	padding: 0.25rem 0.75rem;
+	border-radius: 999px;
+}
+
+/* Cards and panels */
+
+.card {
+	padding: 0.75rem 1rem;
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	background: var(--surface);
+}
+
+.card + .card {
+	margin-top: 0.75rem;
+}
+
+.badge {
+	display: inline-block;
+	min-width: 1.4em;
+	padding: 0.15em 0.45em;
+	border-radius: 999px;
+	background: var(--danger);
+	color: #fff;
+	font-size: 0.75em;
+	font-weight: 600;
+	line-height: 1.2;
+	text-align: center;
+}
+
+/* Alerts */
+
+.alert {
+	margin-bottom: 1rem;
+	padding: 0.6rem 1rem;
+	border: 1px solid transparent;
+	border-radius: var(--radius);
+}
+
+.alert-success {
+	background: var(--alert-success-bg);
+	border-color: var(--alert-success-border);
+	color: var(--alert-success-text);
+}
+
+.alert-warning {
+	background: var(--alert-warning-bg);
+	border-color: var(--alert-warning-border);
+	color: var(--alert-warning-text);
+}
+
+.alert-danger {
+	background: var(--alert-danger-bg);
+	border-color: var(--alert-danger-border);
+	color: var(--alert-danger-text);
+}
+
+.alert-info {
+	background: var(--alert-info-bg);
+	border-color: var(--alert-info-border);
+	color: var(--alert-info-text);
+}
+
+/* Tabs within a page, e.g. Insights. They share the width rather than scrolling sideways */
+
+.tabs {
+	display: flex;
+	margin-bottom: 1rem;
+	border-bottom: 1px solid var(--border);
+}
+
+.tabs button {
+	flex: 1 1 0;
+	min-width: 0;
+	min-height: 44px;
+	margin-bottom: -1px;
+	padding: 0.4rem 0.5rem;
+	border: 1px solid transparent;
+	border-radius: var(--radius) var(--radius) 0 0;
+	background: none;
+	color: var(--link);
+	font: inherit;
+	cursor: pointer;
+}
+
+.tabs button[aria-selected='true'] {
+	border-color: var(--border) var(--border) var(--bg);
+	background: var(--bg);
+	color: var(--text);
+}
+
+/* Lists of rows, e.g. youth on Progress. Rows that are links show a chevron */
+
+.row-list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.row-link {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	color: inherit;
+	text-decoration: none;
+}
+
+.row-link:hover {
+	background: var(--hover);
+}
+
+/* Printing leaves out the app's navigation and always uses light colours */
+@media print {
+	:root {
+		color-scheme: light;
+	}
+
+	.no-print {
+		display: none !important;
+	}
+}

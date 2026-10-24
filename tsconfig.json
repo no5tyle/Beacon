@@ -1,0 +1,10 @@
+{
+	"extends": "$app/tsconfig",
+	"compilerOptions": {
+		"strict": true,
+		"types": ["$app/types", "node"]
+	},
+	"include": ["src", "tests", "vite.config.ts", "playwright.config.ts"],
+	// The service worker has its own tsconfig, for the worker's types
+	"exclude": ["src/service-worker"]
+}

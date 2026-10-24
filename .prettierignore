@@ -1,0 +1,7 @@
+# Package managers
+package-lock.json
+
+# Build output and copied files
+/build
+/.svelte-kit
+/static/
