@@ -112,6 +112,21 @@ namespace TopoInsightsTest
         }
 
         [TestMethod]
+        public void UpdateBodyLeavesOutFieldsTheRecordDoesNotHave()
+        {
+            // An older Joey record, as Terrain returns it: no last_updated and no uploads
+            var existing = ExistingAchievement();
+            existing.Remove("last_updated");
+            existing.Remove("uploads");
+
+            var body = OASRecording.UpdateBody(existing, new JsonObject());
+
+            Assert.IsFalse(body.ContainsKey("last_updated"), "Sending last_updated as null gets the save turned away");
+            Assert.AreEqual(0, body["uploads"]!.AsArray().Count);
+            Assert.IsFalse(body.Any(field => field.Value == null), "No field is sent as null");
+        }
+
+        [TestMethod]
         public void CreateBodyMatchesTerrain()
         {
             var stage = new OASStageListModel { Stream = "Bushwalking", Branch = "bushwalking", Stage = 3 };

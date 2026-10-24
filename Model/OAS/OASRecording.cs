@@ -88,19 +88,22 @@ namespace Topo.Model.OAS
 
         // Body for PUT members/{id}/achievements/{achievementId}, keeping the record's own template,
         // version, section, uploads and last_updated so nothing else on it changes
+        // Fields the record doesn't have are left out rather than sent as null: older records, such as Joey
+        // records ticked through events, have no last_updated, and Terrain turns away a save that sends it as null
         public static JsonObject UpdateBody(JsonObject existing, JsonObject answers)
         {
-            return new JsonObject
+            var body = new JsonObject
             {
-                ["achievement_meta"] = existing["achievement_meta"]?.DeepClone(),
                 ["achievement_type"] = AchievementType,
-                ["template"] = existing["template"]?.DeepClone(),
-                ["version"] = existing["version"]?.DeepClone(),
-                ["section"] = existing["section"]?.DeepClone(),
                 ["answers"] = answers,
-                ["uploads"] = existing["uploads"]?.DeepClone() ?? new JsonArray(),
-                ["last_updated"] = existing["last_updated"]?.DeepClone()
+                ["uploads"] = existing["uploads"]?.DeepClone() ?? new JsonArray()
             };
+            foreach (var field in new[] { "achievement_meta", "template", "version", "section", "last_updated" })
+            {
+                if (existing[field] != null)
+                    body[field] = existing[field]!.DeepClone();
+            }
+            return body;
         }
 
         public static JsonObject SubmitBody(string unitId, string submittedByMemberId)

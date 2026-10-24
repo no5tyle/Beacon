@@ -113,7 +113,6 @@ namespace Topo.Services
                     result = await _terrainAPIService.UpdateAchievementForMember(state.MemberId, state.AchievementId, OASRecording.UpdateBody(latest, answers));
                 }
 
-                result = await ConfirmIfSaved(result, state, newlyTicked);
                 if (result.Success)
                     ClearUnitCaches();
                 return result;
@@ -202,35 +201,6 @@ namespace Topo.Services
                 State = SignOffOutcomeState.Failed,
                 Message = result.StatusCode > 0 ? $"Terrain didn't accept it (response {result.StatusCode})." : result.Body
             };
-        }
-
-        // Terrain sometimes saves the change but its reply never reaches the browser (Safari reports
-        // "Load failed"; seen for Joeys). With no reply at all, look at the record again before calling it a failure.
-        private async Task<TerrainWriteResult> ConfirmIfSaved(TerrainWriteResult result, OASRecordingState state, List<OASStatement> newlyTicked)
-        {
-            if (result.Success || result.StatusCode > 0)
-                return result;
-            try
-            {
-                var stream = state.Stage.Stream.ToLowerInvariant();
-                var record = (await _terrainAPIService.GetOASAchievementsRawForMember(state.MemberId))
-                    .OfType<JsonObject>()
-                    .FirstOrDefault(a => state.Achievement != null
-                        ? a["id"]?.ToString() == state.AchievementId
-                        : a["achievement_meta"]?["stream"]?.ToString() == stream
-                            && (int?)a["achievement_meta"]?["stage"] == state.Stage.Stage
-                            && a["achievement_meta"]?["branch"]?.ToString() == state.Stage.Branch);
-                var saved = record != null && OASRecording.Statements(state.Template, record["answers"] as JsonObject)
-                    .Where(s => newlyTicked.Any(n => n.InputId == s.InputId))
-                    .All(s => s.AlreadyDone);
-                if (saved)
-                    return new TerrainWriteResult { Success = true, Body = "Terrain's reply didn't come through, but the statements are saved." };
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Record OAS: unable to check whether the save went through");
-            }
-            return result;
         }
 
         // Saving without the switch would send the change as the leader, so stop and say so
