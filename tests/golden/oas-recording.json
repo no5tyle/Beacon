@@ -1,0 +1,530 @@
+{
+  "today": "2026-10-22",
+  "verifier": {
+    "type": "member",
+    "name": "Pat Leader",
+    "contact": "pat@example.com"
+  },
+  "stage": {
+    "stream": "Bushwalking",
+    "stageTitle": "Bushwalking Stage 3",
+    "branch": "bushwalking",
+    "stage": 3,
+    "templateLink": "oas/bushwalking/3/latest.json",
+    "selectListItemText": ""
+  },
+  "scoutRecord": {
+    "id": "ach-1",
+    "member_id": "youth-1",
+    "template": "oas/bushwalking/3",
+    "version": 2,
+    "section": "scout",
+    "status": "in_progress",
+    "last_updated": "2026-10-01T10:00:00.000Z",
+    "achievement_meta": {
+      "stream": "bushwalking",
+      "branch": "bushwalking",
+      "stage": 3
+    },
+    "answers": {
+      "their_help_stage_1_pack_bushwalk_scout_backpack_ed01f4": true,
+      "their_help_stage_1_pack_bushwalk_scout_backpack_ed01f4_verifierName": "Alex Leader",
+      "their_help_stage_1_pack_bushwalk_scout_backpack_ed01f4_verifiedDate": "01/10/2026",
+      "file_uploader": []
+    },
+    "uploads": [
+      {
+        "bucket": "b",
+        "filename": "map.jpg",
+        "key": "k",
+        "uploaded_on": "2026-10-01"
+      }
+    ],
+    "imported": {
+      "date_awarded": ""
+    }
+  },
+  "joeyRecord": {
+    "id": "ach-2",
+    "member_id": "youth-2",
+    "template": "oas/bushwalking/3",
+    "version": 1,
+    "section": "joey",
+    "status": "in_progress",
+    "achievement_meta": {
+      "stream": "bushwalking",
+      "branch": "bushwalking",
+      "stage": 3
+    },
+    "answers": {
+      "their_help_stage_1_pack_bushwalk_scout_backpack_ed01f4": "true",
+      "their_help_stage_1_pack_bushwalk_scout_backpack_ed01f4_verifierType": "Sam Leader",
+      "their_help_stage_1_pack_bushwalk_scout_backpack_ed01f4_verifierName": "Sam Leader",
+      "their_help_stage_1_pack_bushwalk_scout_backpack_ed01f4_verifierContact": "N/A",
+      "their_help_stage_1_pack_bushwalk_scout_backpack_ed01f4_verifiedDate": "05/03/2025",
+      "their_help_stage_1_pack_bushwalk_scout_backpack_ed01f4_eventId": "event-1"
+    }
+  },
+  "scoutTicked": [
+    "area_bushwalking_forecast_will_weather_latest_where_8f2cdd",
+    "their_help_stage_1_pack_bushwalk_scout_backpack_ed01f4",
+    "logbook_up_to_date"
+  ],
+  "joeyTicked": [
+    "their_help_stage_1_pack_bushwalk_scout_backpack_ed01f4",
+    "area_bushwalking_forecast_will_weather_latest_where_8f2cdd"
+  ],
+  "newTicked": [
+    "their_help_stage_1_pack_bushwalk_scout_backpack_ed01f4",
+    "area_bushwalking_forecast_will_weather_latest_where_8f2cdd",
+    "help_plan_bushwalking_balanced_menu_542939",
+    "logbook_up_to_date"
+  ],
+  "expected": {
+    "scoutStatements": [
+      {
+        "inputId": "their_help_stage_1_pack_bushwalk_scout_backpack_ed01f4",
+        "group": "Plan",
+        "label": "I can help a Stage 1 Scout to pack their backpack for a bushwalk.",
+        "isLogbook": false,
+        "alreadyDone": true,
+        "verifiedBy": "Alex Leader",
+        "verifiedDate": "01/10/2026"
+      },
+      {
+        "inputId": "area_bushwalking_forecast_will_weather_latest_where_8f2cdd",
+        "group": "Plan",
+        "label": "I know how and where to get the latest weather forecast for the area I will be bushwalking in.",
+        "isLogbook": false,
+        "alreadyDone": false,
+        "verifiedBy": "",
+        "verifiedDate": ""
+      },
+      {
+        "inputId": "help_plan_bushwalking_balanced_menu_542939",
+        "group": "Plan",
+        "label": "I can help plan a balanced menu for bushwalking.",
+        "isLogbook": false,
+        "alreadyDone": false,
+        "verifiedBy": "",
+        "verifiedDate": ""
+      },
+      {
+        "inputId": "bushwalk_cannot_where_list_places_0b38af",
+        "group": "Plan",
+        "label": "I can list places where I can and cannot bushwalk.",
+        "isLogbook": false,
+        "alreadyDone": false,
+        "verifiedBy": "",
+        "verifiedDate": ""
+      },
+      {
+        "inputId": "talk_together_while_bushwalking_of_group_different_ways_a19d51",
+        "group": "Plan",
+        "label": "I can talk about different ways of keeping a group together while bushwalking.",
+        "isLogbook": false,
+        "alreadyDone": false,
+        "verifiedBy": "",
+        "verifiedDate": ""
+      },
+      {
+        "inputId": "bushwalking_etiquette_journey_considered_planning_6b22af",
+        "group": "Plan",
+        "label": "I have considered bushwalking etiquette when planning for a journey.",
+        "isLogbook": false,
+        "alreadyDone": false,
+        "verifiedBy": "",
+        "verifiedDate": ""
+      },
+      {
+        "inputId": "responsible_surroundings_of_safety_aware_86a378",
+        "group": "Do",
+        "label": "I can be responsible for my safety and aware of my surroundings.",
+        "isLogbook": false,
+        "alreadyDone": false,
+        "verifiedBy": "",
+        "verifiedDate": ""
+      },
+      {
+        "inputId": "small_scouts_fellow_leaders_of_navigational_run_activity_82209b",
+        "group": "Do",
+        "label": "I have run a small navigational activity for my fellow Scouts with the support of my Leaders.",
+        "isLogbook": false,
+        "alreadyDone": false,
+        "verifiedBy": "",
+        "verifiedDate": ""
+      },
+      {
+        "inputId": "help_types_maps_of_different_use_activities_me_f4d4d1",
+        "group": "Do",
+        "label": "I can use different types of maps to help me throughout different activities.",
+        "isLogbook": false,
+        "alreadyDone": false,
+        "verifiedBy": "",
+        "verifiedDate": ""
+      },
+      {
+        "inputId": "stage_least_day_this_six_of_bushwalk_duration_ea35a8",
+        "group": "Do",
+        "label": "I have attended a day bushwalk at this stage of at least six hours duration.",
+        "isLogbook": false,
+        "alreadyDone": false,
+        "verifiedBy": "",
+        "verifiedDate": ""
+      },
+      {
+        "inputId": "stage_least_bushwalking_this_attended_activities_3de293",
+        "group": "Do",
+        "label": "I have attended at least two bushwalking activities at this stage.",
+        "isLogbook": false,
+        "alreadyDone": false,
+        "verifiedBy": "",
+        "verifiedDate": ""
+      },
+      {
+        "inputId": "avoid_do_if_lost_becoming_e322d0",
+        "group": "Do",
+        "label": "I know how to avoid becoming lost, and I know what to do if I get lost.",
+        "isLogbook": false,
+        "alreadyDone": false,
+        "verifiedBy": "",
+        "verifiedDate": ""
+      },
+      {
+        "inputId": "cuts_bleeding_treat_minor_67b4b6",
+        "group": "Do",
+        "label": "I know how to treat cuts and minor bleeding.",
+        "isLogbook": false,
+        "alreadyDone": false,
+        "verifiedBy": "",
+        "verifiedDate": ""
+      },
+      {
+        "inputId": "stay_stage_importance_safe_1_buddy_of_scout_c5eeaf",
+        "group": "Do",
+        "label": "I can teach the importance of the buddy system and other ways to stay safe to a Scout in Stage 1.",
+        "isLogbook": false,
+        "alreadyDone": false,
+        "verifiedBy": "",
+        "verifiedDate": ""
+      },
+      {
+        "inputId": "topographical_identify_features_of_map_047960",
+        "group": "Do",
+        "label": "I can identify the features of a topographical map.",
+        "isLogbook": false,
+        "alreadyDone": false,
+        "verifiedBy": "",
+        "verifiedDate": ""
+      },
+      {
+        "inputId": "bushwalks_stage_during_3_of_went_given_council_83678d",
+        "group": "Review",
+        "label": "I have given a presentation to my Patrol or my Unit Council about one of the bushwalks I went on during Stage 3.",
+        "isLogbook": false,
+        "alreadyDone": false,
+        "verifiedBy": "",
+        "verifiedDate": ""
+      },
+      {
+        "inputId": "five_stages_bushwalking_of_learnt_top_13_throughout_5ef916",
+        "group": "Review",
+        "label": "I have discussed the top five things I have learnt throughout Stages 1\u20133 of Bushwalking.",
+        "isLogbook": false,
+        "alreadyDone": false,
+        "verifiedBy": "",
+        "verifiedDate": ""
+      },
+      {
+        "inputId": "logbook_up_to_date",
+        "group": "Verify",
+        "label": "My logbook is up to date at the end of this stage.",
+        "isLogbook": true,
+        "alreadyDone": false,
+        "verifiedBy": "",
+        "verifiedDate": ""
+      }
+    ],
+    "joeyStatements": [
+      {
+        "inputId": "their_help_stage_1_pack_bushwalk_scout_backpack_ed01f4",
+        "group": "Plan",
+        "label": "I can help a Stage 1 Scout to pack their backpack for a bushwalk.",
+        "isLogbook": false,
+        "alreadyDone": true,
+        "verifiedBy": "Sam Leader",
+        "verifiedDate": "05/03/2025"
+      },
+      {
+        "inputId": "area_bushwalking_forecast_will_weather_latest_where_8f2cdd",
+        "group": "Plan",
+        "label": "I know how and where to get the latest weather forecast for the area I will be bushwalking in.",
+        "isLogbook": false,
+        "alreadyDone": false,
+        "verifiedBy": "",
+        "verifiedDate": ""
+      },
+      {
+        "inputId": "help_plan_bushwalking_balanced_menu_542939",
+        "group": "Plan",
+        "label": "I can help plan a balanced menu for bushwalking.",
+        "isLogbook": false,
+        "alreadyDone": false,
+        "verifiedBy": "",
+        "verifiedDate": ""
+      },
+      {
+        "inputId": "bushwalk_cannot_where_list_places_0b38af",
+        "group": "Plan",
+        "label": "I can list places where I can and cannot bushwalk.",
+        "isLogbook": false,
+        "alreadyDone": false,
+        "verifiedBy": "",
+        "verifiedDate": ""
+      },
+      {
+        "inputId": "talk_together_while_bushwalking_of_group_different_ways_a19d51",
+        "group": "Plan",
+        "label": "I can talk about different ways of keeping a group together while bushwalking.",
+        "isLogbook": false,
+        "alreadyDone": false,
+        "verifiedBy": "",
+        "verifiedDate": ""
+      },
+      {
+        "inputId": "bushwalking_etiquette_journey_considered_planning_6b22af",
+        "group": "Plan",
+        "label": "I have considered bushwalking etiquette when planning for a journey.",
+        "isLogbook": false,
+        "alreadyDone": false,
+        "verifiedBy": "",
+        "verifiedDate": ""
+      },
+      {
+        "inputId": "responsible_surroundings_of_safety_aware_86a378",
+        "group": "Do",
+        "label": "I can be responsible for my safety and aware of my surroundings.",
+        "isLogbook": false,
+        "alreadyDone": false,
+        "verifiedBy": "",
+        "verifiedDate": ""
+      },
+      {
+        "inputId": "small_scouts_fellow_leaders_of_navigational_run_activity_82209b",
+        "group": "Do",
+        "label": "I have run a small navigational activity for my fellow Scouts with the support of my Leaders.",
+        "isLogbook": false,
+        "alreadyDone": false,
+        "verifiedBy": "",
+        "verifiedDate": ""
+      },
+      {
+        "inputId": "help_types_maps_of_different_use_activities_me_f4d4d1",
+        "group": "Do",
+        "label": "I can use different types of maps to help me throughout different activities.",
+        "isLogbook": false,
+        "alreadyDone": false,
+        "verifiedBy": "",
+        "verifiedDate": ""
+      },
+      {
+        "inputId": "stage_least_day_this_six_of_bushwalk_duration_ea35a8",
+        "group": "Do",
+        "label": "I have attended a day bushwalk at this stage of at least six hours duration.",
+        "isLogbook": false,
+        "alreadyDone": false,
+        "verifiedBy": "",
+        "verifiedDate": ""
+      },
+      {
+        "inputId": "stage_least_bushwalking_this_attended_activities_3de293",
+        "group": "Do",
+        "label": "I have attended at least two bushwalking activities at this stage.",
+        "isLogbook": false,
+        "alreadyDone": false,
+        "verifiedBy": "",
+        "verifiedDate": ""
+      },
+      {
+        "inputId": "avoid_do_if_lost_becoming_e322d0",
+        "group": "Do",
+        "label": "I know how to avoid becoming lost, and I know what to do if I get lost.",
+        "isLogbook": false,
+        "alreadyDone": false,
+        "verifiedBy": "",
+        "verifiedDate": ""
+      },
+      {
+        "inputId": "cuts_bleeding_treat_minor_67b4b6",
+        "group": "Do",
+        "label": "I know how to treat cuts and minor bleeding.",
+        "isLogbook": false,
+        "alreadyDone": false,
+        "verifiedBy": "",
+        "verifiedDate": ""
+      },
+      {
+        "inputId": "stay_stage_importance_safe_1_buddy_of_scout_c5eeaf",
+        "group": "Do",
+        "label": "I can teach the importance of the buddy system and other ways to stay safe to a Scout in Stage 1.",
+        "isLogbook": false,
+        "alreadyDone": false,
+        "verifiedBy": "",
+        "verifiedDate": ""
+      },
+      {
+        "inputId": "topographical_identify_features_of_map_047960",
+        "group": "Do",
+        "label": "I can identify the features of a topographical map.",
+        "isLogbook": false,
+        "alreadyDone": false,
+        "verifiedBy": "",
+        "verifiedDate": ""
+      },
+      {
+        "inputId": "bushwalks_stage_during_3_of_went_given_council_83678d",
+        "group": "Review",
+        "label": "I have given a presentation to my Patrol or my Unit Council about one of the bushwalks I went on during Stage 3.",
+        "isLogbook": false,
+        "alreadyDone": false,
+        "verifiedBy": "",
+        "verifiedDate": ""
+      },
+      {
+        "inputId": "five_stages_bushwalking_of_learnt_top_13_throughout_5ef916",
+        "group": "Review",
+        "label": "I have discussed the top five things I have learnt throughout Stages 1\u20133 of Bushwalking.",
+        "isLogbook": false,
+        "alreadyDone": false,
+        "verifiedBy": "",
+        "verifiedDate": ""
+      },
+      {
+        "inputId": "logbook_up_to_date",
+        "group": "Verify",
+        "label": "My logbook is up to date at the end of this stage.",
+        "isLogbook": true,
+        "alreadyDone": false,
+        "verifiedBy": "",
+        "verifiedDate": ""
+      }
+    ],
+    "scoutAnswers": {
+      "their_help_stage_1_pack_bushwalk_scout_backpack_ed01f4": true,
+      "their_help_stage_1_pack_bushwalk_scout_backpack_ed01f4_verifierName": "Alex Leader",
+      "their_help_stage_1_pack_bushwalk_scout_backpack_ed01f4_verifiedDate": "01/10/2026",
+      "file_uploader": [],
+      "area_bushwalking_forecast_will_weather_latest_where_8f2cdd": true,
+      "area_bushwalking_forecast_will_weather_latest_where_8f2cdd_verifierType": "member",
+      "area_bushwalking_forecast_will_weather_latest_where_8f2cdd_verifierName": "Pat Leader",
+      "area_bushwalking_forecast_will_weather_latest_where_8f2cdd_verifierContact": "pat@example.com",
+      "area_bushwalking_forecast_will_weather_latest_where_8f2cdd_verifiedDate": "22/10/2026",
+      "logbook_up_to_date": true
+    },
+    "scoutUpdateBody": {
+      "achievement_type": "outdoor_adventure_skill",
+      "answers": {
+        "their_help_stage_1_pack_bushwalk_scout_backpack_ed01f4": true,
+        "their_help_stage_1_pack_bushwalk_scout_backpack_ed01f4_verifierName": "Alex Leader",
+        "their_help_stage_1_pack_bushwalk_scout_backpack_ed01f4_verifiedDate": "01/10/2026",
+        "file_uploader": [],
+        "area_bushwalking_forecast_will_weather_latest_where_8f2cdd": true,
+        "area_bushwalking_forecast_will_weather_latest_where_8f2cdd_verifierType": "member",
+        "area_bushwalking_forecast_will_weather_latest_where_8f2cdd_verifierName": "Pat Leader",
+        "area_bushwalking_forecast_will_weather_latest_where_8f2cdd_verifierContact": "pat@example.com",
+        "area_bushwalking_forecast_will_weather_latest_where_8f2cdd_verifiedDate": "22/10/2026",
+        "logbook_up_to_date": true
+      },
+      "uploads": [
+        {
+          "bucket": "b",
+          "filename": "map.jpg",
+          "key": "k",
+          "uploaded_on": "2026-10-01"
+        }
+      ],
+      "achievement_meta": {
+        "stream": "bushwalking",
+        "branch": "bushwalking",
+        "stage": 3
+      },
+      "template": "oas/bushwalking/3",
+      "version": 2,
+      "section": "scout",
+      "last_updated": "2026-10-01T10:00:00.000Z"
+    },
+    "joeyAnswers": {
+      "their_help_stage_1_pack_bushwalk_scout_backpack_ed01f4": "true",
+      "their_help_stage_1_pack_bushwalk_scout_backpack_ed01f4_verifierType": "Sam Leader",
+      "their_help_stage_1_pack_bushwalk_scout_backpack_ed01f4_verifierName": "Sam Leader",
+      "their_help_stage_1_pack_bushwalk_scout_backpack_ed01f4_verifierContact": "N/A",
+      "their_help_stage_1_pack_bushwalk_scout_backpack_ed01f4_verifiedDate": "05/03/2025",
+      "their_help_stage_1_pack_bushwalk_scout_backpack_ed01f4_eventId": "event-1",
+      "area_bushwalking_forecast_will_weather_latest_where_8f2cdd": true,
+      "area_bushwalking_forecast_will_weather_latest_where_8f2cdd_verifierType": "member",
+      "area_bushwalking_forecast_will_weather_latest_where_8f2cdd_verifierName": "Pat Leader",
+      "area_bushwalking_forecast_will_weather_latest_where_8f2cdd_verifierContact": "pat@example.com",
+      "area_bushwalking_forecast_will_weather_latest_where_8f2cdd_verifiedDate": "22/10/2026"
+    },
+    "joeyUpdateBody": {
+      "achievement_type": "outdoor_adventure_skill",
+      "answers": {
+        "their_help_stage_1_pack_bushwalk_scout_backpack_ed01f4": "true",
+        "their_help_stage_1_pack_bushwalk_scout_backpack_ed01f4_verifierType": "Sam Leader",
+        "their_help_stage_1_pack_bushwalk_scout_backpack_ed01f4_verifierName": "Sam Leader",
+        "their_help_stage_1_pack_bushwalk_scout_backpack_ed01f4_verifierContact": "N/A",
+        "their_help_stage_1_pack_bushwalk_scout_backpack_ed01f4_verifiedDate": "05/03/2025",
+        "their_help_stage_1_pack_bushwalk_scout_backpack_ed01f4_eventId": "event-1",
+        "area_bushwalking_forecast_will_weather_latest_where_8f2cdd": true,
+        "area_bushwalking_forecast_will_weather_latest_where_8f2cdd_verifierType": "member",
+        "area_bushwalking_forecast_will_weather_latest_where_8f2cdd_verifierName": "Pat Leader",
+        "area_bushwalking_forecast_will_weather_latest_where_8f2cdd_verifierContact": "pat@example.com",
+        "area_bushwalking_forecast_will_weather_latest_where_8f2cdd_verifiedDate": "22/10/2026"
+      },
+      "uploads": [],
+      "achievement_meta": {
+        "stream": "bushwalking",
+        "branch": "bushwalking",
+        "stage": 3
+      },
+      "template": "oas/bushwalking/3",
+      "version": 1,
+      "section": "joey"
+    },
+    "createBody": {
+      "achievement_meta": {
+        "stage": 3,
+        "stream": "bushwalking",
+        "branch": "bushwalking"
+      },
+      "achievement_type": "outdoor_adventure_skill",
+      "template": "oas/bushwalking/3",
+      "version": 2,
+      "section": "cub",
+      "answers": {
+        "their_help_stage_1_pack_bushwalk_scout_backpack_ed01f4": true,
+        "their_help_stage_1_pack_bushwalk_scout_backpack_ed01f4_verifierType": "member",
+        "their_help_stage_1_pack_bushwalk_scout_backpack_ed01f4_verifierName": "Pat Leader",
+        "their_help_stage_1_pack_bushwalk_scout_backpack_ed01f4_verifierContact": "pat@example.com",
+        "their_help_stage_1_pack_bushwalk_scout_backpack_ed01f4_verifiedDate": "22/10/2026",
+        "area_bushwalking_forecast_will_weather_latest_where_8f2cdd": true,
+        "area_bushwalking_forecast_will_weather_latest_where_8f2cdd_verifierType": "member",
+        "area_bushwalking_forecast_will_weather_latest_where_8f2cdd_verifierName": "Pat Leader",
+        "area_bushwalking_forecast_will_weather_latest_where_8f2cdd_verifierContact": "pat@example.com",
+        "area_bushwalking_forecast_will_weather_latest_where_8f2cdd_verifiedDate": "22/10/2026",
+        "help_plan_bushwalking_balanced_menu_542939": true,
+        "help_plan_bushwalking_balanced_menu_542939_verifierType": "member",
+        "help_plan_bushwalking_balanced_menu_542939_verifierName": "Pat Leader",
+        "help_plan_bushwalking_balanced_menu_542939_verifierContact": "pat@example.com",
+        "help_plan_bushwalking_balanced_menu_542939_verifiedDate": "22/10/2026",
+        "logbook_up_to_date": true
+      },
+      "uploads": []
+    },
+    "submitBody": {
+      "type": "review",
+      "unit_id": "unit-1",
+      "submitted_by": "leader-1"
+    }
+  }
+}

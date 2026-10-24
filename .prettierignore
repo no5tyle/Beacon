@@ -5,3 +5,7 @@ package-lock.json
 /build
 /.svelte-kit
 /static/
+
+# Test data, kept exactly as generated
+/tests/fixtures/
+/tests/golden/*.json

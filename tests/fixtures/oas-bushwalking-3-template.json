@@ -1,0 +1,148 @@
+{
+    "template": "oas/bushwalking/3",
+    "meta": {
+        "stage": 3,
+        "stream": "bushwalking"
+    },
+    "version": 2,
+    "document": [
+        {
+            "title": "Stage 3 - Bushwalking",
+            "input_groups": [
+                {
+                    "title": "Plan>",
+                    "inputs": [
+                        {
+                            "id": "their_help_stage_1_pack_bushwalk_scout_backpack_ed01f4",
+                            "type": "verifiable_checkbox",
+                            "label": "I can help a Stage 1 Scout to pack their backpack for a bushwalk.",
+                            "dialog_text": "Refer to Stage 1 performance criteria for what the Stage 1 Scout should have in their pack. Youth member should be able to pack a day pack (<30 litres) with personal items required for the day. This will vary according to weather and terrain, but should include: \n * Food or snacks \n * water \n * Wet weather gear  \n * Warm clothing  \n * Sun protection \n\nThe youth member should be able to justify the inclusion or exclusion of different items. \n\nItems should be packed with consideration for weight distribution (heaviest items closest to the spine), waterproofing (with a plastic bag) and durability. \n\nThe list does not need to include group equipment such as map and compass. This is about the youth member supporting lower stage Scouts with pack and providing guidance - it is not about them packing the bag for them."
+                        },
+                        {
+                            "id": "area_bushwalking_forecast_will_weather_latest_where_8f2cdd",
+                            "type": "verifiable_checkbox",
+                            "label": "I know how and where to get the latest weather forecast for the area I will be bushwalking in.",
+                            "dialog_text": "This will usually be from the Australian Bureau of Meteorology web site or app. But could include other mediums and the youth member should consider other mediums for example if the Bureau website is down then how will they find out the information. This is also a good idea to get a better all rounded picture (average) between some different sources of information."
+                        },
+                        {
+                            "id": "help_plan_bushwalking_balanced_menu_542939",
+                            "type": "verifiable_checkbox",
+                            "label": "I can help plan a balanced menu for bushwalking.",
+                            "dialog_text": "The menu should cover a weekend bushwalk with a Saturday morning start:  \n * Lunch x2 \n * Dinner x1  \n * Dessert x1 (can replace with Supper or Midnight Snack if desired) \n * Breakfast x1  \n * Drinks  \n * Snacks \n * Emergency meal portion \n \nThe menu for food hygiene standards is unlikely contain perishable ingredients such as raw meat, or breakable items such as eggs (however depending on season and location some of these items may be appropriate). All ingredients should be dry or reasonably light; for example, pasta sauce in a jar would not be appropriate, but it would be acceptable if it was sold in robust plastic packaging. The meals should also be nutritious and support alot of energy use and exercise for example in summer some high salt content food at the end of the day is not a bad idea to avoid cramping muscles with the right amount of water."
+                        },
+                        {
+                            "id": "bushwalk_cannot_where_list_places_0b38af",
+                            "type": "verifiable_checkbox",
+                            "label": "I can list places where I can and cannot bushwalk.",
+                            "dialog_text": "The youth member should consider places they can go: \n * National Parks \n * State Forests \n * State and Regional Parks \n\nCan go with restrictions: (these are all subject to qualification requirements) \n * Above the snowline in winter  \n * Deserts  \n * Remote areas  \n \nCannot go: \n * Private property \n * Water catchment areas \n * Reference areas \n * Revegetation areas \n\nThe youth member needs to be able to explain why we cannot go into these areas on a bushwalk. They should be able to explain where to find the most up-to-date information about where they can and cannot go, knowing that access restrictions may change."
+                        },
+                        {
+                            "id": "talk_together_while_bushwalking_of_group_different_ways_a19d51",
+                            "type": "verifiable_checkbox",
+                            "label": "I can talk about different ways of keeping a group together while bushwalking.",
+                            "dialog_text": "The options below are all methods of keeping the group together. The youth members can talk about all or some of them and will need to talk about the advantages and disadvantages \n * Buddy system \n * Head count by party leader  \n * Not going before lead walker or after tail-ender \n * Numbering off  \n * Slowest person first \n * Party leader at back with an assistant at front; or party leader in the middle with an assistant at each end Traffic light system (people describing their feelings and progress via traffic lights eg. Red needs a break or stop and green all good to go) \n * Giving the faster walkers tasks to keep them engaged and with the group  \n * Ensuring that the lead walker stops at all intersections and waits for the tail to catch up."
+                        },
+                        {
+                            "id": "bushwalking_etiquette_journey_considered_planning_6b22af",
+                            "type": "verifiable_checkbox",
+                            "label": "I have considered bushwalking etiquette when planning for a journey.",
+                            "dialog_text": "The youth member should consider: \n * Give way to walkers going uphill (it\u2019s more difficult for them to restart) \n * Keep to the left of the track when meeting other groups  \n * Keep noise to a minimum  \n * What are ways in which I could look out for the needs of my group while bushwalking \n * How these principles apply to the Australian Scout Promise and Law \n * Anything else that the youth member can think of that relates to bushwalking etiquette (people, environment or equipment)."
+                        }
+                    ]
+                },
+                {
+                    "title": "Do>",
+                    "inputs": [
+                        {
+                            "id": "responsible_surroundings_of_safety_aware_86a378",
+                            "type": "verifiable_checkbox",
+                            "label": "I can be responsible for my safety and aware of my surroundings.",
+                            "dialog_text": "Demonstrates on a bushwalk, and within the Plan> and Do> stages, the concepts of \n * self-reliance, \n * proper preparation, \n * basic risk awareness"
+                        },
+                        {
+                            "id": "small_scouts_fellow_leaders_of_navigational_run_activity_82209b",
+                            "type": "verifiable_checkbox",
+                            "label": "I have run a small navigational activity for my fellow Scouts with the support of my Leaders.",
+                            "dialog_text": "Activity should take no more than an hour and could involve compass work, map work, basic direction finding or other components of navigation. The youth member must assist others in their learning of navigational concepts during this activity. \nThis activity is best done in Patrols so as to best accommodate for multiple people leading and assisting activities at any one time."
+                        },
+                        {
+                            "id": "help_types_maps_of_different_use_activities_me_f4d4d1",
+                            "type": "verifiable_checkbox",
+                            "label": "I can use different types of maps to help me throughout different activities.",
+                            "dialog_text": "The youth member should aim to have used three different types of map: \n * Topographic map suitable for bushwalking  \n * Line map, similar to those found in bushwalking guide books or park visitor guides  \n * Online mapping service (Open street map or similar) \n * Satellite imagery \n * Other types of maps as long as the youth member can demonstrate their use applicable to bushwalking."
+                        },
+                        {
+                            "id": "stage_least_day_this_six_of_bushwalk_duration_ea35a8",
+                            "type": "verifiable_checkbox",
+                            "label": "I have attended a day bushwalk at this stage of at least six hours duration.",
+                            "dialog_text": "The youth member should have attended a day walk and have walked for at least six (6) hours. \nThere is no minimum distance but the youth member must make a continuous and legitimate effort, and rest breaks should be reasonable but not excessive. The walk may be over any appropriate terrain. The youth member must contribute to their own safety and that of the group by following instructions, not constantly walking ahead of the group, etc. \n \nIt is not a requirement, but the Patrol may give different youth members the option to rotate leadership of the party throughout the day; or alternatively to shadow the party leader if that is preferred."
+                        },
+                        {
+                            "id": "stage_least_bushwalking_this_attended_activities_3de293",
+                            "type": "verifiable_checkbox",
+                            "label": "I have attended at least two bushwalking activities at this stage.",
+                            "dialog_text": "Bushwalking activities could include: \n * A half day/ day bushwalk  \n * An orienteering or rogaining activity  \n * A two hour walk on an existing weekend camp or activity."
+                        },
+                        {
+                            "id": "avoid_do_if_lost_becoming_e322d0",
+                            "type": "verifiable_checkbox",
+                            "label": "I know how to avoid becoming lost, and I know what to do if I get lost.",
+                            "dialog_text": "The youth member should consider the following information, be able to come up with these ideas by themselves and demonstrate appropriate behaviour to avoid becoming lost \n * Always stay with the group \n * Take part in numbering-off  \n * Keep with your buddy \n * Keep track of where you are on the map \n * Know features you will come across on your walk If I get lost: \n\nStop \n * Stop moving \n * Try to see the rest of the group \n * Listen for the group \n \nStabilise \n * Get out of the weather (however aim to stay close to the position you became lost)  \n * Put on/remove clothing as appropriate \n \nAdvertise \n * Whistle, shout, or flash lights (anything in groups of three) \n * Light a bright, smoky fire if possible \n * Put out something brightly-coloured."
+                        },
+                        {
+                            "id": "cuts_bleeding_treat_minor_67b4b6",
+                            "type": "verifiable_checkbox",
+                            "label": "I know how to treat cuts and minor bleeding.",
+                            "dialog_text": "The youth member could: \n * Apply pressure if cuts are bleeding \n * If dirty, irrigate the wound with saline solution or clean water \n * Apply an adhesive dressing this should be done in a practical demonstration ideally on a camp in a camp mock scenario setting however can be discussed/demonstrated at other times."
+                        },
+                        {
+                            "id": "stay_stage_importance_safe_1_buddy_of_scout_c5eeaf",
+                            "type": "verifiable_checkbox",
+                            "label": "I can teach the importance of the buddy system and other ways to stay safe to a Scout in Stage 1.",
+                            "dialog_text": "The youth member should explain to the Stage 1 Scout: \n * That it allows someone else to notify Leaders if you get lost  \n * That it\u2019s safer to make decisions with other people  \n * How they can assist if you fall or get stuck. \n \nIf the youth member has a story about a walk that relates to the topic and can be used as a teaching aid then that can help to draw parallels. Refer to buddy system notes in Stage 1."
+                        },
+                        {
+                            "id": "topographical_identify_features_of_map_047960",
+                            "type": "verifiable_checkbox",
+                            "label": "I can identify the features of a topographical map.",
+                            "dialog_text": "The youth member should be able to know on map and off map the basic features of a topographic map. These include; gully, spur, knoll, ridge, valley floor, peak. There are many other features however these are the main ones. This should be conducted as a practical exercise while on a bushwalk or number of bushwalks."
+                        }
+                    ]
+                },
+                {
+                    "title": "Review>",
+                    "inputs": [
+                        {
+                            "id": "bushwalks_stage_during_3_of_went_given_council_83678d",
+                            "type": "verifiable_checkbox",
+                            "label": "I have given a presentation to my Patrol or my Unit Council about one of the bushwalks I went on during Stage 3.",
+                            "dialog_text": "The content must be relevant to the bushwalk. It may include personal reflection about what the youth member has learnt about themselves rather than about \u2018hard\u2019 technical skills."
+                        },
+                        {
+                            "id": "five_stages_bushwalking_of_learnt_top_13_throughout_5ef916",
+                            "type": "verifiable_checkbox",
+                            "label": "I have discussed the top five things I have learnt throughout Stages 1\u20133 of Bushwalking.",
+                            "dialog_text": "Can be part of the same presentation as above."
+                        }
+                    ]
+                },
+                {
+                    "title": "Verify",
+                    "inputs": [
+                        {
+                            "id": "logbook_up_to_date",
+                            "type": "checkbox",
+                            "label": "My logbook is up to date at the end of this stage."
+                        },
+                        {
+                            "id": "file_uploader",
+                            "type": "file_uploader",
+                            "label": "Upload supporting documents",
+                            "alt": "Each file should be less than 10MB in size."
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
