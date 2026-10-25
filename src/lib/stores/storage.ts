@@ -54,3 +54,25 @@ export function saveInsightsSettings(settings: InsightsSettings): void {
 		// Not remembered
 	}
 }
+
+// Older versions of the Blazor app kept each unit's approvals list, with youth names and achievements, in
+// local storage as "{unitId}_ApprovalsList", and never removed it. Both apps share no5tyle.github.io's storage,
+// so Beacon removes any it finds: nothing about youth members is kept on the device.
+const OLD_YOUTH_DATA = /_ApprovalsList$/;
+
+/** Removes youth details older Beacon versions left on this device. Returns how many entries went */
+export function removeOldYouthData(): number {
+	try {
+		const storage = globalThis.localStorage;
+		if (!storage) return 0;
+		const keys: string[] = [];
+		for (let i = 0; i < storage.length; i++) {
+			const key = storage.key(i);
+			if (key && OLD_YOUTH_DATA.test(key)) keys.push(key);
+		}
+		for (const key of keys) storage.removeItem(key);
+		return keys.length;
+	} catch {
+		return 0;
+	}
+}

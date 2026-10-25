@@ -60,7 +60,11 @@ const isCognito = (call: Call, action: string) =>
 /** A client already logged in as a leader, with tokens that are still fresh */
 async function signedIn(
 	route: (call: Call) => Answer | undefined,
-	options: { now?: () => number; gate?: ProfileGate } = {}
+	options: {
+		now?: () => number;
+		gate?: ProfileGate;
+		log?: (entry: RequestLogEntry) => void;
+	} = {}
 ) {
 	let loggedIn = false;
 	const fake = fakeTerrain((call) => (loggedIn ? route(call) : { body: tokens() }));
@@ -261,6 +265,30 @@ describe('reading from Terrain', () => {
 });
 
 describe('renewing the login', () => {
+	it('keeps the renewed tokens out of the request log', async () => {
+		let time = 0;
+		const log: RequestLogEntry[] = [];
+		const { terrain } = await signedIn(
+			(call) =>
+				isCognito(call, 'InitiateAuth')
+					? { body: tokens('fresh-id') }
+					: { body: { username: 'SA-1234567', profiles: [] } },
+			{ now: () => time, log: (entry) => log.push(entry) }
+		);
+		log.length = 0;
+		time = 3600 * 1000;
+
+		await terrain.profiles();
+
+		const renewal = log.find((entry) => entry.url === COGNITO_ADDRESS)!;
+		expect(renewal).toMatchObject({ method: 'POST', status: 200 });
+		expect(renewal.body).toBeUndefined();
+		// The profiles response is logged, but no token is anywhere in the log
+		expect(log.find((entry) => entry.url.endsWith('/profiles'))?.body).toContain('SA-1234567');
+		for (const secret of ['fresh-id', 'access', 'refresh-1'])
+			expect(JSON.stringify(log)).not.toContain(secret);
+	});
+
 	it('renews expired tokens once, however many requests are waiting', async () => {
 		let time = 0;
 		let refreshes = 0;
