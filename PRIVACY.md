@@ -89,4 +89,4 @@ Beacon shows youth members' personal information on your screen. Follow your bra
 
 ## Questions
 
-Beacon is open source, so anyone can check what it does at [github.com/no5tyle/beacon-next](https://github.com/no5tyle/beacon-next). Raise any questions or concerns as an issue there.
+Beacon is open source, so anyone can check what it does at [github.com/no5tyle/Beacon](https://github.com/no5tyle/Beacon). Raise any questions or concerns as an issue there.

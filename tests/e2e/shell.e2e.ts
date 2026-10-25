@@ -61,6 +61,29 @@ test('removes youth details an older version left on the device', async ({ page 
 	expect(await page.evaluate(() => localStorage.getItem('LoginBranch'))).toBe('sa');
 });
 
+test("retires the Blazor Reference app's service worker and its cache", async ({ page }) => {
+	await page.goto('login/');
+	const result = await page.evaluate(async () => {
+		// As a phone with the Blazor Reference app installed has: its cache, and a worker for reference/
+		const cache = await caches.open('topo-reference-v1');
+		await cache.put('/reference/', new Response('old Blazor Reference'));
+		const scope = new URL('/reference/', location.href).href;
+		await navigator.serviceWorker.register('/reference/service-worker.js', { scope });
+		for (let i = 0; i < 50; i++) {
+			const scopes = (await navigator.serviceWorker.getRegistrations()).map((r) => r.scope);
+			if (!scopes.includes(scope) && !(await caches.has('topo-reference-v1')))
+				return { scopes, cacheLeft: false };
+			await new Promise((resolve) => setTimeout(resolve, 100));
+		}
+		return {
+			scopes: (await navigator.serviceWorker.getRegistrations()).map((r) => r.scope),
+			cacheLeft: await caches.has('topo-reference-v1')
+		};
+	});
+	expect(result.scopes.some((s) => s.endsWith('/reference/'))).toBe(false);
+	expect(result.cacheLeft).toBe(false);
+});
+
 test('Beacon Reference has its own web app manifest', async ({ page }) => {
 	await page.goto('login/');
 	await expect(page.locator('link[rel=manifest]')).toHaveAttribute(

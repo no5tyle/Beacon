@@ -1,11 +1,10 @@
-# Beacon (Svelte rebuild)
+# Beacon
 
 Beacon is a phone-first helper for Scouts Australia leaders. It reads your unit's records from [Terrain](https://terrain.scouts.com.au) and turns them into the things you need at the hall: who's close to finishing what, what to programme next, and quick OAS sign offs after a unit night.
 
-This repository is Beacon being rebuilt in [Svelte](https://svelte.dev) and [SvelteKit](https://svelte.dev/docs/kit), to make it easier to contribute to and much quicker to open on a phone. Until the rebuild is finished, use the current Beacon at **https://no5tyle.github.io/Beacon/** ([source](https://github.com/no5tyle/Beacon)).
+**Use it at https://no5tyle.github.io/Beacon/**, and add it to your phone's Home Screen. The OAS reference also installs on its own as Beacon Reference, which works without signal.
 
-- **Progress:** see [the plan](docs/plan.md). Phases 0 to 4 are done: the project, styles and app shell; Beacon's logic and the code that talks to Terrain, with their tests; logging in, choosing a unit, and loading the unit's progress in the background; and every page (Insights, Record OAS, Progress and youth details, recording one youth's OAS, the Reference and the Beacon Reference app, and Logging), each with page tests. Phase 5 is under way: using it side by side with Beacon on a real unit night, following [the field test](docs/field-test.md).
-- **Preview:** https://no5tyle.github.io/beacon-next/ is published from `main` on every push.
+Beacon is built with [Svelte](https://svelte.dev) and [SvelteKit](https://svelte.dev/docs/kit). It replaced the original Blazor version (now [no5tyle/Beacon-blazor](https://github.com/no5tyle/Beacon-blazor), archived) in October 2026; [the plan](docs/plan.md) explains how it was rebuilt. Every push to `main` is checked and published to the address above.
 
 ## Contributing
 
@@ -21,7 +20,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for how the code is organised, the checks
 ## How Beacon works
 
 - **No Beacon server.** Beacon runs entirely in your browser and talks straight to Terrain with your own login, so it can only see and change what your Terrain account can.
-- **Nothing sensitive is stored.** Your password and Terrain's tokens are never saved on the device. Beacon only remembers preferences such as your branch and chosen unit, plus a copy of its own files so it opens without signal.
+- **Nothing sensitive is stored.** Your password and Terrain's tokens are never saved on the device. Beacon only remembers preferences such as your branch and chosen unit, plus a copy of its own files so it opens without signal. [PRIVACY.md](PRIVACY.md) explains everything Beacon does with your information.
 - **Terrain has no public API.** Beacon uses the same requests Terrain's own app makes, so a change to Terrain can break things until Beacon is updated. A daily check (`.github/workflows/check-terrain.yml`) watches Terrain's OAS templates for changes. Beacon isn't made or supported by Scouts Australia.
 
 ## Credits
