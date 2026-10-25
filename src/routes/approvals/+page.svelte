@@ -5,7 +5,7 @@
 -->
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import { SvelteMap } from 'svelte/reactivity';
+	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 	import { goto } from '$app/navigation';
 	import ChooseUnit from '#lib/components/ChooseUnit.svelte';
 	import Icon from '#lib/components/Icon.svelte';
@@ -41,8 +41,11 @@
 	let selectedNames = $state<string[]>([]);
 	let groupByMember = $state(true);
 	let confirming = $state('');
-	// The day an award is recorded against, today unless the leader picks an earlier one
+	// Awards ticked to hand out together, and the day they're recorded against, today unless the leader
+	// picks an earlier one
+	const ticked = new SvelteSet<string>();
 	let awardDate = $state(localDate());
+	let confirmingAwards = $state(false);
 	// Whether approving a special interest area plan through also moves it on to the review for the youth
 	let moveToReview = $state(true);
 	let working = $state('');
@@ -104,13 +107,15 @@
 	}
 
 	/** Shows what the leader did straight away, then reloads the list from Terrain */
-	async function recordAction(approval: PendingApproval, action: Actioned['action']) {
-		actioned.set(approval.submissionId, { action, wasAward: approval.isAward });
+	async function recordAction(list: PendingApproval[], action: Actioned['action']) {
+		for (const approval of list)
+			actioned.set(approval.submissionId, { action, wasAward: approval.isAward });
 		showList(unitId, withActioned(pending, actioned, approvals.leader()).list);
+		// Something that went through belongs in the history now: read it again when it's next shown,
+		// marked before the reload so opening History straight away doesn't show it as it was
+		if (historyFor) historyFor = '';
 		checksAgain = 0;
 		await load();
-		// Something that went through belongs in the history now
-		if (historyFor) historyFor = '';
 	}
 
 	async function loadHistory() {
@@ -149,6 +154,8 @@
 		}
 		void unitId;
 		actioned = new SvelteMap();
+		ticked.clear();
+		confirmingAwards = false;
 		clearTimeout(checkTimer);
 		pending = [];
 		history = [];
@@ -167,20 +174,30 @@
 			asc((n) => n)
 		)
 	);
-	const grouped = $derived(
+	const grouped = (list: PendingApproval[]) =>
 		groupBy(
 			sortBy(
-				pending.filter((a) => selectedNames.length === 0 || selectedNames.includes(a.memberName)),
+				list.filter((a) => selectedNames.length === 0 || selectedNames.includes(a.memberName)),
 				asc((a) => (groupByMember ? a.memberName : a.achievementName)),
 				asc((a) => Date.parse(a.submittedOn) || 0)
 			),
 			(a) => (groupByMember ? a.memberName : a.achievementName)
-		)
-	);
+		);
+	// Reviews waiting for Unit Council votes, and those approved and waiting to be handed out
+	const toApprove = $derived(pending.filter((a) => !a.isAward));
+	const toAward = $derived(pending.filter((a) => a.isAward));
+	const reviewGroups = $derived(grouped(toApprove));
+	const awardGroups = $derived(grouped(toAward));
+	// The awards this leader can tick, as shown with the youth filter
+	const awardable = $derived(awardGroups.flatMap((g) => g.items).filter(canAwardInBeacon));
+	const tickedAwards = $derived(awardable.filter((a) => ticked.has(a.submissionId)));
 	const countText = $derived(
-		pending.length === 1
-			? '1 waiting for the Unit Council'
-			: `${pending.length} waiting for the Unit Council`
+		[
+			toApprove.length > 0 ? `${toApprove.length} to approve` : '',
+			toAward.length > 0 ? `${toAward.length} to award` : ''
+		]
+			.filter(Boolean)
+			.join(' · ')
 	);
 	const names = (voters: { name: string }[]) => voters.map((v) => v.name).join(', ');
 
@@ -242,7 +259,7 @@
 				isError: true
 			};
 		}
-		if (result.success) await recordAction(approval, isDecidingVote(approval) ? 'done' : 'voted');
+		if (result.success) await recordAction([approval], isDecidingVote(approval) ? 'done' : 'voted');
 		else await load();
 	}
 
@@ -251,28 +268,53 @@
 		confirming = approval.submissionId;
 	}
 
-	function confirmAward(approval: PendingApproval) {
-		awardDate = localDate();
-		confirming = approval.submissionId;
+	function toggleAllAwards() {
+		const all = tickedAwards.length === awardable.length;
+		for (const a of awardable) {
+			if (all) ticked.delete(a.submissionId);
+			else ticked.add(a.submissionId);
+		}
 	}
 
-	async function award(approval: PendingApproval) {
-		if (working) return;
-		working = approval.submissionId;
-		message = null;
-		const result = await approvals.award(approval, awardDate);
-		working = '';
+	function confirmAwards() {
+		awardDate = localDate();
 		confirming = '';
-		message = result.success
-			? { text: `Awarded ${approvalTitle(approval)} to ${approval.memberName}.`, isError: false }
-			: {
-					text:
-						result.status > 0
-							? `Terrain didn't accept the award (response ${result.status}). Check it in Terrain before trying again.`
-							: result.body || "Couldn't award. Check it in Terrain before trying again.",
-					isError: true
-				};
-		if (result.success) await recordAction(approval, 'done');
+		confirmingAwards = true;
+	}
+
+	async function awardTicked() {
+		const list = tickedAwards;
+		if (working || list.length === 0) return;
+		working = 'awards';
+		message = null;
+		const results = await approvals.awardMany(list, awardDate);
+		working = '';
+		confirmingAwards = false;
+		const done = results.filter((r) => r.result.success);
+		const failed = results.filter((r) => !r.result.success);
+		const named = (r: (typeof results)[number]) =>
+			`${approvalTitle(r.approval)} for ${r.approval.memberName}`;
+		message = {
+			text: [
+				done.length === 1
+					? `Awarded ${approvalTitle(done[0].approval)} to ${done[0].approval.memberName}.`
+					: done.length > 1
+						? `Awarded ${done.length}.`
+						: '',
+				failed.length > 0
+					? `Terrain didn't accept ${failed.map(named).join(', ')}${failed[0].result.status > 0 ? ` (response ${failed[0].result.status})` : ''}. Check ${failed.length === 1 ? 'it' : 'them'} in Terrain before trying again.`
+					: ''
+			]
+				.filter(Boolean)
+				.join(' '),
+			isError: failed.length > 0
+		};
+		for (const r of done) ticked.delete(r.approval.submissionId);
+		if (done.length > 0)
+			await recordAction(
+				done.map((r) => r.approval),
+				'done'
+			);
 		else await load();
 	}
 </script>
@@ -280,6 +322,110 @@
 <svelte:head>
 	<title>Beacon / Approvals</title>
 </svelte:head>
+
+{#snippet approvalCard(approval: PendingApproval)}
+	{@const voted = hasVoted(approval, me)}
+	{@const subtitle = groupByMember
+		? approvalSubtitle(approval)
+		: [approval.projectName, approval.siaStage].filter(Boolean).join(' · ')}
+	<div class="approval-card">
+		<div class="strong">
+			{groupByMember ? approvalTitle(approval) : approval.memberName}
+		</div>
+		{#if subtitle}<div class="small subtitle">{subtitle}</div>{/if}
+		<div class="small muted">
+			{approval.submissionType} · submitted {submittedDisplay(approval.submittedOn)}
+		</div>
+		<div class="small votes">
+			{#if !approval.isAward}
+				<span class={approval.approvedBy.length > 0 ? 'text-success' : 'muted'}>
+					<Icon name="check" />
+					{approval.approvedBy.length} of {VOTES_NEEDED} approved{approval.approvedBy.length > 0
+						? ` (${names(approval.approvedBy)})`
+						: ''}
+				</span>
+			{/if}
+			{#if approval.improveBy.length > 0}
+				<span class="text-danger">
+					<Icon name="action-undo" />
+					Needs improvement: {names(approval.improveBy)}
+				</span>
+			{/if}
+		</div>
+
+		{#if canAwardInBeacon(approval)}
+			<label class="small award-pick"
+				><input
+					type="checkbox"
+					class="form-check-input"
+					disabled={working !== ''}
+					checked={ticked.has(approval.submissionId)}
+					onchange={(e) =>
+						e.currentTarget.checked
+							? ticked.add(approval.submissionId)
+							: ticked.delete(approval.submissionId)}
+				/>
+				Award {approvalTitle(approval)} to {approval.memberName}</label
+			>
+		{:else if approval.isAward}
+			<div class="small muted award-note">Terrain doesn't let you award this one.</div>
+		{:else if canApproveInBeacon(approval) && !voted}
+			{#if confirming === approval.submissionId}
+				<div class="confirm-box">
+					<strong>Approve {approvalTitle(approval)} for {approval.memberName}?</strong>
+					<p class="small">
+						Terrain records your approval as a Unit Council member. It goes through once {VOTES_NEEDED}
+						members have approved; this would be approval {approval.approvedBy.length + 1} of
+						{VOTES_NEEDED}.
+					</p>
+					{#if mayMoveToReview(approval)}
+						<label class="small move-to-review"
+							><input type="checkbox" class="form-check-input" bind:checked={moveToReview} />
+							If it's the plan, move it on to the review for {approval.memberName}</label
+						>
+					{/if}
+					<button
+						type="button"
+						class="btn btn-sm btn-success"
+						disabled={working !== ''}
+						onclick={() => approve(approval)}
+						>{working === approval.submissionId ? 'Approving...' : 'Yes, approve'}</button
+					>
+					<button
+						type="button"
+						class="btn btn-sm btn-outline-secondary"
+						disabled={working !== ''}
+						onclick={() => (confirming = '')}>Cancel</button
+					>
+				</div>
+			{:else}
+				<div class="actions">
+					<button
+						type="button"
+						class="btn btn-sm btn-outline-primary"
+						disabled={working !== ''}
+						onclick={() => confirmApprove(approval)}><Icon name="check" /> Approve</button
+					>
+				</div>
+			{/if}
+		{:else if voted}
+			<div class="small muted voted">You've voted on this one.</div>
+		{/if}
+	</div>
+{/snippet}
+
+{#snippet approvalGroups(groups: { key: string; items: PendingApproval[] }[])}
+	{#each groups as group (group.key)}
+		<section class="approval-group" aria-label={group.key}>
+			<div class="group-heading">
+				{group.key} <span class="muted">({group.items.length})</span>
+			</div>
+			{#each group.items as approval (approval.submissionId)}
+				{@render approvalCard(approval)}
+			{/each}
+		</section>
+	{/each}
+{/snippet}
 
 {#snippet youthChips(list: string[])}
 	<div class="chip-group" aria-label="Youth">
@@ -431,143 +577,84 @@
 				</div>
 			{/if}
 
-			{#each grouped as group (group.key)}
-				<section class="approval-group" aria-label={group.key}>
-					<div class="group-heading">
-						{group.key} <span class="muted">({group.items.length})</span>
-					</div>
-					{#each group.items as approval (approval.submissionId)}
-						{@const voted = hasVoted(approval, me)}
-						{@const subtitle = groupByMember
-							? approvalSubtitle(approval)
-							: [approval.projectName, approval.siaStage].filter(Boolean).join(' · ')}
-						<div class="approval-card">
-							<div class="strong">
-								{groupByMember ? approvalTitle(approval) : approval.memberName}
-							</div>
-							{#if subtitle}<div class="small subtitle">{subtitle}</div>{/if}
-							<div class="small muted">
-								{approval.submissionType} · submitted {submittedDisplay(approval.submittedOn)}
-							</div>
-							<div class="small votes">
-								{#if !approval.isAward}
-									<span class={approval.approvedBy.length > 0 ? 'text-success' : 'muted'}>
-										<Icon name="check" />
-										{approval.approvedBy.length} of {VOTES_NEEDED} approved{approval.approvedBy
-											.length > 0
-											? ` (${names(approval.approvedBy)})`
-											: ''}
-									</span>
-								{/if}
-								{#if approval.improveBy.length > 0}
-									<span class="text-danger">
-										<Icon name="action-undo" />
-										Needs improvement: {names(approval.improveBy)}
-									</span>
-								{/if}
-							</div>
-
-							{#if canAwardInBeacon(approval)}
-								{#if confirming === approval.submissionId}
-									<div class="confirm-box">
-										<strong>Award {approvalTitle(approval)} to {approval.memberName}?</strong>
-										<p class="small">
-											Terrain records it as awarded by you on the day you choose, and it leaves this
-											list.
-										</p>
-										<div class="field award-date">
-											<label class="form-label small" for="awardDate-{approval.submissionId}"
-												>Date awarded</label
-											>
-											<input
-												id="awardDate-{approval.submissionId}"
-												type="date"
-												class="form-control form-control-sm"
-												max={localDate()}
-												bind:value={awardDate}
-											/>
-										</div>
-										<button
-											type="button"
-											class="btn btn-sm btn-success"
-											disabled={working !== '' || !isAwardDate(awardDate)}
-											onclick={() => award(approval)}
-											>{working === approval.submissionId ? 'Awarding...' : 'Yes, award'}</button
-										>
-										<button
-											type="button"
-											class="btn btn-sm btn-outline-secondary"
-											disabled={working !== ''}
-											onclick={() => (confirming = '')}>Cancel</button
-										>
-									</div>
-								{:else}
-									<div class="small muted award-note">
-										Approved by the Unit Council and ready to award.
-									</div>
-									<div class="actions">
-										<button
-											type="button"
-											class="btn btn-sm btn-outline-primary"
-											disabled={working !== ''}
-											onclick={() => confirmAward(approval)}><Icon name="check" /> Award</button
-										>
-									</div>
-								{/if}
-							{:else if approval.isAward}
-								<div class="small muted award-note">
-									Approved by the Unit Council and ready to award.
-								</div>
-							{:else if canApproveInBeacon(approval) && !voted}
-								{#if confirming === approval.submissionId}
-									<div class="confirm-box">
-										<strong>Approve {approvalTitle(approval)} for {approval.memberName}?</strong>
-										<p class="small">
-											Terrain records your approval as a Unit Council member. It goes through once {VOTES_NEEDED}
-											members have approved; this would be approval {approval.approvedBy.length + 1} of
-											{VOTES_NEEDED}.
-										</p>
-										{#if mayMoveToReview(approval)}
-											<label class="small move-to-review"
-												><input
-													type="checkbox"
-													class="form-check-input"
-													bind:checked={moveToReview}
-												/>
-												If it's the plan, move it on to the review for {approval.memberName}</label
-											>
-										{/if}
-										<button
-											type="button"
-											class="btn btn-sm btn-success"
-											disabled={working !== ''}
-											onclick={() => approve(approval)}
-											>{working === approval.submissionId ? 'Approving...' : 'Yes, approve'}</button
-										>
-										<button
-											type="button"
-											class="btn btn-sm btn-outline-secondary"
-											disabled={working !== ''}
-											onclick={() => (confirming = '')}>Cancel</button
-										>
-									</div>
-								{:else}
-									<div class="actions">
-										<button
-											type="button"
-											class="btn btn-sm btn-outline-primary"
-											disabled={working !== ''}
-											onclick={() => confirmApprove(approval)}><Icon name="check" /> Approve</button
-										>
-									</div>
-								{/if}
-							{:else if voted}
-								<div class="small muted voted">You've voted on this one.</div>
-							{/if}
-						</div>
-					{/each}
+			{#if reviewGroups.length > 0}
+				<section class="approval-section" aria-labelledby="toApprove">
+					<h3 id="toApprove">To approve <span class="muted">({toApprove.length})</span></h3>
+					{@render approvalGroups(reviewGroups)}
 				</section>
-			{/each}
+			{/if}
+			{#if awardGroups.length > 0}
+				<section class="approval-section" aria-labelledby="toAward">
+					<h3 id="toAward">Ready to award <span class="muted">({toAward.length})</span></h3>
+					<p class="small muted">
+						Approved by the Unit Council. Tick the ones handed out to award them together.
+					</p>
+					{#if awardable.length > 0}
+						<div class="award-bar">
+							<button
+								type="button"
+								class="btn btn-sm btn-outline-secondary"
+								disabled={working !== ''}
+								onclick={toggleAllAwards}
+								>{tickedAwards.length === awardable.length ? 'Untick all' : 'Tick all'}</button
+							>
+							<button
+								type="button"
+								class="btn btn-sm btn-primary"
+								disabled={working !== '' || tickedAwards.length === 0}
+								onclick={confirmAwards}
+								><Icon name="check" /> Award {tickedAwards.length > 0
+									? tickedAwards.length
+									: ''}</button
+							>
+						</div>
+						{#if confirmingAwards && tickedAwards.length > 0}
+							<div class="confirm-box">
+								<strong
+									>Award {tickedAwards.length === 1
+										? `${approvalTitle(tickedAwards[0])} to ${tickedAwards[0].memberName}`
+										: `these ${tickedAwards.length}`}?</strong
+								>
+								{#if tickedAwards.length > 1}
+									<ul class="small award-list">
+										{#each tickedAwards as a (a.submissionId)}
+											<li>{approvalTitle(a)}, {a.memberName}</li>
+										{/each}
+									</ul>
+								{/if}
+								<p class="small">
+									Terrain records {tickedAwards.length === 1 ? 'it' : 'each'} as awarded by you on the
+									day you choose, and {tickedAwards.length === 1 ? 'it leaves' : 'they leave'} this list.
+								</p>
+								<div class="field award-date">
+									<label class="form-label small" for="awardDate">Date awarded</label>
+									<input
+										id="awardDate"
+										type="date"
+										class="form-control form-control-sm"
+										max={localDate()}
+										bind:value={awardDate}
+									/>
+								</div>
+								<button
+									type="button"
+									class="btn btn-sm btn-success"
+									disabled={working !== '' || !isAwardDate(awardDate)}
+									onclick={awardTicked}
+									>{working === 'awards' ? 'Awarding...' : 'Yes, award'}</button
+								>
+								<button
+									type="button"
+									class="btn btn-sm btn-outline-secondary"
+									disabled={working !== ''}
+									onclick={() => (confirmingAwards = false)}>Cancel</button
+								>
+							</div>
+						{/if}
+					{/if}
+					{@render approvalGroups(awardGroups)}
+				</section>
+			{/if}
 		{/if}
 	{/if}
 </div>
@@ -668,11 +755,36 @@
 		margin: 0.3rem 0 0.5rem;
 	}
 
+	.approval-section + .approval-section {
+		margin-top: 1.5rem;
+	}
+
+	.approval-section h3 {
+		margin-bottom: 0.25rem;
+	}
+
+	.award-bar {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		margin: 0.5rem 0;
+	}
+
+	.award-list {
+		margin: 0.3rem 0 0;
+		padding-left: 1.2rem;
+	}
+
+	.award-pick,
 	.move-to-review {
 		display: flex;
 		gap: 0.4rem;
 		align-items: flex-start;
 		margin-bottom: 0.5rem;
+	}
+
+	.award-pick {
+		margin: 0.5rem 0 0;
 	}
 
 	.award-date {
