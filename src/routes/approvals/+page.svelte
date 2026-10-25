@@ -1,6 +1,7 @@
 <!--
 	Approvals: the unit's submissions waiting for the Unit Council, as Terrain's Approvals tab lists them,
-	with an Approve button on those Terrain lets the leader action, and a history of those it has finished with.
+	with an Approve button on reviews and an Award button on awards Terrain lets the leader action, and a
+	history of those it has finished with.
 -->
 <script lang="ts">
 	import { untrack } from 'svelte';
@@ -10,8 +11,11 @@
 	import { pullToRefresh } from '#lib/actions/pullToRefresh.js';
 	import {
 		canApproveInBeacon,
+		canAwardInBeacon,
 		decidedWithin,
 		hasVoted,
+		isAwardDate,
+		localDate,
 		outcomeDisplay,
 		RECENT_DAYS,
 		submittedDisplay,
@@ -30,6 +34,8 @@
 	let selectedNames = $state<string[]>([]);
 	let groupByMember = $state(false);
 	let confirming = $state('');
+	// The day an award is recorded against, today unless the leader picks an earlier one
+	let awardDate = $state(localDate());
 	let working = $state('');
 	let message = $state<{ text: string; isError: boolean } | null>(null);
 	let tab = $state<'waiting' | 'history'>('waiting');
@@ -175,6 +181,31 @@
 		// Terrain's list shows the new vote, or that the submission has gone through
 		await load();
 		// Something that went through belongs in the history now
+		if (historyFor) historyFor = '';
+	}
+
+	function confirmAward(approval: PendingApproval) {
+		awardDate = localDate();
+		confirming = approval.submissionId;
+	}
+
+	async function award(approval: PendingApproval) {
+		if (working) return;
+		working = approval.submissionId;
+		message = null;
+		const result = await approvals.award(approval, awardDate);
+		working = '';
+		confirming = '';
+		message = result.success
+			? { text: `Awarded ${approval.achievementName} to ${approval.memberName}.`, isError: false }
+			: {
+					text:
+						result.status > 0
+							? `Terrain didn't accept the award (response ${result.status}). Check it in Terrain before trying again.`
+							: result.body || "Couldn't award. Check it in Terrain before trying again.",
+					isError: true
+				};
+		await load();
 		if (historyFor) historyFor = '';
 	}
 </script>
@@ -364,9 +395,56 @@
 							{/if}
 						</div>
 
-						{#if approval.isAward}
+						{#if canAwardInBeacon(approval)}
+							{#if confirming === approval.submissionId}
+								<div class="confirm-box">
+									<strong>Award {approval.achievementName} to {approval.memberName}?</strong>
+									<p class="small">
+										Terrain records it as awarded by you on the day you choose, and it leaves this
+										list.
+									</p>
+									<div class="field award-date">
+										<label class="form-label small" for="awardDate-{approval.submissionId}"
+											>Date awarded</label
+										>
+										<input
+											id="awardDate-{approval.submissionId}"
+											type="date"
+											class="form-control form-control-sm"
+											max={localDate()}
+											bind:value={awardDate}
+										/>
+									</div>
+									<button
+										type="button"
+										class="btn btn-sm btn-success"
+										disabled={working !== '' || !isAwardDate(awardDate)}
+										onclick={() => award(approval)}
+										>{working === approval.submissionId ? 'Awarding...' : 'Yes, award'}</button
+									>
+									<button
+										type="button"
+										class="btn btn-sm btn-outline-secondary"
+										disabled={working !== ''}
+										onclick={() => (confirming = '')}>Cancel</button
+									>
+								</div>
+							{:else}
+								<div class="small muted award-note">
+									Approved by the Unit Council and ready to award.
+								</div>
+								<div class="actions">
+									<button
+										type="button"
+										class="btn btn-sm btn-outline-primary"
+										disabled={working !== ''}
+										onclick={() => confirmAward(approval)}><Icon name="check" /> Award</button
+									>
+								</div>
+							{/if}
+						{:else if approval.isAward}
 							<div class="small muted award-note">
-								Approved by the Unit Council and ready to award. Award it in Terrain for now.
+								Approved by the Unit Council and ready to award.
 							</div>
 						{:else if canApproveInBeacon(approval) && !voted}
 							{#if confirming === approval.submissionId}
@@ -502,6 +580,11 @@
 
 	.confirm-box p {
 		margin: 0.3rem 0 0.5rem;
+	}
+
+	.award-date {
+		max-width: 12rem;
+		margin-bottom: 0.5rem;
 	}
 
 	.approvals-empty {

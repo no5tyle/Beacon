@@ -22,7 +22,7 @@ export interface PendingApproval {
 	canAction: boolean;
 	/**
 	 * Approved by the Unit Council and waiting to be awarded (Terrain's "award" submissions), rather than a
-	 * review to approve. Beacon doesn't award yet: Terrain's request for it hasn't been captured
+	 * review to approve. Awarding takes one leader and a date, not votes
 	 */
 	isAward: boolean;
 }
@@ -105,6 +105,30 @@ export function pendingApprovals(results: readonly TerrainSubmission[]): Pending
 /** Whether Beacon can send this leader's approval: a review Terrain lets them action, not an award */
 export const canApproveInBeacon = (approval: PendingApproval) =>
 	approval.canAction && !approval.isAward;
+
+/** Whether Beacon can award it: an award Terrain lets this leader action */
+export const canAwardInBeacon = (approval: PendingApproval) =>
+	approval.canAction && approval.isAward;
+
+/** A day as Terrain's date_awarded takes it, e.g. "2026-10-25", in the leader's own time zone */
+export function localDate(date = new Date()): string {
+	const pad = (n: number) => String(n).padStart(2, '0');
+	return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+/** Whether an award date is a real YYYY-MM-DD day that isn't in the future */
+export function isAwardDate(value: string, now = new Date()): boolean {
+	const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+	if (!match) return false;
+	const [year, month, day] = match.slice(1).map(Number);
+	const date = new Date(year, month - 1, day);
+	return (
+		date.getFullYear() === year &&
+		date.getMonth() === month - 1 &&
+		date.getDate() === day &&
+		value <= localDate(now)
+	);
+}
 
 /** Whether this leader has already voted on it, either way */
 export const hasVoted = (approval: PendingApproval, memberId: string) =>
