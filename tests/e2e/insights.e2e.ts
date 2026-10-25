@@ -20,7 +20,7 @@ test('analyses the unit as soon as it opens', async ({ page, isMobile }) => {
 	// Priority youth: Ava moves up soon. Phones have room only for "Priority"
 	const priority = page.getByRole('tab', { name: /Priority/ });
 	await expect(priority).toHaveText(
-		isMobile ? /^\s*Priority\s+1\s*$/ : /^\s*Priority youth\s+1\s*$/,
+		isMobile ? /^\s*Priority\s+1\s*$/ : /^\s*Priority\syouth\s+1\s*$/,
 		// As it shows on screen, so a lost space or the hidden word on phones is caught
 		{ useInnerText: true }
 	);

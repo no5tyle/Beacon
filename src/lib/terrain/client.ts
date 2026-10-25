@@ -270,7 +270,13 @@ export class Terrain {
 	/** Reads JSON from Terrain. Throws a TerrainError if Terrain can't be reached or answers with an error */
 	private async get<T>(url: string, { signedIn = true } = {}): Promise<T> {
 		const headers = signedIn ? await this.authHeaders() : { accept: ACCEPT };
-		const response = await this.send(url, { method: 'GET', headers });
+		// Signed in reads change as leaders act, e.g. the approvals list straight after a vote, so they're
+		// always fetched afresh rather than from the browser's cache
+		const response = await this.send(url, {
+			method: 'GET',
+			headers,
+			...(signedIn ? { cache: 'no-store' as const } : {})
+		});
 		if (!response.ok)
 			throw new TerrainError(
 				`Terrain couldn't load this (response ${response.status}).`,
