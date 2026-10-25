@@ -14,7 +14,8 @@
 		"format": "prettier --write .",
 		"test:unit": "vitest",
 		"test": "npm run test:unit -- --run && npm run test:e2e",
-		"test:e2e": "playwright test"
+		"test:e2e": "playwright test",
+		"screenshots": "playwright test --config playwright.screenshots.config.ts"
 	},
 	"devDependencies": {
 		"@eslint/js": "^10.0.1",

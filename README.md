@@ -4,6 +4,16 @@ Beacon is a phone-first helper for Scouts Australia leaders. It reads your unit'
 
 **Use it at https://no5tyle.github.io/Beacon/**, and add it to your phone's Home Screen. The OAS reference also installs on its own as Beacon Reference, which works without signal.
 
+## Screenshots
+
+|                                                                Home                                                                 |                                                                           Insights                                                                           |                                                               Record OAS                                                                |
+| :---------------------------------------------------------------------------------------------------------------------------------: | :----------------------------------------------------------------------------------------------------------------------------------------------------------: | :-------------------------------------------------------------------------------------------------------------------------------------: |
+|                      <img src="docs/screenshots/home.png" width="240" alt="Home, with what each page is for">                       | <img src="docs/screenshots/insights.png" width="240" alt="Insights: how many youth have completed each OAS stage, and the most common missing requirements"> |       <img src="docs/screenshots/record-oas.png" width="240" alt="Record OAS: choosing statements to sign off for several youth">       |
+|                                                        **Personal Progress**                                                        |                                                                        **Approvals**                                                                         |                                                              **Reference**                                                              |
+| <img src="docs/screenshots/progress.png" width="240" alt="A youth's progress details, with insights on what's close to completing"> |              <img src="docs/screenshots/approvals.png" width="240" alt="Approvals: submissions waiting for the Unit Council, grouped by youth">              | <img src="docs/screenshots/reference.png" width="240" alt="The OAS reference, with a statement expanded to show Terrain's explanation"> |
+
+Every name in these is made up. `npm run screenshots` takes them again, from the same pretend unit the page tests use.
+
 Beacon is built with [Svelte](https://svelte.dev) and [SvelteKit](https://svelte.dev/docs/kit). It replaced the original Blazor version (now [no5tyle/Beacon-blazor](https://github.com/no5tyle/Beacon-blazor), archived). Every push to `main` is checked and published to the address above.
 
 ## Contributing
