@@ -4,7 +4,7 @@ Beacon is a phone-first helper for Scouts Australia leaders. It reads your unit'
 
 **Use it at https://no5tyle.github.io/Beacon/**, and add it to your phone's Home Screen. The OAS reference also installs on its own as Beacon Reference, which works without signal.
 
-Beacon is built with [Svelte](https://svelte.dev) and [SvelteKit](https://svelte.dev/docs/kit). It replaced the original Blazor version (now [no5tyle/Beacon-blazor](https://github.com/no5tyle/Beacon-blazor), archived) in October 2026; [the plan](docs/plan.md) explains how it was rebuilt. Every push to `main` is checked and published to the address above.
+Beacon is built with [Svelte](https://svelte.dev) and [SvelteKit](https://svelte.dev/docs/kit). It replaced the original Blazor version (now [no5tyle/Beacon-blazor](https://github.com/no5tyle/Beacon-blazor), archived). Every push to `main` is checked and published to the address above.
 
 ## Contributing
 
