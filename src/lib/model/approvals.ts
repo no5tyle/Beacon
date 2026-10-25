@@ -12,6 +12,8 @@ export interface PendingApproval {
 	achievementName: string;
 	/** A special interest area's project name, e.g. "Bracelet making business", once read from the youth's record */
 	projectName: string;
+	/** Which part of a special interest area is up for review, "Plan" or "Review", from the youth's record */
+	siaStage: string;
 	memberId: string;
 	memberName: string;
 	/** "Review" (Unit Council sign off) or "Award" */
@@ -92,6 +94,7 @@ export function pendingApprovals(results: readonly TerrainSubmission[]): Pending
 				achievementType: r.achievement.type,
 				achievementName: achievementName(r.achievement),
 				projectName: '',
+				siaStage: '',
 				memberId: r.member.id,
 				memberName: `${r.member.first_name ?? ''} ${r.member.last_name ?? ''}`.trim(),
 				submissionType: titleCase(r.submission.type ?? ''),
@@ -109,22 +112,39 @@ export function pendingApprovals(results: readonly TerrainSubmission[]): Pending
 export const approvalTitle = (approval: PendingApproval) =>
 	approval.projectName || approval.achievementName;
 
-/** Under the title: a special interest area's area, when the project name is the title */
+/**
+ * Under the title, for a special interest area: its area when the project name is the title, and whether
+ * it's the plan or the review, e.g. "Art Literature · Plan"
+ */
 export const approvalSubtitle = (approval: PendingApproval) =>
-	approval.projectName ? approval.achievementName : '';
+	[approval.projectName ? approval.achievementName : '', approval.siaStage]
+		.filter(Boolean)
+		.join(' · ');
 
-/** Adds special interest area project names from the youth's records, matched by achievement id */
+/** "Plan" or "Review" from a special interest area's template, e.g. "sia/cub/plan"; otherwise empty */
+export function siaStage(template: string | undefined): string {
+	const part = (template ?? '').split('/').at(-1)?.toLowerCase();
+	return part === 'plan' ? 'Plan' : part === 'review' ? 'Review' : '';
+}
+
+/**
+ * Adds special interest area project names, and whether each is the plan or the review, from the youth's
+ * records, matched by achievement id
+ */
 export function withProjectNames(
 	list: readonly PendingApproval[],
 	records: readonly TerrainAchievement[]
 ): PendingApproval[] {
-	const names = new Map(
-		records.map((r) => [r.id, String(r.answers?.project_name ?? '').trim()] as const)
-	);
+	const byId = new Map(records.map((r) => [r.id, r]));
 	return list.map((a) => {
-		const projectName =
-			a.achievementType === 'special_interest_area' ? names.get(a.achievementId) : '';
-		return projectName ? { ...a, projectName } : a;
+		const record =
+			a.achievementType === 'special_interest_area' ? byId.get(a.achievementId) : undefined;
+		if (!record) return a;
+		return {
+			...a,
+			projectName: String(record.answers?.project_name ?? '').trim(),
+			siaStage: siaStage(record.template)
+		};
 	});
 }
 

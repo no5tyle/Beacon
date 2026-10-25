@@ -242,7 +242,7 @@ test('the deciding approval of a special interest area plan can move it on to th
 	await card.getByRole('button', { name: 'Approve' }).click();
 	// Named for the project, with its area underneath
 	await expect(card.locator('.strong')).toHaveText('Bracelet making business');
-	await expect(card.locator('.subtitle')).toHaveText('Adventure Sport');
+	await expect(card.locator('.subtitle')).toHaveText('Adventure Sport · Plan');
 	await expect(card.locator('.confirm-box')).toContainText(
 		'Approve Bracelet making business for Ava Nguyen?'
 	);
