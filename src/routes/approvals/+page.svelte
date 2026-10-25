@@ -9,6 +9,7 @@
 	import { goto } from '$app/navigation';
 	import ChooseUnit from '#lib/components/ChooseUnit.svelte';
 	import Icon from '#lib/components/Icon.svelte';
+	import MultiSelect from '#lib/components/MultiSelect.svelte';
 	import { pullToRefresh } from '#lib/actions/pullToRefresh.js';
 	import {
 		approvalSubtitle,
@@ -173,6 +174,7 @@
 		history = [];
 		historyFor = '';
 		showOlder = false;
+		historyYouth = [];
 		message = null;
 		confirming = '';
 		if (untrack(() => tab) === 'history') untrack(loadHistory);
@@ -238,7 +240,19 @@
 	const names = (voters: { name: string }[]) => voters.map((v) => v.name).join(', ');
 
 	const recentHistory = $derived(history.filter((h) => decidedWithin(h, RECENT_DAYS)));
-	const shownHistory = $derived(showOlder ? history : recentHistory);
+	// Youth to show in the history; none picked means everyone
+	let historyYouth = $state<string[]>([]);
+	const historyNames = $derived(
+		sortBy(
+			distinct(history.map((h) => h.memberName)),
+			asc((n) => n)
+		)
+	);
+	const shownHistory = $derived(
+		(showOlder ? history : recentHistory).filter(
+			(h) => historyYouth.length === 0 || historyYouth.includes(h.memberName)
+		)
+	);
 
 	async function approve(approval: PendingApproval) {
 		if (working) return;
@@ -538,13 +552,28 @@
 	{:else if history.length === 0}
 		<div class="approvals-empty">Nothing has been through the Unit Council yet.</div>
 	{:else}
+		{#if historyNames.length > 1}
+			<div class="history-filter">
+				<MultiSelect
+					id="historyYouth"
+					label="Youth"
+					options={historyNames}
+					bind:selected={historyYouth}
+					noun="youth"
+				/>
+			</div>
+		{/if}
 		<p class="small muted">
 			{showOlder
 				? `All ${history.length} the Unit Council has finished with, most recent first.`
 				: `Finished with in the last ${RECENT_DAYS} days, most recent first.`}
 		</p>
 		{#if shownHistory.length === 0}
-			<p class="muted">Nothing in the last {RECENT_DAYS} days.</p>
+			<p class="muted">
+				Nothing{historyYouth.length > 0 ? ' for the youth picked' : ''}{showOlder
+					? ''
+					: ` in the last ${RECENT_DAYS} days`}.
+			</p>
 		{/if}
 		{#each shownHistory as item (item.submissionId)}
 			<div class="approval-card history-card">
@@ -735,6 +764,10 @@
 
 	.filters {
 		margin-bottom: 1rem;
+	}
+
+	.history-filter {
+		margin-bottom: 0.75rem;
 	}
 
 	.group-by {

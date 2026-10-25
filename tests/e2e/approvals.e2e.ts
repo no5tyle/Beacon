@@ -170,6 +170,25 @@ test('History lists what the Unit Council has finished with, most recent first',
 	await expect(cards).toHaveCount(3);
 	await expect(cards.nth(2)).toContainText('Mia Brown');
 	await expect(cards.nth(2)).toContainText('Intro To Scouting');
+
+	// A compact pick of youth: closed, it says who's shown
+	const youth = page.getByRole('button', { name: 'Youth' });
+	await expect(youth).toHaveText('Everyone');
+	await youth.click();
+	const list = page.getByRole('listbox', { name: 'Youth' });
+	await list.getByLabel('Liam Smith').check();
+	await expect(cards).toHaveCount(1);
+	await expect(youth).toHaveText('Liam Smith');
+	await list.getByLabel('Mia Brown').check();
+	await expect(cards).toHaveCount(2);
+	await expect(youth).toHaveText('2 youth');
+	// Closes on Escape, and Everyone shows them all again
+	await page.keyboard.press('Escape');
+	await expect(list).toHaveCount(0);
+	await youth.click();
+	await list.getByLabel('Everyone').check();
+	await expect(cards).toHaveCount(3);
+	await expect(youth).toHaveText('Everyone');
 });
 
 test('something approved through shows in the History', async ({ page }) => {
