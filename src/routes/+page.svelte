@@ -70,7 +70,8 @@
 <p class="small muted">
 	Printable reports such as the wallchart, patrol lists and sign in sheets are in the desktop
 	<a href="https://nomisnostab.github.io/Topo-Blazor/" target="_blank" rel="noopener">Topo</a> app.
-	Having a problem? <a href={pagePath('logging/')}>Turn on logging</a> to help track it down.
+	Having a problem? <a href={pagePath('logging/')}>Turn on logging</a> to help track it down. You can
+	also open it any time by tapping the version number.
 </p>
 
 <style>

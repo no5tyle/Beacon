@@ -126,10 +126,14 @@ test.describe('phone', () => {
 		await page.locator('.tab-bar button', { hasText: 'More' }).click();
 		await expect(page.locator('.more-item')).toHaveText([
 			/^\s*Approvals 3 waiting for you\s*$/,
-			/^\s*Turn on logging\s*$/,
 			/^\s*Logout\s*$/
 		]);
-		await expect(page.locator('.more-version')).toHaveText(/^Beacon version /);
+		// Logging has no item of its own: the version opens it
+		await page.locator('.more-version', { hasText: /^Beacon version / }).click();
+		await expect(page).toHaveURL(/\/logging\/$/);
+		await page.getByRole('button', { name: 'Start Logging' }).click();
+		await page.locator('.tab-bar button', { hasText: 'More' }).click();
+		await expect(page.locator('.more-version')).toHaveText(/^Beacon version .* · logging on$/);
 
 		await page.locator('.more-item', { hasText: 'Logout' }).click();
 		await expect(page).toHaveURL(/\/login\/$/);
@@ -155,11 +159,13 @@ test.describe('desktop', () => {
 				'Personal Progress',
 				'Reference',
 				'Approvals 3 waiting for you',
-				'Turn on logging',
 				'Logout'
 			].map((name) => new RegExp(`^\\s*${name}\\s*$`))
 		);
 		await expect(page.locator('.side-link.active')).toHaveText('Insights');
 		await expect(page.locator('.tab-bar')).toBeHidden();
+		// Logging has no link of its own: the version opens it
+		await page.locator('.side-version', { hasText: /^Version / }).click();
+		await expect(page).toHaveURL(/\/logging\/$/);
 	});
 });

@@ -19,7 +19,7 @@ export interface NavOptions {
 	signedIn: boolean;
 	/** Youth members see their own progress and the reference, not the leader pages */
 	isYouth: boolean;
-	/** Whether request logging is on, which changes the logging item's name */
+	/** Whether request logging is on, shown beside the version, which opens the logging page */
 	logging: boolean;
 	/** Submissions waiting for the leader's vote, shown on Approvals and More */
 	approvalsWaiting?: number;
@@ -44,7 +44,7 @@ export function mainPages({ isYouth }: NavOptions): NavPage[] {
 }
 
 /** Less used pages: under More on phones, the bottom of the sidebar on desktop */
-export function morePages({ logging, isYouth, approvalsWaiting = 0 }: NavOptions): NavPage[] {
+export function morePages({ isYouth, approvalsWaiting = 0 }: NavOptions): NavPage[] {
 	const pages: NavPage[] = [];
 	if (!isYouth)
 		pages.push({
@@ -56,15 +56,12 @@ export function morePages({ logging, isYouth, approvalsWaiting = 0 }: NavOptions
 		});
 	return [
 		...pages,
-		{
-			href: 'logging/',
-			icon: 'document',
-			title: logging ? 'Stop logging' : 'Turn on logging',
-			shortTitle: 'Logging'
-		},
 		{ href: 'logout/', icon: 'account-logout', title: 'Logout', shortTitle: 'Logout' }
 	];
 }
+
+/** Logging has no menu item: tapping the version opens it, as it's only needed to help solve a problem */
+export const LOGGING_HREF = 'logging/';
 
 /** Signed out: the login page and the Reference, which needs no login */
 export function signedOutPages(): NavPage[] {
