@@ -7,12 +7,13 @@ test('lists what is waiting for the Unit Council, with who has voted', async ({ 
 	await navigate(page, 'approvals/');
 	await expect(page.locator('h2')).toHaveText('Approvals');
 	await expect(page.locator('.summary')).toHaveText(
-		'Mt Example Scouts · 4 waiting for the Unit Council'
+		'Mt Example Scouts · 5 waiting for the Unit Council'
 	);
 	await expect(page.locator('.group-heading')).toHaveText([
 		'Adventure Sport (1)',
 		'Intro To Section (1)',
 		'Milestone 1 (1)',
+		'OAS Bushcraft 1 (1)',
 		'OAS Camping 1 (1)'
 	]);
 	const milestone = page.locator('.approval-card', { hasText: 'Liam Smith' });
@@ -74,7 +75,7 @@ test('the second approval sends it through, and it leaves the list', async ({ pa
 	await expect(page.locator('.alert-success')).toHaveText('Approved Milestone 1 for Liam Smith.');
 	await expect(page.locator('.approval-card', { hasText: 'Liam Smith' })).toHaveCount(0);
 	await expect(page.locator('.summary')).toHaveText(
-		'Mt Example Scouts · 3 waiting for the Unit Council'
+		'Mt Example Scouts · 4 waiting for the Unit Council'
 	);
 });
 
@@ -130,7 +131,7 @@ test('History lists what the Unit Council has finished with, most recent first',
 	const terrain = await fakeTerrain(page);
 	await logIn(page);
 	await navigate(page, 'approvals/');
-	await expect(page.getByRole('tab', { name: /Waiting/ })).toContainText('4');
+	await expect(page.getByRole('tab', { name: /Waiting/ })).toContainText('5');
 	await page.getByRole('tab', { name: 'History' }).click();
 	await expect
 		.poll(() => terrain.requests.some((r) => r.includes('submissions?status=finalised')))
@@ -175,4 +176,19 @@ test('something approved through shows in the History', async ({ page }) => {
 	await expect(first).toContainText('Liam Smith');
 	await expect(first).toContainText('Milestone 1');
 	await expect(first).toContainText('decided today');
+});
+
+test('items waiting to be awarded say to award them in Terrain, with no Approve', async ({
+	page
+}) => {
+	const terrain = await fakeTerrain(page);
+	await logIn(page);
+	await navigate(page, 'approvals/');
+	const award = page.locator('.approval-card', { hasText: 'Award ·' });
+	await expect(award).toContainText('Noah Jones');
+	await expect(award).toContainText('Award · submitted 2 days ago');
+	await expect(award).toContainText('ready to award. Award it in Terrain for now.');
+	await expect(award).not.toContainText('of 2 approved');
+	await expect(award.getByRole('button')).toHaveCount(0);
+	expect(terrain.writes).toEqual([]);
 });

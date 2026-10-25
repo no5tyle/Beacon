@@ -2,12 +2,12 @@
 // More and Approvals. Loaded in the background once a leader has a unit, and updated whenever the
 // Approvals page loads the list.
 
-import { hasVoted, type PendingApproval } from '#lib/model/approvals.js';
+import { canApproveInBeacon, hasVoted, type PendingApproval } from '#lib/model/approvals.js';
 import type { ApprovalsService } from '#lib/services/approvals.js';
 
-/** Waiting for this leader: they may approve it and haven't voted on it yet */
+/** Waiting for this leader: they can approve it in Beacon and haven't voted on it yet */
 export const waitingForLeader = (list: readonly PendingApproval[], leaderMemberId: string) =>
-	list.filter((a) => a.canAction && !hasVoted(a, leaderMemberId)).length;
+	list.filter((a) => canApproveInBeacon(a) && !hasVoted(a, leaderMemberId)).length;
 
 export class ApprovalsBadge {
 	/** The unit the count is for */
