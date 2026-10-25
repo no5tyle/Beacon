@@ -10,9 +10,13 @@
 	import { VERSION } from '#lib/stores/app.svelte.js';
 	import { requestLog } from '#lib/stores/log.svelte.js';
 	import '#lib/stores/install.svelte.js';
+	import { removeOldYouthData } from '#lib/stores/storage.js';
 	import type { LayoutProps } from './$types';
 
 	let { children }: LayoutProps = $props();
+
+	// Beacon keeps nothing about youth members on the device; clear anything an older version left behind
+	removeOldYouthData();
 
 	// The current address within the app, without the base path
 	const path = $derived(page.url.pathname.slice(pagePath('').length - 1));

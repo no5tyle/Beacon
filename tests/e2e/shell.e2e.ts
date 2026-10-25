@@ -49,6 +49,18 @@ test('printing stays light when the phone is in dark mode', async ({ page }) => 
 	await expect(chip).toHaveCSS('background-color', 'rgb(232, 245, 238)');
 });
 
+test('removes youth details an older version left on the device', async ({ page }) => {
+	await page.goto('login/');
+	await page.evaluate(() => {
+		localStorage.setItem('unit-1_ApprovalsList', '[{"member_first_name":"Ava"}]');
+		localStorage.setItem('LoginBranch', 'sa');
+	});
+	await page.goto('oas-reference/');
+	await expect(page.locator('h2')).toHaveText('OAS reference');
+	expect(await page.evaluate(() => localStorage.getItem('unit-1_ApprovalsList'))).toBeNull();
+	expect(await page.evaluate(() => localStorage.getItem('LoginBranch'))).toBe('sa');
+});
+
 test('Beacon Reference has its own web app manifest', async ({ page }) => {
 	await page.goto('login/');
 	await expect(page.locator('link[rel=manifest]')).toHaveAttribute(
