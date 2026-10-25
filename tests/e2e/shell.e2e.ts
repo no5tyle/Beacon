@@ -14,6 +14,7 @@ const pages = [
 	'progress/unit-1-m0/',
 	'progress/unit-1-m0/record-oas/',
 	'oas-reference/',
+	'approvals/',
 	'logging/',
 	'styles/'
 ];
@@ -122,7 +123,7 @@ test.describe('phone', () => {
 	test('More opens the less used pages, and Logout signs out', async ({ page }) => {
 		await logIn(page);
 		await page.locator('.tab-bar button', { hasText: 'More' }).click();
-		await expect(page.locator('.more-item')).toHaveText(['Turn on logging', 'Logout']);
+		await expect(page.locator('.more-item')).toHaveText(['Approvals', 'Turn on logging', 'Logout']);
 		await expect(page.locator('.more-version')).toHaveText(/^Beacon version /);
 
 		await page.locator('.more-item', { hasText: 'Logout' }).click();
@@ -147,6 +148,7 @@ test.describe('desktop', () => {
 			'Record OAS',
 			'Personal Progress',
 			'Reference',
+			'Approvals',
 			'Turn on logging',
 			'Logout'
 		]);

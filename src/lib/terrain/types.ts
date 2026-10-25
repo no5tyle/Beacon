@@ -91,3 +91,36 @@ export interface LogbookMetric {
 	value: number;
 	last_updated?: string;
 }
+
+/** One submission in a unit's approvals list (units/{id}/submissions), as Terrain's Approvals tab shows it */
+export interface TerrainSubmission {
+	achievement: {
+		id: string;
+		type: string;
+		achievement_meta?: { stream?: string; branch?: string; stage?: number; sia_area?: string };
+	};
+	submission: {
+		id: string;
+		/** "review" (Unit Council sign off) or "award" */
+		type: string;
+		date: string;
+		/** "pending" while waiting for the Unit Council */
+		status: string;
+		outcome?: string;
+		actioned_by?: {
+			member_id: string;
+			member_first_name: string;
+			member_last_name: string;
+			/** e.g. "approved" */
+			outcome: string;
+			time?: string;
+		}[];
+	};
+	/** Whether the signed in leader may approve it */
+	unit_permissions?: { write?: boolean };
+	member: { id: string; first_name: string; last_name: string };
+	submitted_by?: { id: string; first_name: string; last_name: string };
+}
+
+/** What a Unit Council member can say about a submission. Only approving is known so far */
+export type AssessmentOutcome = 'approved';

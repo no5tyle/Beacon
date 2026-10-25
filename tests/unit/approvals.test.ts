@@ -1,0 +1,163 @@
+import { describe, expect, it } from 'vitest';
+import {
+	achievementName,
+	hasVoted,
+	pendingApprovals,
+	submittedDisplay
+} from '#lib/model/approvals.js';
+import { ApprovalsService } from '#lib/services/approvals.js';
+import { ACHIEVEMENTS_ADDRESS } from '#lib/terrain/client.js';
+import type { TerrainSubmission } from '#lib/terrain/types.js';
+import { leaderProfiles, signedInTerrain } from './fakeTerrain.js';
+
+const submission = (
+	id: string,
+	extra: {
+		type?: string;
+		meta?: TerrainSubmission['achievement']['achievement_meta'];
+		date?: string;
+		status?: string;
+		write?: boolean;
+		votes?: [string, string, string][];
+		member?: [string, string, string];
+	} = {}
+): TerrainSubmission => ({
+	achievement: {
+		id: `ach-${id}`,
+		type: extra.type ?? 'outdoor_adventure_skill',
+		achievement_meta: extra.meta ?? { stream: 'bushwalking', branch: 'bushwalking', stage: 3 }
+	},
+	submission: {
+		id,
+		type: 'review',
+		date: extra.date ?? '2026-10-20T09:15:00.000Z',
+		status: extra.status ?? 'pending',
+		actioned_by: (extra.votes ?? []).map(([member_id, name, outcome]) => ({
+			member_id,
+			member_first_name: name.split(' ')[0],
+			member_last_name: name.split(' ')[1],
+			outcome
+		}))
+	},
+	unit_permissions: { write: extra.write ?? true },
+	member: {
+		id: extra.member?.[0] ?? 'm1',
+		first_name: extra.member?.[1] ?? 'Ava',
+		last_name: extra.member?.[2] ?? 'Nguyen'
+	}
+});
+
+describe('pending approvals', () => {
+	it('names achievements the way the rest of Beacon does', () => {
+		const name = (type: string, meta = {}) =>
+			achievementName({ id: 'a', type, achievement_meta: meta });
+		expect(
+			name('outdoor_adventure_skill', { stream: 'bushwalking', branch: 'bushwalking', stage: 3 })
+		).toBe('OAS Bushwalking 3');
+		expect(
+			name('outdoor_adventure_skill', { stream: 'aquatics', branch: 'snorkelling', stage: 4 })
+		).toBe('OAS Aquatics Snorkelling 4');
+		expect(name('milestone', { stage: 2 })).toBe('Milestone 2');
+		expect(name('special_interest_area', { sia_area: 'sia_better_world' })).toBe('Better World');
+		expect(name('intro_section')).toBe('Intro To Section');
+		expect(name('peak_award')).toBe('Peak Award');
+	});
+
+	it('keeps only those still pending, oldest first, with who has voted which way', () => {
+		const list = pendingApprovals([
+			submission('s2', { date: '2026-10-22T00:00:00Z', votes: [['l1', 'Sam Leader', 'approved']] }),
+			submission('s1', { date: '2026-10-18T00:00:00Z', votes: [['l2', 'Kim Leader', 'feedback']] }),
+			submission('s3', { status: 'finalised' }),
+			submission('s4', { write: false, type: 'milestone', meta: { stage: 1 } })
+		]);
+		expect(list.map((a) => a.submissionId)).toEqual(['s1', 's4', 's2']);
+		expect(list[2]).toMatchObject({
+			achievementName: 'OAS Bushwalking 3',
+			memberName: 'Ava Nguyen',
+			submissionType: 'Review',
+			approvedBy: [{ memberId: 'l1', name: 'Sam Leader' }],
+			improveBy: [],
+			canAction: true
+		});
+		expect(list[0].improveBy).toEqual([{ memberId: 'l2', name: 'Kim Leader' }]);
+		expect(list[1].canAction).toBe(false);
+		expect(hasVoted(list[2], 'l1')).toBe(true);
+		expect(hasVoted(list[0], 'l2')).toBe(true);
+		expect(hasVoted(list[2], 'l2')).toBe(false);
+	});
+
+	it('says when something was submitted, as the Blazor app did', () => {
+		const now = new Date(2026, 9, 25, 20, 0);
+		expect(submittedDisplay(new Date(2026, 9, 25, 8, 0).toISOString(), now)).toBe('today');
+		expect(submittedDisplay(new Date(2026, 9, 24, 23, 0).toISOString(), now)).toBe('yesterday');
+		expect(submittedDisplay(new Date(2026, 9, 20, 12, 0).toISOString(), now)).toBe('5 days ago');
+		expect(submittedDisplay(new Date(2026, 8, 2, 12, 0).toISOString(), now)).toMatch(
+			/^2 Sept? 2026$/
+		);
+		expect(submittedDisplay('not a date', now)).toBe('');
+	});
+});
+
+describe('approving', () => {
+	const unit = (submissions: TerrainSubmission[]) => ({
+		profiles: leaderProfiles(),
+		members: [],
+		records: {},
+		submissions
+	});
+
+	it('loads the unit’s pending submissions from Terrain', async () => {
+		const { terrain, calls } = await signedInTerrain(unit([submission('s1')]));
+		const service = new ApprovalsService({ terrain, profiles: leaderProfiles() } as never);
+		const list = await service.pending('unit-1');
+		expect(list.map((a) => a.submissionId)).toEqual(['s1']);
+		expect(calls.map((c) => `${c.method} ${c.url}`)).toEqual([
+			`GET ${ACHIEVEMENTS_ADDRESS}units/unit-1/submissions?status=pending`
+		]);
+	});
+
+	it('sends exactly what Terrain’s Approvals tab sends, as the leader', async () => {
+		const { terrain, writes } = await signedInTerrain(unit([submission('s1')]));
+		const service = new ApprovalsService({ terrain, profiles: leaderProfiles() } as never);
+		const [approval] = await service.pending('unit-1');
+
+		const result = await service.approve(approval);
+
+		expect(result.success).toBe(true);
+		expect(writes.map((w) => [w.method, w.url, w.body])).toEqual([
+			[
+				'POST',
+				`${ACHIEVEMENTS_ADDRESS}submissions/s1/assessments`,
+				'{"outcome":"approved","comment":""}'
+			]
+		]);
+		// Approving is done as the leader, never as the youth
+		expect(writes.some((w) => w.url.includes('assume-profiles'))).toBe(false);
+		expect(writes[0].headers['Content-Type']).toBe('application/json');
+	});
+
+	it('only counts it approved when Terrain answers 204, as its own app expects', async () => {
+		const { terrain } = await signedInTerrain({
+			...unit([submission('s1')]),
+			override: (call) => (call.url.endsWith('/assessments') ? { status: 200 } : undefined)
+		});
+		const service = new ApprovalsService({ terrain, profiles: leaderProfiles() } as never);
+		const [approval] = await service.pending('unit-1');
+		expect((await service.approve(approval)).success).toBe(false);
+	});
+
+	it('doesn’t send anything Terrain says the leader can’t action', async () => {
+		const { terrain, writes } = await signedInTerrain(unit([submission('s1', { write: false })]));
+		const service = new ApprovalsService({ terrain, profiles: leaderProfiles() } as never);
+		const [approval] = await service.pending('unit-1');
+		expect(await service.approve(approval)).toMatchObject({ success: false, status: 0 });
+		expect(writes).toEqual([]);
+	});
+
+	it('knows the signed in leader, to tell whether they have voted', async () => {
+		const { terrain } = await signedInTerrain(unit([]));
+		expect(
+			new ApprovalsService({ terrain, profiles: leaderProfiles() } as never).leaderMemberId()
+		).toBe('leader-1');
+	});
+});

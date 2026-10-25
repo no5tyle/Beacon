@@ -1,6 +1,11 @@
 // A fake Terrain holding a made-up unit, answering requests the way Terrain does, for service tests
 import { COGNITO_ADDRESS, Terrain } from '#lib/terrain/client.js';
-import type { Profiles, TerrainAchievement, UnitMember } from '#lib/terrain/types.js';
+import type {
+	Profiles,
+	TerrainAchievement,
+	TerrainSubmission,
+	UnitMember
+} from '#lib/terrain/types.js';
 
 export interface Call {
 	url: string;
@@ -15,6 +20,8 @@ export interface FakeUnit {
 	/** Records per member per type, e.g. records.m1.milestone */
 	records: Record<string, Partial<Record<string, TerrainAchievement[]>>>;
 	logbook?: Record<string, { name: string; value: number; last_updated?: string }[]>;
+	/** The unit's approvals list, whatever the status asked for */
+	submissions?: TerrainSubmission[];
 	/** Answers a request before the unit data does, e.g. to fail one */
 	override?: (call: Call) => { status?: number; body?: unknown } | Error | undefined;
 }
@@ -99,6 +106,8 @@ export function fakeTerrain(unit: FakeUnit) {
 			const type = url.searchParams.get('type') ?? '';
 			return respond(200, { results: unit.records[memberRecords[1]]?.[type] ?? [] });
 		}
+		if (/^\/units\/[^/]+\/submissions$/.test(path))
+			return respond(200, { results: unit.submissions ?? [] });
 		if (/^\/units\/[^/]+\/achievements$/.test(path)) {
 			const stage = Number(url.searchParams.get('stage'));
 			const stream = url.searchParams.get('stream');
@@ -111,7 +120,7 @@ export function fakeTerrain(unit: FakeUnit) {
 		}
 		if (call.method !== 'GET') {
 			writes.push(call);
-			return respond(call.url.endsWith('submit-on-behalf') ? 204 : 200, {});
+			return respond(/(submit-on-behalf|assessments)$/.test(call.url) ? 204 : 200, {});
 		}
 		return respond(404, 'not found');
 	}) as typeof globalThis.fetch;

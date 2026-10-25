@@ -4,7 +4,7 @@
 import { today, toCalendarDate, type CalendarDate } from '#lib/model/dates.js';
 import { emptyProgress, type YouthProgress } from '#lib/model/insights/progress.js';
 import { STREAMS } from '#lib/model/insights/insightsCalculator.js';
-import { asc, compareText, groupBy, sortBy } from '#lib/model/util.js';
+import { asc, compareText, groupBy, sortBy, titleCase } from '#lib/model/util.js';
 import type { TerrainAchievement } from '#lib/terrain/types.js';
 import type { BeaconContext } from './context.js';
 import type { MemberSummary, MembersService } from './members.js';
@@ -79,17 +79,7 @@ const importedDate = (record: TerrainAchievement) =>
 const awardedOn = (record: TerrainAchievement) =>
 	dateOf(importedDate(record) || record.status_updated);
 
-/** e.g. "sia_art_literature" → "Art Literature" */
-export function titleCase(text: string): string {
-	return text
-		.split(' ')
-		.map((word) =>
-			word === word.toUpperCase()
-				? word
-				: word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-		)
-		.join(' ');
-}
+export { titleCase } from '#lib/model/util.js';
 
 // Participates per challenge area, and leads, counted towards each milestone
 const MILESTONE_COUNTS: Record<number, { participate: number; lead: number; total: number }> = {
