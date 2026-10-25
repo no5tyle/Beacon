@@ -438,7 +438,9 @@
 					</div>
 					{#each group.items as approval (approval.submissionId)}
 						{@const voted = hasVoted(approval, me)}
-						{@const subtitle = groupByMember ? approvalSubtitle(approval) : approval.projectName}
+						{@const subtitle = groupByMember
+							? approvalSubtitle(approval)
+							: [approval.projectName, approval.siaStage].filter(Boolean).join(' · ')}
 						<div class="approval-card">
 							<div class="strong">
 								{groupByMember ? approvalTitle(approval) : approval.memberName}

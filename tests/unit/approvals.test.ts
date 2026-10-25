@@ -468,10 +468,11 @@ describe('special interest area project names', () => {
 			meta: { sia_area: 'sia_art_literature' },
 			member
 		});
-	const project = (id: string, name: string): TerrainAchievement => ({
+	const project = (id: string, name: string, template = 'sia/cub/plan'): TerrainAchievement => ({
 		id,
 		type: 'special_interest_area',
 		status: 'draft_review',
+		template,
 		answers: { project_name: name }
 	});
 
@@ -480,10 +481,12 @@ describe('special interest area project names', () => {
 			profiles: leaderProfiles(),
 			members: [],
 			records: {
-				m1: { special_interest_area: [project('ach-sp', ' Bracelet making business ')] }
+				m1: { special_interest_area: [project('ach-sp', ' Bracelet making business ')] },
+				m3: { special_interest_area: [project('ach-sr', 'Puppet show', 'sia/cub/review')] }
 			},
 			submissions: [
 				sia('sp', ['m1', 'Ava', 'Nguyen']),
+				sia('sr', ['m3', 'Mia', 'Brown']),
 				sia('sq', ['m2', 'Liam', 'Smith']),
 				submission('o')
 			]
@@ -494,7 +497,11 @@ describe('special interest area project names', () => {
 
 		expect([approvalTitle(byId('sp')), approvalSubtitle(byId('sp'))]).toEqual([
 			'Bracelet making business',
-			'Art Literature'
+			'Art Literature · Plan'
+		]);
+		expect([approvalTitle(byId('sr')), approvalSubtitle(byId('sr'))]).toEqual([
+			'Puppet show',
+			'Art Literature · Review'
 		]);
 		// No record to name it from: the area stays the title
 		expect([approvalTitle(byId('sq')), approvalSubtitle(byId('sq'))]).toEqual([
@@ -509,7 +516,7 @@ describe('special interest area project names', () => {
 		const reads = calls
 			.filter((c) => c.url.includes('type=special_interest_area'))
 			.map((c) => c.url);
-		expect(reads).toHaveLength(2);
+		expect(reads).toHaveLength(3);
 		expect(reads.some((u) => u.includes('/members/m1/'))).toBe(true);
 	});
 
