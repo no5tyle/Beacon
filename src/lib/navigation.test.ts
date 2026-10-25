@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isActive, mainPages, morePages, signedOutPages } from './navigation.js';
+import { isActive, mainPages, moreBadge, morePages, signedOutPages } from './navigation.js';
 
 const leader = { signedIn: true, isYouth: false, logging: false };
 const youth = { signedIn: true, isYouth: true, logging: false };
@@ -27,6 +27,13 @@ describe('navigation', () => {
 		]);
 		expect(morePages({ ...leader, logging: true })[1].title).toBe('Stop logging');
 		expect(morePages(youth).map((p) => p.title)).toEqual(['Turn on logging', 'Logout']);
+	});
+
+	it('shows how many approvals wait for the leader on Approvals, and in total on More', () => {
+		const pages = morePages({ ...leader, approvalsWaiting: 3 });
+		expect(pages.find((p) => p.title === 'Approvals')?.badge).toBe(3);
+		expect(moreBadge(pages)).toBe(3);
+		expect(moreBadge(morePages(leader))).toBe(0);
 	});
 
 	it('offers only Login and the Reference when signed out', () => {

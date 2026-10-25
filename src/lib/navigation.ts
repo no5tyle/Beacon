@@ -10,6 +10,8 @@ export interface NavPage {
 	shortTitle: string;
 	/** Only active on exactly this address, rather than anything under it */
 	exact?: boolean;
+	/** A count to show beside it, e.g. approvals waiting for the leader's vote */
+	badge?: number;
 }
 
 export interface NavOptions {
@@ -19,6 +21,8 @@ export interface NavOptions {
 	isYouth: boolean;
 	/** Whether request logging is on, which changes the logging item's name */
 	logging: boolean;
+	/** Submissions waiting for the leader's vote, shown on Approvals and More */
+	approvalsWaiting?: number;
 }
 
 /** The main pages: tabs along the bottom on phones, the top of the sidebar on desktop */
@@ -40,14 +44,15 @@ export function mainPages({ isYouth }: NavOptions): NavPage[] {
 }
 
 /** Less used pages: under More on phones, the bottom of the sidebar on desktop */
-export function morePages({ logging, isYouth }: NavOptions): NavPage[] {
+export function morePages({ logging, isYouth, approvalsWaiting = 0 }: NavOptions): NavPage[] {
 	const pages: NavPage[] = [];
 	if (!isYouth)
 		pages.push({
 			href: 'approvals/',
 			icon: 'circle-check',
 			title: 'Approvals',
-			shortTitle: 'Approvals'
+			shortTitle: 'Approvals',
+			badge: approvalsWaiting
 		});
 	return [
 		...pages,
@@ -74,3 +79,7 @@ export function isActive(page: NavPage, path: string): boolean {
 	const current = path.replace(/^\//, '').replace(/([^/])$/, '$1/');
 	return page.exact ? current === page.href : current.startsWith(page.href);
 }
+
+/** The total to show on More: everything waiting under it */
+export const moreBadge = (pages: readonly NavPage[]) =>
+	pages.reduce((total, page) => total + (page.badge ?? 0), 0);

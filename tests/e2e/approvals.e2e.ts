@@ -84,3 +84,42 @@ test('youth members don’t see Approvals', async ({ page, isMobile }) => {
 	if (isMobile) await page.getByRole('button', { name: 'More' }).click();
 	await expect(page.getByRole('link', { name: 'Approvals' })).toHaveCount(0);
 });
+
+test('a badge on More and Approvals shows what waits for the leader’s vote', async ({
+	page,
+	isMobile
+}) => {
+	await fakeTerrain(page);
+	await logIn(page);
+	// Liam's milestone and Mia's camping: Ava's is voted on already, and Noah's isn't this leader's
+	if (isMobile) {
+		const more = page.getByRole('button', { name: 'More, 2 waiting' });
+		await expect(more.locator('.tab-badge')).toHaveText('2');
+		await more.click();
+		await expect(
+			page.locator('.more-item', { hasText: 'Approvals' }).locator('.nav-badge')
+		).toHaveText(/^2/);
+		await page.locator('.more-item', { hasText: 'Approvals' }).click();
+	} else {
+		await expect(
+			page.locator('.side-link', { hasText: 'Approvals' }).locator('.nav-badge')
+		).toHaveText(/^2/);
+		await navigate(page, 'approvals/');
+	}
+
+	const card = page.locator('.approval-card', { hasText: 'Mia Brown' });
+	await card.getByRole('button', { name: 'Approve' }).click();
+	await card.getByRole('button', { name: 'Yes, approve' }).click();
+	await expect(card).toContainText("You've voted on this one.");
+	if (isMobile) await expect(page.locator('.tab-badge')).toHaveText('1');
+	else
+		await expect(
+			page.locator('.side-link', { hasText: 'Approvals' }).locator('.nav-badge')
+		).toHaveText(/^1/);
+});
+
+test('no badge when nothing waits for the leader', async ({ page }) => {
+	await fakeTerrain(page, { youth: true });
+	await logIn(page);
+	await expect(page.locator('.tab-badge, .nav-badge')).toHaveCount(0);
+});
