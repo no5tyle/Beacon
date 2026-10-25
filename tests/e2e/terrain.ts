@@ -11,6 +11,8 @@ export interface FakeOptions {
 	youth?: boolean;
 	/** Ava's special interest area plan (sub-3) has Kim's approval, and waits for this leader's */
 	siaPlan?: boolean;
+	/** Units whose approvals Terrain refuses to list, as for a leader not on their Unit Council */
+	refuseApprovals?: string[];
 	/** Two more awards: Liam's Milestone 1 and Mia's OAS Camping 1 */
 	moreAwards?: boolean;
 	/** After a vote or award, this many reads of the approvals list still show it as it was, as Terrain can */
@@ -336,7 +338,13 @@ export async function fakeTerrain(page: Page, options: FakeOptions = {}): Promis
 	const units = options.units ?? [{ id: 'unit-1', name: 'Mt Example Scouts', section: 'scout' }];
 	const fake: FakeTerrain = { requests: [], writes: [] };
 	const store = units.flatMap((unit) => records(unit.id));
-	const approvals = units.flatMap((unit) => submissions(unit.id));
+	// Each unit's own submission ids; the first unit's are plain, e.g. "sub-2"
+	const approvals = units.flatMap((unit, i) =>
+		submissions(unit.id).map((a) => {
+			if (i > 0) a.submission.id = `${unit.id}-${a.submission.id}`;
+			return a;
+		})
+	);
 	// The approvals list as it was before the last vote, while Terrain is slow to show it
 	let stale: typeof approvals | null = null;
 	let staleReads = 0;
@@ -540,6 +548,8 @@ export async function fakeTerrain(page: Page, options: FakeOptions = {}): Promis
 
 		const unitSubmissions = url.pathname.match(/^\/units\/([^/]+)\/submissions$/);
 		const listed = () => (stale && staleReads-- > 0 ? stale : approvals);
+		if (unitSubmissions && options.refuseApprovals?.includes(unitSubmissions[1]))
+			return json(route, { message: 'Forbidden' }, 403);
 		if (unitSubmissions)
 			return json(route, {
 				results: listed().filter(

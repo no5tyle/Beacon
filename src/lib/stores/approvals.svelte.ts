@@ -8,44 +8,48 @@ import {
 	hasVoted,
 	type PendingApproval
 } from '#lib/model/approvals.js';
-import type { ApprovalsService } from '#lib/services/approvals.js';
+import type { ApprovalsService, ApprovalsUnit } from '#lib/services/approvals.js';
 
 /** Waiting for this leader: they can approve it in Beacon and haven't voted on it yet, or can award it */
 export const waitingForLeader = (list: readonly PendingApproval[], leaderMemberId: string) =>
 	list.filter((a) => (canApproveInBeacon(a) && !hasVoted(a, leaderMemberId)) || canAwardInBeacon(a))
 		.length;
 
+/** Which units a count is for, e.g. "unit-1,unit-2" */
+export const unitsKey = (units: readonly ApprovalsUnit[]) => units.map((u) => u.id).join(',');
+
 export class ApprovalsBadge {
-	/** The unit the count is for */
-	unitId = $state('');
+	/** The units the count is for, as unitsKey gives them */
+	key = $state('');
 	waiting = $state(0);
 	private loading = '';
 
 	constructor(private readonly approvals: ApprovalsService) {}
 
-	/** Loads the count for a unit, unless it's already known or loading. Never throws */
-	async loadIfNeeded(unitId: string): Promise<void> {
-		if (!unitId || unitId === this.unitId || unitId === this.loading) return;
-		this.loading = unitId;
+	/** Loads the count across the leader's units, unless it's already known or loading. Never throws */
+	async loadIfNeeded(units: readonly ApprovalsUnit[]): Promise<void> {
+		const key = unitsKey(units);
+		if (!key || key === this.key || key === this.loading) return;
+		this.loading = key;
 		try {
-			const list = await this.approvals.pending(unitId);
-			if (this.loading === unitId) this.update(unitId, list);
+			const { list } = await this.approvals.pendingIn(units, { names: false });
+			if (this.loading === key) this.update(key, list);
 		} catch (error) {
 			// The badge is a nicety: leave it off, and the Approvals page shows any error
 			console.info('Approvals: badge not loaded', error);
 		} finally {
-			if (this.loading === unitId) this.loading = '';
+			if (this.loading === key) this.loading = '';
 		}
 	}
 
-	/** The latest list for a unit, e.g. after the Approvals page loads it or the leader approves */
-	update(unitId: string, list: readonly PendingApproval[]): void {
-		this.unitId = unitId;
+	/** The latest list for the units, e.g. after the Approvals page loads it or the leader approves */
+	update(key: string, list: readonly PendingApproval[]): void {
+		this.key = key;
 		this.waiting = waitingForLeader(list, this.approvals.leaderMemberId());
 	}
 
 	clear(): void {
-		this.unitId = '';
+		this.key = '';
 		this.waiting = 0;
 		this.loading = '';
 	}

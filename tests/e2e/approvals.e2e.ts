@@ -359,6 +359,58 @@ test('awards after confirming the date, sending what Terrain’s Approvals tab s
 	await expect(page.locator('.summary')).toHaveText('Mt Example Scouts · 4 to approve');
 });
 
+test('lists every unit the leader is on the Unit Council for, grouped by unit', async ({
+	page
+}) => {
+	const units = [
+		{ id: 'unit-1', name: 'Mt Example Scouts', section: 'scout' },
+		{ id: 'unit-2', name: 'Mt Example Cubs', section: 'cub' },
+		{ id: 'unit-3', name: 'Mt Example Joeys', section: 'joey' }
+	];
+	const terrain = await fakeTerrain(page, { units, refuseApprovals: ['unit-3'] });
+	await logIn(page);
+	await navigate(page, 'approvals/');
+	// Joeys refuses: not on its Unit Council, so it's simply left out
+	await expect(page.locator('.unit-heading')).toHaveText([
+		/^Mt Example Scouts\s+· 4 to approve · 1 to award$/,
+		/^Mt Example Cubs\s+· 4 to approve · 1 to award$/
+	]);
+	await expect(page.locator('.summary')).toHaveText('1st Example · 8 to approve · 2 to award');
+	await expect(page.locator('.alert-warning')).toHaveCount(0);
+	const cubs = page.getByRole('region', { name: 'Mt Example Cubs' });
+	await expect(
+		cubs.getByRole('region', { name: 'To approve' }).locator('.group-heading')
+	).toHaveText(['Ava Nguyen (1)', 'Liam Smith (1)', 'Mia Brown (1)', 'Noah Jones (1)']);
+
+	// Approving in one unit leaves the other as it was
+	const mia = cubs.getByRole('region', { name: 'Mia Brown' }).locator('.approval-card');
+	await mia.getByRole('button', { name: 'Approve' }).click();
+	await mia.getByRole('button', { name: 'Yes, approve' }).click();
+	await expect(mia).toContainText("You've voted on this one.");
+	expect(terrain.writes.map((w) => w.request)).toEqual([
+		'POST achievements/submissions/unit-2-sub-2/assessments'
+	]);
+	await expect(
+		page
+			.getByRole('region', { name: 'Mt Example Scouts' })
+			.getByRole('region', { name: 'Mia Brown' })
+			.getByRole('button', { name: 'Approve' })
+	).toBeVisible();
+
+	// The history of both, each card saying its unit
+	await page.getByRole('tab', { name: 'History' }).click();
+	await expect(page.locator('.history-card').first()).toContainText(/Mt Example (Scouts|Cubs) · /);
+});
+
+test('a leader on no Unit Council is told why nothing is listed', async ({ page }) => {
+	await fakeTerrain(page, { refuseApprovals: ['unit-1'] });
+	await logIn(page);
+	await navigate(page, 'approvals/');
+	await expect(page.locator('.approvals-empty')).toContainText(
+		"Terrain doesn't list approvals for you in any of your units"
+	);
+});
+
 test('awards several together, on one date', async ({ page }) => {
 	const terrain = await fakeTerrain(page, { moreAwards: true });
 	await logIn(page);

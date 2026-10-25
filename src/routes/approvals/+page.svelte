@@ -33,6 +33,8 @@
 	import { asc, distinct, groupBy, sortBy } from '#lib/model/util.js';
 	import { pagePath } from '#lib/paths.js';
 	import { app, approvals, approvalsBadge } from '#lib/services/index.js';
+	import type { ApprovalsUnit } from '#lib/services/approvals.js';
+	import { unitsKey } from '#lib/stores/approvals.svelte.js';
 
 	let pending = $state<PendingApproval[]>([]);
 	let loading = $state(false);
@@ -45,13 +47,18 @@
 	// picks an earlier one
 	const ticked = new SvelteSet<string>();
 	let awardDate = $state(localDate());
-	let confirmingAwards = $state(false);
+	// The unit whose ticked awards are being confirmed
+	let confirmingAwards = $state('');
 	// Whether approving a special interest area plan through also moves it on to the review for the youth
 	let moveToReview = $state(true);
 	let working = $state('');
 	let message = $state<{ text: string; isError: boolean } | null>(null);
 	let tab = $state<'waiting' | 'history'>('waiting');
-	// The history loads the first time its tab is opened, for the unit it was loaded for
+	// The units Terrain listed approvals for (those whose Unit Council the leader is on), and those it
+	// couldn't be reached for
+	let loadedUnits = $state<ApprovalsUnit[]>([]);
+	let failedUnits = $state<ApprovalsUnit[]>([]);
+	// The history loads the first time its tab is opened, for the units it was loaded for
 	let history = $state<DecidedSubmission[]>([]);
 	let historyFor = $state('');
 	let historyLoading = $state(false);
@@ -67,11 +74,13 @@
 	// A load asked for while one was running, e.g. straight after an approval, runs once it's finished
 	let loadAgain = false;
 
-	const unitId = $derived(app.unitId);
+	// Every unit the leader has in the chosen group, listed together
+	const units = $derived(app.units);
+	const unitsId = $derived(unitsKey(units));
 	const me = $derived(approvals.leaderMemberId());
 
 	async function load() {
-		const id = unitId;
+		const id = unitsId;
 		if (!id) return;
 		if (loading) {
 			loadAgain = true;
@@ -80,8 +89,11 @@
 		loading = true;
 		errorMessage = '';
 		try {
-			const shown = withActioned(await approvals.pending(id), actioned, approvals.leader());
-			if (id !== app.unitId) return;
+			const found = await approvals.pendingIn(units);
+			if (id !== unitsId) return;
+			loadedUnits = found.loaded;
+			failedUnits = found.failed;
+			const shown = withActioned(found.list, actioned, approvals.leader());
 			// Forget what Terrain now shows; keep checking for the rest
 			actioned = new SvelteMap([...actioned].filter(([key]) => shown.lagging.includes(key)));
 			showList(id, shown.list);
@@ -110,7 +122,7 @@
 	async function recordAction(list: PendingApproval[], action: Actioned['action']) {
 		for (const approval of list)
 			actioned.set(approval.submissionId, { action, wasAward: approval.isAward });
-		showList(unitId, withActioned(pending, actioned, approvals.leader()).list);
+		showList(unitsId, withActioned(pending, actioned, approvals.leader()).list);
 		// Something that went through belongs in the history now: read it again when it's next shown,
 		// marked before the reload so opening History straight away doesn't show it as it was
 		if (historyFor) historyFor = '';
@@ -119,14 +131,14 @@
 	}
 
 	async function loadHistory() {
-		const id = unitId;
+		const id = unitsId;
 		if (!id || historyLoading) return;
 		historyLoading = true;
 		historyError = '';
 		try {
-			const found = await approvals.history(id);
-			if (id !== app.unitId) return;
-			history = found;
+			const found = await approvals.historyIn(units);
+			if (id !== unitsId) return;
+			history = found.list;
 			historyFor = id;
 		} catch {
 			historyError = "Couldn't load the history from Terrain. Try again in a moment.";
@@ -140,7 +152,7 @@
 
 	function showTab(next: 'waiting' | 'history') {
 		tab = next;
-		if (next === 'history' && historyFor !== unitId) loadHistory();
+		if (next === 'history' && historyFor !== unitsId) loadHistory();
 	}
 
 	// No more checking once the page closes
@@ -152,10 +164,12 @@
 			goto(pagePath(''), { replaceState: true });
 			return;
 		}
-		void unitId;
+		void unitsId;
 		actioned = new SvelteMap();
 		ticked.clear();
-		confirmingAwards = false;
+		confirmingAwards = '';
+		loadedUnits = [];
+		failedUnits = [];
 		clearTimeout(checkTimer);
 		pending = [];
 		history = [];
@@ -183,22 +197,52 @@
 			),
 			(a) => (groupByMember ? a.memberName : a.achievementName)
 		);
-	// Reviews waiting for Unit Council votes, and those approved and waiting to be handed out
-	const toApprove = $derived(pending.filter((a) => !a.isAward));
-	const toAward = $derived(pending.filter((a) => a.isAward));
-	const reviewGroups = $derived(grouped(toApprove));
-	const awardGroups = $derived(grouped(toAward));
-	// The awards this leader can tick, as shown with the youth filter
-	const awardable = $derived(awardGroups.flatMap((g) => g.items).filter(canAwardInBeacon));
-	const tickedAwards = $derived(awardable.filter((a) => ticked.has(a.submissionId)));
-	const countText = $derived(
-		[
-			toApprove.length > 0 ? `${toApprove.length} to approve` : '',
-			toAward.length > 0 ? `${toAward.length} to award` : ''
+	// e.g. "4 to approve · 1 to award"
+	const counts = (list: PendingApproval[]) => {
+		const awards = list.filter((a) => a.isAward).length;
+		return [
+			list.length > awards ? `${list.length - awards} to approve` : '',
+			awards > 0 ? `${awards} to award` : ''
 		]
 			.filter(Boolean)
-			.join(' · ')
+			.join(' · ');
+	};
+	// Each unit with something waiting, in the order of the leader's units: its reviews waiting for Unit
+	// Council votes, and those approved and waiting to be handed out
+	const unitViews = $derived(
+		loadedUnits
+			.map((unit) => {
+				const items = pending.filter((a) => a.unitId === unit.id);
+				const toAward = items.filter((a) => a.isAward);
+				const awardGroups = grouped(toAward);
+				// The awards this leader can tick, as shown with the youth filter
+				const awardable = awardGroups.flatMap((g) => g.items).filter(canAwardInBeacon);
+				return {
+					unit,
+					items,
+					toApprove: items.filter((a) => !a.isAward),
+					toAward,
+					reviewGroups: grouped(items.filter((a) => !a.isAward)),
+					awardGroups,
+					awardable,
+					tickedAwards: awardable.filter((a) => ticked.has(a.submissionId))
+				};
+			})
+			.filter((view) => view.items.length > 0)
 	);
+	type UnitView = (typeof unitViews)[number];
+	// Units get a heading of their own once the leader has more than one listed
+	const severalUnits = $derived(loadedUnits.length > 1);
+	const countText = $derived(counts(pending));
+	// The unit, or the group when several units are listed together
+	const summaryName = $derived(
+		loadedUnits.length === 1
+			? loadedUnits[0].name
+			: loadedUnits.length > 1
+				? app.groupName
+				: app.unitName
+	);
+	const historyUnits = $derived(distinct(history.map((h) => h.unitId)).length > 1);
 	const names = (voters: { name: string }[]) => voters.map((v) => v.name).join(', ');
 
 	const historyNames = $derived(
@@ -268,28 +312,28 @@
 		confirming = approval.submissionId;
 	}
 
-	function toggleAllAwards() {
-		const all = tickedAwards.length === awardable.length;
-		for (const a of awardable) {
+	function toggleAllAwards(view: UnitView) {
+		const all = view.tickedAwards.length === view.awardable.length;
+		for (const a of view.awardable) {
 			if (all) ticked.delete(a.submissionId);
 			else ticked.add(a.submissionId);
 		}
 	}
 
-	function confirmAwards() {
+	function confirmAwards(view: UnitView) {
 		awardDate = localDate();
 		confirming = '';
-		confirmingAwards = true;
+		confirmingAwards = view.unit.id;
 	}
 
-	async function awardTicked() {
-		const list = tickedAwards;
+	async function awardTicked(view: UnitView) {
+		const list = view.tickedAwards;
 		if (working || list.length === 0) return;
 		working = 'awards';
 		message = null;
 		const results = await approvals.awardMany(list, awardDate);
 		working = '';
-		confirmingAwards = false;
+		confirmingAwards = '';
 		const done = results.filter((r) => r.result.success);
 		const failed = results.filter((r) => !r.result.success);
 		const named = (r: (typeof results)[number]) =>
@@ -427,6 +471,89 @@
 	{/each}
 {/snippet}
 
+{#snippet unitSections(view: UnitView)}
+	{#if view.reviewGroups.length > 0}
+		<section class="approval-section" aria-label="To approve">
+			<h3>To approve <span class="muted">({view.toApprove.length})</span></h3>
+			{@render approvalGroups(view.reviewGroups)}
+		</section>
+	{/if}
+	{#if view.awardGroups.length > 0}
+		<section class="approval-section" aria-label="Ready to award">
+			<h3>Ready to award <span class="muted">({view.toAward.length})</span></h3>
+			<p class="small muted">
+				Approved by the Unit Council. Tick the ones handed out to award them together.
+			</p>
+			{#if view.awardable.length > 0}
+				<div class="award-bar">
+					<button
+						type="button"
+						class="btn btn-sm btn-outline-secondary"
+						disabled={working !== ''}
+						onclick={() => toggleAllAwards(view)}
+						>{view.tickedAwards.length === view.awardable.length
+							? 'Untick all'
+							: 'Tick all'}</button
+					>
+					<button
+						type="button"
+						class="btn btn-sm btn-primary"
+						disabled={working !== '' || view.tickedAwards.length === 0}
+						onclick={() => confirmAwards(view)}
+						><Icon name="check" /> Award {view.tickedAwards.length > 0
+							? view.tickedAwards.length
+							: ''}</button
+					>
+				</div>
+				{#if confirmingAwards === view.unit.id && view.tickedAwards.length > 0}
+					<div class="confirm-box">
+						<strong
+							>Award {view.tickedAwards.length === 1
+								? `${approvalTitle(view.tickedAwards[0])} to ${view.tickedAwards[0].memberName}`
+								: `these ${view.tickedAwards.length}`}?</strong
+						>
+						{#if view.tickedAwards.length > 1}
+							<ul class="small award-list">
+								{#each view.tickedAwards as a (a.submissionId)}
+									<li>{approvalTitle(a)}, {a.memberName}</li>
+								{/each}
+							</ul>
+						{/if}
+						<p class="small">
+							Terrain records {view.tickedAwards.length === 1 ? 'it' : 'each'} as awarded by you on the
+							day you choose, and {view.tickedAwards.length === 1 ? 'it leaves' : 'they leave'} this list.
+						</p>
+						<div class="field award-date">
+							<label class="form-label small" for="awardDate-{view.unit.id}">Date awarded</label>
+							<input
+								id="awardDate-{view.unit.id}"
+								type="date"
+								class="form-control form-control-sm"
+								max={localDate()}
+								bind:value={awardDate}
+							/>
+						</div>
+						<button
+							type="button"
+							class="btn btn-sm btn-success"
+							disabled={working !== '' || !isAwardDate(awardDate)}
+							onclick={() => awardTicked(view)}
+							>{working === 'awards' ? 'Awarding...' : 'Yes, award'}</button
+						>
+						<button
+							type="button"
+							class="btn btn-sm btn-outline-secondary"
+							disabled={working !== ''}
+							onclick={() => (confirmingAwards = '')}>Cancel</button
+						>
+					</div>
+				{/if}
+			{/if}
+			{@render approvalGroups(view.awardGroups)}
+		</section>
+	{/if}
+{/snippet}
+
 {#snippet youthChips(list: string[])}
 	<div class="chip-group" aria-label="Youth">
 		<button
@@ -474,9 +601,9 @@
 				</div>
 				<div>{item.achievementName}</div>
 				<div class="small muted">
-					{item.submissionType} · decided {submittedDisplay(item.decidedOn)} · submitted {submittedDisplay(
-						item.submittedOn
-					)}
+					{historyUnits ? `${item.unitName} · ` : ''}{item.submissionType} · decided {submittedDisplay(
+						item.decidedOn
+					)} · submitted {submittedDisplay(item.submittedOn)}
 				</div>
 				{#if item.approvedBy.length > 0 || item.improveBy.length > 0}
 					<div class="small votes">
@@ -509,7 +636,7 @@
 			type="button"
 			class="btn icon-btn btn-outline-secondary"
 			onclick={refresh}
-			disabled={(tab === 'history' ? historyLoading : loading) || !unitId}
+			disabled={(tab === 'history' ? historyLoading : loading) || !unitsId}
 			title="Check Terrain again"
 			aria-label="Refresh"
 		>
@@ -517,11 +644,11 @@
 		</button>
 	</div>
 
-	{#if !unitId}
+	{#if !unitsId}
 		<ChooseUnit />
 	{:else}
 		<p class="small muted summary">
-			{app.unitName}{loading ? '' : ` · ${countText}`}
+			{summaryName}{loading || !countText ? '' : ` · ${countText}`}
 		</p>
 
 		<div class="tabs" role="tablist">
@@ -547,6 +674,12 @@
 			</div>
 		{/if}
 
+		{#if failedUnits.length > 0 && !loading}
+			<div class="alert alert-warning">
+				Couldn't load {failedUnits.map((u) => u.name).join(', ')} from Terrain. Refresh to try again.
+			</div>
+		{/if}
+
 		{#if tab === 'history'}
 			{@render historyTab()}
 		{:else if loading && pending.length === 0}
@@ -556,7 +689,9 @@
 		{:else if pending.length === 0}
 			<div class="approvals-empty">
 				<Icon name="circle-check" />
-				Nothing is waiting for approval.
+				{loadedUnits.length === 0 && failedUnits.length === 0
+					? "Terrain doesn't list approvals for you in any of your units: they're for Unit Council members."
+					: 'Nothing is waiting for approval.'}
 			</div>
 		{:else}
 			{#if pending.length > 1}
@@ -577,84 +712,18 @@
 				</div>
 			{/if}
 
-			{#if reviewGroups.length > 0}
-				<section class="approval-section" aria-labelledby="toApprove">
-					<h3 id="toApprove">To approve <span class="muted">({toApprove.length})</span></h3>
-					{@render approvalGroups(reviewGroups)}
-				</section>
-			{/if}
-			{#if awardGroups.length > 0}
-				<section class="approval-section" aria-labelledby="toAward">
-					<h3 id="toAward">Ready to award <span class="muted">({toAward.length})</span></h3>
-					<p class="small muted">
-						Approved by the Unit Council. Tick the ones handed out to award them together.
-					</p>
-					{#if awardable.length > 0}
-						<div class="award-bar">
-							<button
-								type="button"
-								class="btn btn-sm btn-outline-secondary"
-								disabled={working !== ''}
-								onclick={toggleAllAwards}
-								>{tickedAwards.length === awardable.length ? 'Untick all' : 'Tick all'}</button
-							>
-							<button
-								type="button"
-								class="btn btn-sm btn-primary"
-								disabled={working !== '' || tickedAwards.length === 0}
-								onclick={confirmAwards}
-								><Icon name="check" /> Award {tickedAwards.length > 0
-									? tickedAwards.length
-									: ''}</button
-							>
-						</div>
-						{#if confirmingAwards && tickedAwards.length > 0}
-							<div class="confirm-box">
-								<strong
-									>Award {tickedAwards.length === 1
-										? `${approvalTitle(tickedAwards[0])} to ${tickedAwards[0].memberName}`
-										: `these ${tickedAwards.length}`}?</strong
-								>
-								{#if tickedAwards.length > 1}
-									<ul class="small award-list">
-										{#each tickedAwards as a (a.submissionId)}
-											<li>{approvalTitle(a)}, {a.memberName}</li>
-										{/each}
-									</ul>
-								{/if}
-								<p class="small">
-									Terrain records {tickedAwards.length === 1 ? 'it' : 'each'} as awarded by you on the
-									day you choose, and {tickedAwards.length === 1 ? 'it leaves' : 'they leave'} this list.
-								</p>
-								<div class="field award-date">
-									<label class="form-label small" for="awardDate">Date awarded</label>
-									<input
-										id="awardDate"
-										type="date"
-										class="form-control form-control-sm"
-										max={localDate()}
-										bind:value={awardDate}
-									/>
-								</div>
-								<button
-									type="button"
-									class="btn btn-sm btn-success"
-									disabled={working !== '' || !isAwardDate(awardDate)}
-									onclick={awardTicked}
-									>{working === 'awards' ? 'Awarding...' : 'Yes, award'}</button
-								>
-								<button
-									type="button"
-									class="btn btn-sm btn-outline-secondary"
-									disabled={working !== ''}
-									onclick={() => (confirmingAwards = false)}>Cancel</button
-								>
-							</div>
-						{/if}
-					{/if}
-					{@render approvalGroups(awardGroups)}
-				</section>
-			{/if}
+			{#each unitViews as view (view.unit.id)}
+				{#if severalUnits}
+					<section class="unit-section" aria-label={view.unit.name}>
+						<h3 class="unit-heading">
+							{view.unit.name} <span class="muted small">· {counts(view.items)}</span>
+						</h3>
+						{@render unitSections(view)}
+					</section>
+				{:else}
+					{@render unitSections(view)}
+				{/if}
+			{/each}
 		{/if}
 	{/if}
 </div>
@@ -679,6 +748,16 @@
 		width: 44px;
 		height: 44px;
 		padding: 0;
+	}
+
+	.unit-section + .unit-section {
+		margin-top: 2rem;
+	}
+
+	.unit-heading {
+		margin-bottom: 0.5rem;
+		padding-bottom: 0.25rem;
+		border-bottom: 1px solid var(--border);
 	}
 
 	.summary {

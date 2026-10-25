@@ -14,6 +14,9 @@ export interface PendingApproval {
 	projectName: string;
 	/** Which part of a special interest area is up for review, "Plan" or "Review", from the youth's record */
 	siaStage: string;
+	/** The unit it's waiting in, when the leader's units are listed together */
+	unitId: string;
+	unitName: string;
 	memberId: string;
 	memberName: string;
 	/** "Review" (Unit Council sign off) or "Award" */
@@ -95,6 +98,8 @@ export function pendingApprovals(results: readonly TerrainSubmission[]): Pending
 				achievementName: achievementName(r.achievement),
 				projectName: '',
 				siaStage: '',
+				unitId: '',
+				unitName: '',
 				memberId: r.member.id,
 				memberName: `${r.member.first_name ?? ''} ${r.member.last_name ?? ''}`.trim(),
 				submissionType: titleCase(r.submission.type ?? ''),
@@ -268,6 +273,9 @@ export function submittedDisplay(submittedOn: string, now = new Date()): string 
 export interface DecidedSubmission {
 	submissionId: string;
 	achievementName: string;
+	/** The unit it was decided in, when the leader's units are listed together */
+	unitId: string;
+	unitName: string;
 	memberId: string;
 	memberName: string;
 	submissionType: string;
@@ -294,6 +302,8 @@ export function decidedSubmissions(results: readonly TerrainSubmission[]): Decid
 			return {
 				submissionId: r.submission.id,
 				achievementName: achievementName(r.achievement),
+				unitId: '',
+				unitName: '',
 				memberId: r.member.id,
 				memberName: `${r.member.first_name ?? ''} ${r.member.last_name ?? ''}`.trim(),
 				submissionType: titleCase(r.submission.type ?? ''),

@@ -7,6 +7,7 @@
 	import AppNav from '#lib/components/AppNav.svelte';
 	import { pagePath } from '#lib/paths.js';
 	import { app, approvalsBadge, preload } from '#lib/services/index.js';
+	import { unitsKey } from '#lib/stores/approvals.svelte.js';
 	import { VERSION } from '#lib/stores/app.svelte.js';
 	import { requestLog } from '#lib/stores/log.svelte.js';
 	import '#lib/stores/install.svelte.js';
@@ -43,15 +44,15 @@
 
 	// How many approvals wait for the leader's vote, for the badge on More and Approvals
 	$effect(() => {
-		if (app.isSignedIn && !app.isYouth && app.profiles && app.unitId)
-			approvalsBadge.loadIfNeeded(app.unitId);
+		if (app.isSignedIn && !app.isYouth && app.profiles && app.units.length > 0)
+			approvalsBadge.loadIfNeeded(app.units);
 	});
 
 	const navOptions = $derived({
 		signedIn: app.isSignedIn,
 		isYouth: app.isYouth,
 		logging: requestLog.enabled,
-		approvalsWaiting: approvalsBadge.unitId === app.unitId ? approvalsBadge.waiting : 0
+		approvalsWaiting: approvalsBadge.key === unitsKey(app.units) ? approvalsBadge.waiting : 0
 	});
 </script>
 

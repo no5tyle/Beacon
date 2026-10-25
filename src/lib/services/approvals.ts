@@ -13,8 +13,54 @@ import {
 	type PendingApproval,
 	type Voter
 } from '#lib/model/approvals.js';
-import type { TerrainWriteResult } from '#lib/terrain/errors.js';
+import { TerrainError, type TerrainWriteResult } from '#lib/terrain/errors.js';
 import type { BeaconContext } from './context.js';
+
+/** A unit to list approvals for */
+export interface ApprovalsUnit {
+	id: string;
+	name: string;
+}
+
+/** Each of the leader's units' lists together, and the units Terrain couldn't be reached for */
+export interface UnitsResult<T> {
+	list: T[];
+	/** Units whose lists Terrain gave, in the order given */
+	loaded: ApprovalsUnit[];
+	/** Units that failed for some other reason than not being the leader's to see, e.g. no signal */
+	failed: ApprovalsUnit[];
+}
+
+/**
+ * Terrain refuses a unit's approvals to a leader who isn't on its Unit Council. That unit is simply left
+ * out; anything else (no signal, Terrain down) is reported as failed
+ */
+const isRefused = (error: unknown) =>
+	error instanceof TerrainError && error.status >= 400 && error.status < 500;
+
+/** Reads each unit at once, labels what it has with the unit, and keeps the units in the order given */
+async function acrossUnits<T extends { unitId: string; unitName: string }>(
+	units: readonly ApprovalsUnit[],
+	read: (unitId: string) => Promise<T[]>
+): Promise<UnitsResult<T>> {
+	const results = await Promise.allSettled(units.map((u) => read(u.id)));
+	const list: T[] = [];
+	const loaded: ApprovalsUnit[] = [];
+	const failed: ApprovalsUnit[] = [];
+	results.forEach((result, i) => {
+		const unit = units[i];
+		if (result.status === 'fulfilled') loaded.push(unit);
+		if (result.status === 'fulfilled')
+			list.push(...result.value.map((item) => ({ ...item, unitId: unit.id, unitName: unit.name })));
+		else if (!isRefused(result.reason)) failed.push(unit);
+	});
+	// Nothing loaded and some couldn't be reached: say so rather than show an empty list
+	if (loaded.length === 0 && failed.length > 0)
+		throw results
+			.filter((r): r is PromiseRejectedResult => r.status === 'rejected')
+			.find((r) => !isRefused(r.reason))!.reason;
+	return { list, loaded, failed };
+}
 
 export class ApprovalsService {
 	constructor(private readonly context: BeaconContext) {}
@@ -23,8 +69,9 @@ export class ApprovalsService {
 	 * Submissions in the unit waiting for the Unit Council, oldest first. Terrain's list gives a special
 	 * interest area only its area, so each youth's projects are read for their names, as Progress reads them
 	 */
-	async pending(unitId: string): Promise<PendingApproval[]> {
+	async pending(unitId: string, { names = true } = {}): Promise<PendingApproval[]> {
 		const list = pendingApprovals(await this.context.terrain.unitSubmissions(unitId, 'pending'));
+		if (!names) return list;
 		const youth = [
 			...new Set(
 				list.filter((a) => a.achievementType === 'special_interest_area').map((a) => a.memberId)
@@ -42,6 +89,26 @@ export class ApprovalsService {
 	/** Submissions the Unit Council has finished with, most recently decided first */
 	async history(unitId: string): Promise<DecidedSubmission[]> {
 		return decidedSubmissions(await this.context.terrain.unitSubmissions(unitId, 'finalised'));
+	}
+
+	/**
+	 * What's waiting in each of the leader's units, in the order given. A unit whose Unit Council the
+	 * leader isn't on is left out, as Terrain won't list it for them. Without names, special interest
+	 * area project names aren't read, e.g. for the badge, which only counts
+	 */
+	pendingIn(
+		units: readonly ApprovalsUnit[],
+		options: { names?: boolean } = {}
+	): Promise<UnitsResult<PendingApproval>> {
+		return acrossUnits(units, (id) => this.pending(id, options));
+	}
+
+	/** The history of each of the leader's units together, most recently decided first */
+	async historyIn(units: readonly ApprovalsUnit[]): Promise<UnitsResult<DecidedSubmission>> {
+		const result = await acrossUnits(units, (id) => this.history(id));
+		const time = (value: string) => Date.parse(value) || 0;
+		result.list.sort((a, b) => time(b.decidedOn) - time(a.decidedOn));
+		return result;
 	}
 
 	/** Records the signed in leader's approval. Sent as the leader: approving isn't done as the youth */
