@@ -11,6 +11,8 @@
 	import Icon from '#lib/components/Icon.svelte';
 	import { pullToRefresh } from '#lib/actions/pullToRefresh.js';
 	import {
+		approvalSubtitle,
+		approvalTitle,
 		canApproveInBeacon,
 		canAwardInBeacon,
 		decidedWithin,
@@ -37,7 +39,7 @@
 	let errorMessage = $state('');
 	// Youth to show (none picked means everyone), and how the cards are grouped
 	let selectedNames = $state<string[]>([]);
-	let groupByMember = $state(false);
+	let groupByMember = $state(true);
 	let confirming = $state('');
 	// The day an award is recorded against, today unless the leader picks an earlier one
 	let awardDate = $state(localDate());
@@ -215,7 +217,7 @@
 		confirming = '';
 		if (result.success) {
 			const votes = approval.approvedBy.length + 1;
-			const approved = `Approved ${approval.achievementName} for ${approval.memberName}.`;
+			const approved = `Approved ${approvalTitle(approval)} for ${approval.memberName}.`;
 			message =
 				moved && !moved.success
 					? {
@@ -262,7 +264,7 @@
 		working = '';
 		confirming = '';
 		message = result.success
-			? { text: `Awarded ${approval.achievementName} to ${approval.memberName}.`, isError: false }
+			? { text: `Awarded ${approvalTitle(approval)} to ${approval.memberName}.`, isError: false }
 			: {
 					text:
 						result.status > 0
@@ -422,143 +424,147 @@
 							value={groupByMember ? 'member' : 'achievement'}
 							onchange={(e) => (groupByMember = e.currentTarget.value === 'member')}
 						>
-							<option value="achievement">Achievement</option>
 							<option value="member">Youth</option>
+							<option value="achievement">Achievement</option>
 						</select>
 					</div>
 				</div>
 			{/if}
 
 			{#each grouped as group (group.key)}
-				<div class="group-heading">
-					{group.key} <span class="muted">({group.items.length})</span>
-				</div>
-				{#each group.items as approval (approval.submissionId)}
-					{@const voted = hasVoted(approval, me)}
-					<div class="approval-card">
-						<div class="strong">
-							{groupByMember ? approval.achievementName : approval.memberName}
-						</div>
-						<div class="small muted">
-							{approval.submissionType} · submitted {submittedDisplay(approval.submittedOn)}
-						</div>
-						<div class="small votes">
-							{#if !approval.isAward}
-								<span class={approval.approvedBy.length > 0 ? 'text-success' : 'muted'}>
-									<Icon name="check" />
-									{approval.approvedBy.length} of {VOTES_NEEDED} approved{approval.approvedBy
-										.length > 0
-										? ` (${names(approval.approvedBy)})`
-										: ''}
-								</span>
-							{/if}
-							{#if approval.improveBy.length > 0}
-								<span class="text-danger">
-									<Icon name="action-undo" />
-									Needs improvement: {names(approval.improveBy)}
-								</span>
-							{/if}
-						</div>
+				<section class="approval-group" aria-label={group.key}>
+					<div class="group-heading">
+						{group.key} <span class="muted">({group.items.length})</span>
+					</div>
+					{#each group.items as approval (approval.submissionId)}
+						{@const voted = hasVoted(approval, me)}
+						{@const subtitle = groupByMember ? approvalSubtitle(approval) : approval.projectName}
+						<div class="approval-card">
+							<div class="strong">
+								{groupByMember ? approvalTitle(approval) : approval.memberName}
+							</div>
+							{#if subtitle}<div class="small subtitle">{subtitle}</div>{/if}
+							<div class="small muted">
+								{approval.submissionType} · submitted {submittedDisplay(approval.submittedOn)}
+							</div>
+							<div class="small votes">
+								{#if !approval.isAward}
+									<span class={approval.approvedBy.length > 0 ? 'text-success' : 'muted'}>
+										<Icon name="check" />
+										{approval.approvedBy.length} of {VOTES_NEEDED} approved{approval.approvedBy
+											.length > 0
+											? ` (${names(approval.approvedBy)})`
+											: ''}
+									</span>
+								{/if}
+								{#if approval.improveBy.length > 0}
+									<span class="text-danger">
+										<Icon name="action-undo" />
+										Needs improvement: {names(approval.improveBy)}
+									</span>
+								{/if}
+							</div>
 
-						{#if canAwardInBeacon(approval)}
-							{#if confirming === approval.submissionId}
-								<div class="confirm-box">
-									<strong>Award {approval.achievementName} to {approval.memberName}?</strong>
-									<p class="small">
-										Terrain records it as awarded by you on the day you choose, and it leaves this
-										list.
-									</p>
-									<div class="field award-date">
-										<label class="form-label small" for="awardDate-{approval.submissionId}"
-											>Date awarded</label
+							{#if canAwardInBeacon(approval)}
+								{#if confirming === approval.submissionId}
+									<div class="confirm-box">
+										<strong>Award {approvalTitle(approval)} to {approval.memberName}?</strong>
+										<p class="small">
+											Terrain records it as awarded by you on the day you choose, and it leaves this
+											list.
+										</p>
+										<div class="field award-date">
+											<label class="form-label small" for="awardDate-{approval.submissionId}"
+												>Date awarded</label
+											>
+											<input
+												id="awardDate-{approval.submissionId}"
+												type="date"
+												class="form-control form-control-sm"
+												max={localDate()}
+												bind:value={awardDate}
+											/>
+										</div>
+										<button
+											type="button"
+											class="btn btn-sm btn-success"
+											disabled={working !== '' || !isAwardDate(awardDate)}
+											onclick={() => award(approval)}
+											>{working === approval.submissionId ? 'Awarding...' : 'Yes, award'}</button
 										>
-										<input
-											id="awardDate-{approval.submissionId}"
-											type="date"
-											class="form-control form-control-sm"
-											max={localDate()}
-											bind:value={awardDate}
-										/>
+										<button
+											type="button"
+											class="btn btn-sm btn-outline-secondary"
+											disabled={working !== ''}
+											onclick={() => (confirming = '')}>Cancel</button
+										>
 									</div>
-									<button
-										type="button"
-										class="btn btn-sm btn-success"
-										disabled={working !== '' || !isAwardDate(awardDate)}
-										onclick={() => award(approval)}
-										>{working === approval.submissionId ? 'Awarding...' : 'Yes, award'}</button
-									>
-									<button
-										type="button"
-										class="btn btn-sm btn-outline-secondary"
-										disabled={working !== ''}
-										onclick={() => (confirming = '')}>Cancel</button
-									>
-								</div>
-							{:else}
+								{:else}
+									<div class="small muted award-note">
+										Approved by the Unit Council and ready to award.
+									</div>
+									<div class="actions">
+										<button
+											type="button"
+											class="btn btn-sm btn-outline-primary"
+											disabled={working !== ''}
+											onclick={() => confirmAward(approval)}><Icon name="check" /> Award</button
+										>
+									</div>
+								{/if}
+							{:else if approval.isAward}
 								<div class="small muted award-note">
 									Approved by the Unit Council and ready to award.
 								</div>
-								<div class="actions">
-									<button
-										type="button"
-										class="btn btn-sm btn-outline-primary"
-										disabled={working !== ''}
-										onclick={() => confirmAward(approval)}><Icon name="check" /> Award</button
-									>
-								</div>
-							{/if}
-						{:else if approval.isAward}
-							<div class="small muted award-note">
-								Approved by the Unit Council and ready to award.
-							</div>
-						{:else if canApproveInBeacon(approval) && !voted}
-							{#if confirming === approval.submissionId}
-								<div class="confirm-box">
-									<strong>Approve {approval.achievementName} for {approval.memberName}?</strong>
-									<p class="small">
-										Terrain records your approval as a Unit Council member. It goes through once {VOTES_NEEDED}
-										members have approved; this would be approval {approval.approvedBy.length + 1} of
-										{VOTES_NEEDED}.
-									</p>
-									{#if mayMoveToReview(approval)}
-										<label class="small move-to-review"
-											><input
-												type="checkbox"
-												class="form-check-input"
-												bind:checked={moveToReview}
-											/>
-											If it's the plan, move it on to the review for {approval.memberName}</label
+							{:else if canApproveInBeacon(approval) && !voted}
+								{#if confirming === approval.submissionId}
+									<div class="confirm-box">
+										<strong>Approve {approvalTitle(approval)} for {approval.memberName}?</strong>
+										<p class="small">
+											Terrain records your approval as a Unit Council member. It goes through once {VOTES_NEEDED}
+											members have approved; this would be approval {approval.approvedBy.length + 1} of
+											{VOTES_NEEDED}.
+										</p>
+										{#if mayMoveToReview(approval)}
+											<label class="small move-to-review"
+												><input
+													type="checkbox"
+													class="form-check-input"
+													bind:checked={moveToReview}
+												/>
+												If it's the plan, move it on to the review for {approval.memberName}</label
+											>
+										{/if}
+										<button
+											type="button"
+											class="btn btn-sm btn-success"
+											disabled={working !== ''}
+											onclick={() => approve(approval)}
+											>{working === approval.submissionId ? 'Approving...' : 'Yes, approve'}</button
 										>
-									{/if}
-									<button
-										type="button"
-										class="btn btn-sm btn-success"
-										disabled={working !== ''}
-										onclick={() => approve(approval)}
-										>{working === approval.submissionId ? 'Approving...' : 'Yes, approve'}</button
-									>
-									<button
-										type="button"
-										class="btn btn-sm btn-outline-secondary"
-										disabled={working !== ''}
-										onclick={() => (confirming = '')}>Cancel</button
-									>
-								</div>
-							{:else}
-								<div class="actions">
-									<button
-										type="button"
-										class="btn btn-sm btn-outline-primary"
-										disabled={working !== ''}
-										onclick={() => confirmApprove(approval)}><Icon name="check" /> Approve</button
-									>
-								</div>
+										<button
+											type="button"
+											class="btn btn-sm btn-outline-secondary"
+											disabled={working !== ''}
+											onclick={() => (confirming = '')}>Cancel</button
+										>
+									</div>
+								{:else}
+									<div class="actions">
+										<button
+											type="button"
+											class="btn btn-sm btn-outline-primary"
+											disabled={working !== ''}
+											onclick={() => confirmApprove(approval)}><Icon name="check" /> Approve</button
+										>
+									</div>
+								{/if}
+							{:else if voted}
+								<div class="small muted voted">You've voted on this one.</div>
 							{/if}
-						{:else if voted}
-							<div class="small muted voted">You've voted on this one.</div>
-						{/if}
-					</div>
-				{/each}
+						</div>
+					{/each}
+				</section>
 			{/each}
 		{/if}
 	{/if}
@@ -636,6 +642,10 @@
 		flex-wrap: wrap;
 		gap: 0.15rem 0.75rem;
 		margin-top: 0.15rem;
+	}
+
+	.subtitle {
+		color: var(--text);
 	}
 
 	.actions,
