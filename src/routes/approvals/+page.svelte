@@ -9,6 +9,7 @@
 	import Icon from '#lib/components/Icon.svelte';
 	import { pullToRefresh } from '#lib/actions/pullToRefresh.js';
 	import {
+		canApproveInBeacon,
 		decidedWithin,
 		hasVoted,
 		outcomeDisplay,
@@ -346,13 +347,15 @@
 							{approval.submissionType} · submitted {submittedDisplay(approval.submittedOn)}
 						</div>
 						<div class="small votes">
-							<span class={approval.approvedBy.length > 0 ? 'text-success' : 'muted'}>
-								<Icon name="check" />
-								{approval.approvedBy.length} of {VOTES_NEEDED} approved{approval.approvedBy.length >
-								0
-									? ` (${names(approval.approvedBy)})`
-									: ''}
-							</span>
+							{#if !approval.isAward}
+								<span class={approval.approvedBy.length > 0 ? 'text-success' : 'muted'}>
+									<Icon name="check" />
+									{approval.approvedBy.length} of {VOTES_NEEDED} approved{approval.approvedBy
+										.length > 0
+										? ` (${names(approval.approvedBy)})`
+										: ''}
+								</span>
+							{/if}
 							{#if approval.improveBy.length > 0}
 								<span class="text-danger">
 									<Icon name="action-undo" />
@@ -361,7 +364,11 @@
 							{/if}
 						</div>
 
-						{#if approval.canAction && !voted}
+						{#if approval.isAward}
+							<div class="small muted award-note">
+								Approved by the Unit Council and ready to award. Award it in Terrain for now.
+							</div>
+						{:else if canApproveInBeacon(approval) && !voted}
 							{#if confirming === approval.submissionId}
 								<div class="confirm-box">
 									<strong>Approve {approval.achievementName} for {approval.memberName}?</strong>
@@ -480,7 +487,8 @@
 	}
 
 	.actions,
-	.voted {
+	.voted,
+	.award-note {
 		margin-top: 0.5rem;
 	}
 

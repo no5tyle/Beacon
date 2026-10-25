@@ -20,6 +20,11 @@ export interface PendingApproval {
 	improveBy: Voter[];
 	/** Terrain says whether the signed in leader may action it */
 	canAction: boolean;
+	/**
+	 * Approved by the Unit Council and waiting to be awarded (Terrain's "award" submissions), rather than a
+	 * review to approve. Beacon doesn't award yet: Terrain's request for it hasn't been captured
+	 */
+	isAward: boolean;
 }
 
 export interface Voter {
@@ -90,11 +95,16 @@ export function pendingApprovals(results: readonly TerrainSubmission[]): Pending
 				submittedOn: r.submission.date,
 				approvedBy: voters(r, ['approved']),
 				improveBy: voters(r, IMPROVE_OUTCOMES),
-				canAction: r.unit_permissions?.write === true
+				canAction: r.unit_permissions?.write === true,
+				isAward: r.submission.type === 'award'
 			})),
 		asc((a) => Date.parse(a.submittedOn) || 0)
 	);
 }
+
+/** Whether Beacon can send this leader's approval: a review Terrain lets them action, not an award */
+export const canApproveInBeacon = (approval: PendingApproval) =>
+	approval.canAction && !approval.isAward;
 
 /** Whether this leader has already voted on it, either way */
 export const hasVoted = (approval: PendingApproval, memberId: string) =>

@@ -255,6 +255,10 @@ function submissions(unitId: string) {
 		submission.submission.outcome = outcome;
 		return submission;
 	};
+	const awaiting = <T extends { submission: { type: string } }>(submission: T) => {
+		submission.submission.type = 'award';
+		return submission;
+	};
 	return [
 		item('sub-1', 1, { type: 'milestone', achievement_meta: { stage: 1 } }, days(3), [kim]),
 		item(
@@ -275,6 +279,18 @@ function submissions(unitId: string) {
 		),
 		// Terrain doesn't let this leader action it
 		item('sub-4', 3, { type: 'intro_section' }, days(0), [], false),
+		// Approved by the Unit Council and waiting to be awarded
+		awaiting(
+			item(
+				'sub-5',
+				3,
+				{
+					type: 'outdoor_adventure_skill',
+					achievement_meta: { stream: 'bushcraft', branch: 'bushcraft', stage: 1 }
+				},
+				days(2)
+			)
+		),
 		// Finished with: two recent, and one from long ago
 		decided(
 			item(

@@ -27,6 +27,9 @@ export class ApprovalsService {
 	async approve(approval: PendingApproval): Promise<TerrainWriteResult> {
 		if (!approval.canAction)
 			return { success: false, status: 0, body: "Terrain doesn't let you approve this one." };
+		// An award isn't approved with a review vote; Beacon doesn't know Terrain's request for awarding yet
+		if (approval.isAward)
+			return { success: false, status: 0, body: 'Award this in Terrain: Beacon can’t award yet.' };
 		try {
 			return await this.context.terrain.assessSubmission(approval.submissionId, 'approved');
 		} catch (error) {

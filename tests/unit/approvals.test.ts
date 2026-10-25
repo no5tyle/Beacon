@@ -217,6 +217,33 @@ describe('the badge for approvals waiting for the leader', () => {
 	});
 });
 
+describe('awards', () => {
+	const award = () => {
+		const item = submission('aw', { votes: [] });
+		item.submission.type = 'award';
+		return item;
+	};
+
+	it('marks Terrain’s award submissions, which Beacon can’t approve yet', () => {
+		const [item] = pendingApprovals([award()]);
+		expect(item).toMatchObject({ isAward: true, canAction: true, submissionType: 'Award' });
+		expect(waitingForLeader([item], 'leader-1')).toBe(0);
+	});
+
+	it('never sends an award a review vote', async () => {
+		const { terrain, writes } = await signedInTerrain({
+			profiles: leaderProfiles(),
+			members: [],
+			records: {},
+			submissions: [award()]
+		});
+		const service = new ApprovalsService({ terrain, profiles: leaderProfiles() } as never);
+		const [item] = await service.pending('unit-1');
+		expect(await service.approve(item)).toMatchObject({ success: false, status: 0 });
+		expect(writes).toEqual([]);
+	});
+});
+
 describe('the history', () => {
 	const finalised = (
 		id: string,
