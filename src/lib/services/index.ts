@@ -1,6 +1,7 @@
 // The app's services, sharing one signed in session. Pages import what they need from here.
 
 import { AppState } from '#lib/stores/app.svelte.js';
+import { ApprovalsService } from './approvals.js';
 import { InsightsService } from './insights.js';
 import { MembersService } from './members.js';
 import { OASService } from './oas.js';
@@ -19,6 +20,7 @@ export const progress = new ProgressService(app, members);
 export const recording = new RecordingService(app, unitProgress);
 export const reference = new ReferenceService(() => app.terrain);
 export const preload = new PreloadService(app, unitProgress, oas);
+export const approvals = new ApprovalsService(app);
 
 // A different leader, or none, mustn't see the last one's youth
 app.onReset(() => {

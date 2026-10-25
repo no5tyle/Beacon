@@ -40,8 +40,17 @@ export function mainPages({ isYouth }: NavOptions): NavPage[] {
 }
 
 /** Less used pages: under More on phones, the bottom of the sidebar on desktop */
-export function morePages({ logging }: NavOptions): NavPage[] {
+export function morePages({ logging, isYouth }: NavOptions): NavPage[] {
+	const pages: NavPage[] = [];
+	if (!isYouth)
+		pages.push({
+			href: 'approvals/',
+			icon: 'circle-check',
+			title: 'Approvals',
+			shortTitle: 'Approvals'
+		});
 	return [
+		...pages,
 		{
 			href: 'logging/',
 			icon: 'document',

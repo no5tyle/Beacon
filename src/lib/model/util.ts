@@ -91,3 +91,15 @@ export function formatOneDecimal(value: number): string {
 export function containsIgnoreCase(text: string, part: string): boolean {
 	return text.toLowerCase().includes(part.toLowerCase());
 }
+
+/** Like .NET's TextInfo.ToTitleCase: each word capitalised, except words already in capitals, e.g. "OAS" */
+export function titleCase(text: string): string {
+	return text
+		.split(' ')
+		.map((word) =>
+			word === word.toUpperCase()
+				? word
+				: word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+		)
+		.join(' ');
+}

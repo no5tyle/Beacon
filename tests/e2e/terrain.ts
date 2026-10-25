@@ -205,10 +205,68 @@ function records(unitId: string): Fixture[] {
 	return list;
 }
 
+type Vote = {
+	member_id: string;
+	member_first_name: string;
+	member_last_name: string;
+	outcome: string;
+};
+
+/** The unit's approvals list: what's waiting for the Unit Council, and who has voted */
+function submissions(unitId: string) {
+	const days = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString();
+	const kim: Vote = {
+		member_id: 'leader-2',
+		member_first_name: 'Kim',
+		member_last_name: 'Leader',
+		outcome: 'approved'
+	};
+	const sam: Vote = { ...kim, member_id: 'leader-1', member_first_name: 'Sam' };
+	const item = (
+		id: string,
+		memberIndex: number,
+		achievement: { type: string; achievement_meta?: Record<string, unknown> },
+		date: string,
+		votes: Vote[] = [],
+		write = true
+	) => ({
+		achievement: { id: `ach-${id}`, ...achievement },
+		submission: { id, type: 'review', date, status: 'pending', actioned_by: votes },
+		unit_permissions: { write },
+		member: {
+			id: `${unitId}-m${memberIndex}`,
+			first_name: youth[memberIndex].name.split(' ')[0],
+			last_name: youth[memberIndex].name.split(' ')[1]
+		}
+	});
+	return [
+		item('sub-1', 1, { type: 'milestone', achievement_meta: { stage: 1 } }, days(3), [kim]),
+		item(
+			'sub-2',
+			2,
+			{
+				type: 'outdoor_adventure_skill',
+				achievement_meta: { stream: 'camping', branch: 'camping', stage: 1 }
+			},
+			days(1)
+		),
+		item(
+			'sub-3',
+			0,
+			{ type: 'special_interest_area', achievement_meta: { sia_area: 'sia_adventure_sport' } },
+			days(20),
+			[sam]
+		),
+		// Terrain doesn't let this leader action it
+		item('sub-4', 3, { type: 'intro_section' }, days(0), [], false)
+	];
+}
+
 export async function fakeTerrain(page: Page, options: FakeOptions = {}): Promise<FakeTerrain> {
 	const units = options.units ?? [{ id: 'unit-1', name: 'Mt Example Scouts', section: 'scout' }];
 	const fake: FakeTerrain = { requests: [], writes: [] };
 	const store = units.flatMap((unit) => records(unit.id));
+	const approvals = units.flatMap((unit) => submissions(unit.id));
 	const json = (route: Route, body: unknown, status = 200) =>
 		route.fulfill({
 			status,
@@ -279,6 +337,21 @@ export async function fakeTerrain(page: Page, options: FakeOptions = {}): Promis
 		if (request.method() !== 'GET') {
 			const body = request.postDataJSON() as Record<string, unknown>;
 			fake.writes.push({ request: `${request.method()} ${name}`, body });
+			// A Unit Council vote: two approvals and Terrain finalises it
+			const assessed = url.pathname.match(/^\/submissions\/([^/]+)\/assessments$/);
+			if (assessed) {
+				const approval = approvals.find((a) => a.submission.id === assessed[1]);
+				if (!approval || !approval.unit_permissions.write) return json(route, {}, 403);
+				approval.submission.actioned_by.push({
+					member_id: 'leader-1',
+					member_first_name: 'Sam',
+					member_last_name: 'Leader',
+					outcome: String(body.outcome)
+				});
+				if (approval.submission.actioned_by.filter((v) => v.outcome === 'approved').length >= 2)
+					approval.submission.status = 'finalised';
+				return json(route, {}, 204);
+			}
 			const created = url.pathname.match(/^\/members\/([^/]+)\/achievements$/);
 			if (created) {
 				store.push({
@@ -336,6 +409,15 @@ export async function fakeTerrain(page: Page, options: FakeOptions = {}): Promis
 				)
 			});
 
+		const unitSubmissions = url.pathname.match(/^\/units\/([^/]+)\/submissions$/);
+		if (unitSubmissions)
+			return json(route, {
+				results: approvals.filter(
+					(a) =>
+						a.member.id.startsWith(unitSubmissions[1]) &&
+						a.submission.status === url.searchParams.get('status')
+				)
+			});
 		const tree = url.pathname.match(/^\/oas\/([^/]+)\/tree\.json$/);
 		if (tree) {
 			const stream = tree[1];

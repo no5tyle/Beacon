@@ -11,10 +11,12 @@ import {
 import { ProfileGate } from './profileGate.js';
 import type {
 	AchievementType,
+	AssessmentOutcome,
 	AuthenticationResult,
 	LogbookMetric,
 	Profiles,
 	TerrainAchievement,
+	TerrainSubmission,
 	TerrainUser,
 	UnitMember
 } from './types.js';
@@ -365,7 +367,32 @@ export class Terrain {
 		return result?.results ?? [];
 	}
 
+	/** A unit's submissions with a given status, e.g. "pending" for those waiting for the Unit Council */
+	async unitSubmissions(unitId: string, status: string): Promise<TerrainSubmission[]> {
+		const result = await this.get<{ results?: TerrainSubmission[] }>(
+			`${ACHIEVEMENTS_ADDRESS}units/${pathPart(unitId)}/submissions?status=${pathPart(status)}`
+		);
+		return result?.results ?? [];
+	}
+
 	// Changing
+
+	/**
+	 * A Unit Council member's vote on a submission, sent as themselves (POST, answered with 204), exactly as
+	 * Terrain's Approvals tab sends it: {"outcome":"approved","comment":""}
+	 */
+	assessSubmission(
+		submissionId: string,
+		outcome: AssessmentOutcome,
+		comment = ''
+	): Promise<TerrainWriteResult> {
+		return this.write(
+			'POST',
+			`${ACHIEVEMENTS_ADDRESS}submissions/${pathPart(submissionId)}/assessments`,
+			{ outcome, comment },
+			204
+		);
+	}
 
 	/** Starts a youth's record for a stage they haven't started (POST, answered with 200) */
 	createAchievement(memberId: string, body: object): Promise<TerrainWriteResult> {
