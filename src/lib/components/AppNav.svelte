@@ -8,6 +8,7 @@
 	import Icon from './Icon.svelte';
 	import {
 		isActive,
+		LOGGING_HREF,
 		mainPages,
 		moreBadge,
 		morePages,
@@ -28,7 +29,9 @@
 	const sidebar = $derived(options.signedIn ? [...main, ...more] : signedOutPages());
 	// The current address within the app, without the base path
 	const path = $derived(page.url.pathname.slice(pagePath('').length - 1));
-	const onMorePage = $derived(more.some((item) => isActive(item, path)));
+	const onLogging = $derived(path.startsWith(`/${LOGGING_HREF}`));
+	const onMorePage = $derived(onLogging || more.some((item) => isActive(item, path)));
+	const versionText = $derived(options.logging ? ' · logging on' : '');
 	const moreCount = $derived(moreBadge(more));
 
 	const href = (item: NavPage) => pagePath(item.href);
@@ -61,7 +64,16 @@
 				{@render badge(item)}
 			</a>
 		{/each}
-		<span class="side-version">Version {version}</span>
+		{#if options.signedIn}
+			<a
+				class="side-version"
+				class:active={onLogging}
+				href={pagePath(LOGGING_HREF)}
+				title="Logging, to help solve a problem">Version {version}{versionText}</a
+			>
+		{:else}
+			<span class="side-version">Version {version}</span>
+		{/if}
 	</nav>
 </aside>
 
@@ -91,7 +103,13 @@
 				{@render badge(item)}
 			</a>
 		{/each}
-		<div class="more-version">Beacon version {version}</div>
+		<a
+			class="more-version"
+			class:active={onLogging}
+			role="menuitem"
+			href={pagePath(LOGGING_HREF)}
+			title="Logging, to help solve a problem">Beacon version {version}{versionText}</a
+		>
 	</div>
 {/if}
 
@@ -193,6 +211,11 @@
 
 	.side-version {
 		color: rgba(255, 255, 255, 0.45);
+	}
+
+	a.side-version:hover,
+	a.side-version.active {
+		color: rgba(255, 255, 255, 0.8);
 	}
 
 	/* Phone header when signed out: Beacon and a way to the Reference */
@@ -348,10 +371,16 @@
 	}
 
 	.more-version {
+		display: block;
 		padding: 0.4rem 1rem 0.3rem;
 		border-top: 1px solid var(--border-soft);
 		color: var(--faint);
 		font-size: 0.75rem;
+		text-decoration: none;
+	}
+
+	.more-version.active {
+		color: var(--brand-text);
 	}
 
 	@media (min-width: 641px) {
