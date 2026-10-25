@@ -200,15 +200,16 @@ describe('the badge for approvals waiting for the leader', () => {
 		const badge = new ApprovalsBadge(
 			new ApprovalsService({ terrain, profiles: leaderProfiles() } as never)
 		);
-		await badge.loadIfNeeded('unit-1');
-		await badge.loadIfNeeded('unit-1');
-		expect(badge).toMatchObject({ unitId: 'unit-1', waiting: 2 });
+		const units = [{ id: 'unit-1', name: 'Mt Example Scouts' }];
+		await badge.loadIfNeeded(units);
+		await badge.loadIfNeeded(units);
+		expect(badge).toMatchObject({ key: 'unit-1', waiting: 2 });
 		expect(calls.filter((c) => c.url.includes('/submissions')).length).toBe(1);
 
 		badge.update('unit-1', list());
 		expect(badge.waiting).toBe(1);
 		badge.clear();
-		expect(badge).toMatchObject({ unitId: '', waiting: 0 });
+		expect(badge).toMatchObject({ key: '', waiting: 0 });
 	});
 
 	it('stays off when Terrain can’t be reached', async () => {
@@ -221,8 +222,110 @@ describe('the badge for approvals waiting for the leader', () => {
 		const badge = new ApprovalsBadge(
 			new ApprovalsService({ terrain, profiles: leaderProfiles() } as never)
 		);
-		await badge.loadIfNeeded('unit-1');
-		expect(badge).toMatchObject({ unitId: '', waiting: 0 });
+		await badge.loadIfNeeded([{ id: 'unit-1', name: 'Mt Example Scouts' }]);
+		expect(badge).toMatchObject({ key: '', waiting: 0 });
+	});
+});
+
+describe('approvals across the leader’s units', () => {
+	const units = [
+		{ id: 'cubs', name: 'Mt Example Cubs' },
+		{ id: 'scouts', name: 'Mt Example Scouts' },
+		{ id: 'joeys', name: 'Mt Example Joeys' }
+	];
+	// Each unit's list, or the status Terrain answers with instead
+	const across = (answers: Record<string, TerrainSubmission[] | number | Error>) =>
+		signedInTerrain({
+			profiles: leaderProfiles(),
+			members: [],
+			records: {},
+			override: (call) => {
+				const unit = /\/units\/([^/]+)\/submissions/.exec(call.url)?.[1];
+				if (!unit) return undefined;
+				const answer = answers[unit];
+				if (answer instanceof Error) return answer;
+				return typeof answer === 'number'
+					? { status: answer, body: {} }
+					: { body: { results: answer ?? [] } };
+			}
+		});
+
+	it('lists every unit’s, labelled with its unit, in the order of the units', async () => {
+		const { terrain } = await across({
+			cubs: [submission('c1', { member: ['m1', 'Ava', 'Nguyen'] })],
+			scouts: [submission('s1', { member: ['m2', 'Liam', 'Smith'] })],
+			joeys: []
+		});
+		const service = new ApprovalsService({ terrain, profiles: leaderProfiles() } as never);
+		const result = await service.pendingIn(units);
+		expect(result.list.map((a) => [a.submissionId, a.unitId, a.unitName])).toEqual([
+			['c1', 'cubs', 'Mt Example Cubs'],
+			['s1', 'scouts', 'Mt Example Scouts']
+		]);
+		expect(result.loaded.map((u) => u.id)).toEqual(['cubs', 'scouts', 'joeys']);
+		expect(result.failed).toEqual([]);
+	});
+
+	it('leaves out a unit Terrain won’t list for this leader, not on its Unit Council', async () => {
+		const { terrain } = await across({ cubs: 403, scouts: [submission('s1')], joeys: 401 });
+		const service = new ApprovalsService({ terrain, profiles: leaderProfiles() } as never);
+		const result = await service.pendingIn(units);
+		expect(result.list.map((a) => a.submissionId)).toEqual(['s1']);
+		expect(result.loaded.map((u) => u.id)).toEqual(['scouts']);
+		expect(result.failed).toEqual([]);
+	});
+
+	it('is empty, not an error, when the leader is on none of their units’ Unit Councils', async () => {
+		const { terrain } = await across({ cubs: 403, scouts: 403, joeys: 403 });
+		const service = new ApprovalsService({ terrain, profiles: leaderProfiles() } as never);
+		expect(await service.pendingIn(units)).toEqual({ list: [], loaded: [], failed: [] });
+	});
+
+	it('says which units couldn’t be reached, and fails only when none could', async () => {
+		const { terrain } = await across({
+			cubs: new Error('offline'),
+			scouts: [submission('s1')],
+			joeys: 500
+		});
+		const service = new ApprovalsService({ terrain, profiles: leaderProfiles() } as never);
+		const result = await service.pendingIn(units);
+		expect(result.list.map((a) => a.submissionId)).toEqual(['s1']);
+		expect(result.failed.map((u) => u.id)).toEqual(['cubs', 'joeys']);
+
+		const offline = await across({ cubs: new Error('offline'), scouts: 500, joeys: 403 });
+		const none = new ApprovalsService({
+			terrain: offline.terrain,
+			profiles: leaderProfiles()
+		} as never);
+		await expect(none.pendingIn(units)).rejects.toThrow();
+	});
+
+	it('puts the history of every unit together, most recently decided first', async () => {
+		const decided = (id: string, date: string) => submission(id, { status: 'finalised', date });
+		const { terrain } = await across({
+			cubs: [decided('c-old', '2026-09-01T00:00:00Z')],
+			scouts: [decided('s-new', '2026-10-01T00:00:00Z')],
+			joeys: 403
+		});
+		const service = new ApprovalsService({ terrain, profiles: leaderProfiles() } as never);
+		const result = await service.historyIn(units);
+		expect(result.list.map((h) => [h.submissionId, h.unitName])).toEqual([
+			['s-new', 'Mt Example Scouts'],
+			['c-old', 'Mt Example Cubs']
+		]);
+	});
+
+	it('counts the badge across every unit', async () => {
+		const { terrain } = await across({
+			cubs: [submission('c1')],
+			scouts: [submission('s1'), submission('s2')],
+			joeys: 403
+		});
+		const badge = new ApprovalsBadge(
+			new ApprovalsService({ terrain, profiles: leaderProfiles() } as never)
+		);
+		await badge.loadIfNeeded(units);
+		expect(badge).toMatchObject({ key: 'cubs,scouts,joeys', waiting: 3 });
 	});
 });
 
