@@ -4,6 +4,9 @@
 import {
 	decidedSubmissions,
 	isAwardDate,
+	isSIAPlan,
+	mayMoveToReview,
+	moveToReviewBody,
 	pendingApprovals,
 	type DecidedSubmission,
 	type PendingApproval
@@ -47,6 +50,47 @@ export class ApprovalsService {
 		return this.send(() =>
 			this.context.terrain.awardSubmission(approval.submissionId, dateAwarded)
 		);
+	}
+
+	/**
+	 * After the deciding approval of a special interest area plan, moves it on to the review, as the youth
+	 * would in Terrain. Terrain takes it only from the youth's profile, so it's sent as the youth. Reads the
+	 * record fresh first and leaves it alone unless it's still the plan. Says false in moved when there was
+	 * nothing to move
+	 */
+	async moveToReview(approval: PendingApproval): Promise<TerrainWriteResult & { moved: boolean }> {
+		if (!mayMoveToReview(approval))
+			return {
+				success: false,
+				status: 0,
+				body: 'Only a special interest area plan moves on.',
+				moved: false
+			};
+		const { memberId, achievementId } = approval;
+		try {
+			const outcome = await this.context.terrain.actAsYouth(memberId, async (youth) => {
+				const record = (await youth.memberAchievements(memberId, 'special_interest_area')).find(
+					(a) => a.id === achievementId
+				);
+				if (!record || !isSIAPlan(record))
+					return { success: true, status: 0, body: '', moved: false };
+				const result = await youth.updateAchievement(
+					memberId,
+					achievementId,
+					moveToReviewBody(record)
+				);
+				return { ...result, moved: result.success };
+			});
+			if (!outcome.acted) return { ...outcome.result, success: false, moved: false };
+			return outcome.value;
+		} catch (error) {
+			return {
+				success: false,
+				status: 0,
+				body: error instanceof Error ? error.message : String(error),
+				moved: false
+			};
+		}
 	}
 
 	private async send(write: () => Promise<TerrainWriteResult>): Promise<TerrainWriteResult> {

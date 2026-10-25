@@ -5,7 +5,10 @@ import {
 	decidedWithin,
 	hasVoted,
 	isAwardDate,
+	isSIAPlan,
 	localDate,
+	mayMoveToReview,
+	moveToReviewBody,
 	outcomeDisplay,
 	pendingApprovals,
 	submittedDisplay
@@ -13,7 +16,7 @@ import {
 import { ApprovalsService } from '#lib/services/approvals.js';
 import { ApprovalsBadge, waitingForLeader } from '#lib/stores/approvals.svelte.js';
 import { ACHIEVEMENTS_ADDRESS } from '#lib/terrain/client.js';
-import type { TerrainSubmission } from '#lib/terrain/types.js';
+import type { TerrainAchievement, TerrainSubmission } from '#lib/terrain/types.js';
 import { leaderProfiles, signedInTerrain } from './fakeTerrain.js';
 
 const submission = (
@@ -291,6 +294,122 @@ describe('awards', () => {
 		expect(isAwardDate('2026-02-30', now)).toBe(false);
 		expect(isAwardDate('25/10/2026', now)).toBe(false);
 		expect(isAwardDate('', now)).toBe(false);
+	});
+});
+
+describe('moving a special interest area plan on to the review', () => {
+	const sia = (votes: [string, string, string][] = [['l2', 'Kim Leader', 'approved']]) =>
+		submission('sp', {
+			type: 'special_interest_area',
+			meta: { sia_area: 'sia_art_literature' },
+			votes
+		});
+	const plan = (extra: Partial<TerrainAchievement> = {}): TerrainAchievement => ({
+		id: 'ach-sp',
+		type: 'special_interest_area',
+		status: 'draft_review',
+		template: 'sia/cub/plan',
+		version: 2,
+		section: 'cub',
+		last_updated: '2026-10-20T09:15:00.000Z',
+		answers: {
+			attach_documentation: [],
+			project_name: 'Bracelet making business',
+			special_interest_area_selection: 'sia_art_literature'
+		},
+		uploads: [],
+		...extra
+	});
+	const siaTerrain = (record: TerrainAchievement | null, item = sia()) =>
+		signedInTerrain({
+			profiles: leaderProfiles(),
+			members: [],
+			records: { m1: { special_interest_area: record ? [record] : [] } },
+			submissions: [item]
+		});
+
+	it('is offered only on the deciding approval of a special interest area', () => {
+		const [deciding] = pendingApprovals([sia()]);
+		const [first] = pendingApprovals([sia([])]);
+		const [oas] = pendingApprovals([
+			submission('o', { votes: [['l2', 'Kim Leader', 'approved']] })
+		]);
+		expect(mayMoveToReview(deciding)).toBe(true);
+		expect(mayMoveToReview(first)).toBe(false);
+		expect(mayMoveToReview(oas)).toBe(false);
+	});
+
+	it('knows a plan by its template, and sends it as it stands, not reset to draft', () => {
+		expect(isSIAPlan(plan())).toBe(true);
+		expect(isSIAPlan(plan({ template: 'sia/cub/review' }))).toBe(false);
+		expect(isSIAPlan(plan({ status: 'awarded' }))).toBe(false);
+		expect(JSON.stringify(moveToReviewBody(plan()))).toBe(
+			'{"achievement_type":"special_interest_area","template":"sia/cub/plan","version":2,"section":"cub","answers":{"attach_documentation":[],"project_name":"Bracelet making business","special_interest_area_selection":"sia_art_literature"},"uploads":[],"reset_to_draft":false}'
+		);
+	});
+
+	it('sends exactly what Terrain sends, as the youth, after the approval', async () => {
+		const { terrain, writes, calls } = await siaTerrain(plan());
+		const service = new ApprovalsService({ terrain, profiles: leaderProfiles() } as never);
+		const [approval] = await service.pending('unit-1');
+
+		expect((await service.approve(approval)).success).toBe(true);
+		const moved = await service.moveToReview(approval);
+
+		expect(moved).toMatchObject({ success: true, moved: true });
+		expect(writes.map((w) => [w.method, w.url, w.body])).toEqual([
+			[
+				'POST',
+				`${ACHIEVEMENTS_ADDRESS}submissions/sp/assessments`,
+				'{"outcome":"approved","comment":""}'
+			],
+			[
+				'PUT',
+				`${ACHIEVEMENTS_ADDRESS}members/m1/achievements/ach-sp`,
+				JSON.stringify(moveToReviewBody(plan()))
+			]
+		]);
+		// Sent between switching to the youth and back
+		const urls = calls.map((c) => c.url);
+		const put = urls.indexOf(`${ACHIEVEMENTS_ADDRESS}members/m1/achievements/ach-sp`);
+		expect(urls.slice(0, put).some((u) => u.endsWith('/members/m1/assume-profiles'))).toBe(true);
+		expect(urls.slice(put).some((u) => u.endsWith('revoke-assumed-profiles'))).toBe(true);
+	});
+
+	it('leaves a record alone that isn’t the plan any more, or isn’t there', async () => {
+		for (const record of [plan({ template: 'sia/cub/review' }), null]) {
+			const { terrain, writes } = await siaTerrain(record);
+			const service = new ApprovalsService({ terrain, profiles: leaderProfiles() } as never);
+			const [approval] = await service.pending('unit-1');
+			expect(await service.moveToReview(approval)).toMatchObject({ success: true, moved: false });
+			expect(writes).toEqual([]);
+		}
+	});
+
+	it('sends nothing unless it is the deciding approval', async () => {
+		const { terrain, writes } = await siaTerrain(plan(), sia([]));
+		const service = new ApprovalsService({ terrain, profiles: leaderProfiles() } as never);
+		const [approval] = await service.pending('unit-1');
+		expect(await service.moveToReview(approval)).toMatchObject({ success: false, moved: false });
+		expect(writes).toEqual([]);
+	});
+
+	it('says so when Terrain won’t switch to the youth', async () => {
+		const { terrain, writes } = await signedInTerrain({
+			profiles: leaderProfiles(),
+			members: [],
+			records: { m1: { special_interest_area: [plan()] } },
+			submissions: [sia()],
+			override: (call) => (call.url.endsWith('/assume-profiles') ? { status: 403 } : undefined)
+		});
+		const service = new ApprovalsService({ terrain, profiles: leaderProfiles() } as never);
+		const [approval] = await service.pending('unit-1');
+		expect(await service.moveToReview(approval)).toMatchObject({
+			success: false,
+			status: 403,
+			moved: false
+		});
+		expect(writes).toEqual([]);
 	});
 });
 
