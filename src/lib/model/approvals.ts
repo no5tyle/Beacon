@@ -8,8 +8,10 @@ export interface PendingApproval {
 	submissionId: string;
 	achievementId: string;
 	achievementType: string;
-	/** e.g. "OAS Bushwalking 3", "Milestone 2", "Intro To Section" */
+	/** e.g. "OAS Bushwalking 3", "Milestone 2", "Intro To Section", or a special interest area's area */
 	achievementName: string;
+	/** A special interest area's project name, e.g. "Bracelet making business", once read from the youth's record */
+	projectName: string;
 	memberId: string;
 	memberName: string;
 	/** "Review" (Unit Council sign off) or "Award" */
@@ -89,6 +91,7 @@ export function pendingApprovals(results: readonly TerrainSubmission[]): Pending
 				achievementId: r.achievement.id,
 				achievementType: r.achievement.type,
 				achievementName: achievementName(r.achievement),
+				projectName: '',
 				memberId: r.member.id,
 				memberName: `${r.member.first_name ?? ''} ${r.member.last_name ?? ''}`.trim(),
 				submissionType: titleCase(r.submission.type ?? ''),
@@ -100,6 +103,29 @@ export function pendingApprovals(results: readonly TerrainSubmission[]): Pending
 			})),
 		asc((a) => Date.parse(a.submittedOn) || 0)
 	);
+}
+
+/** What it's called on its card: a special interest area's project name, otherwise the achievement's */
+export const approvalTitle = (approval: PendingApproval) =>
+	approval.projectName || approval.achievementName;
+
+/** Under the title: a special interest area's area, when the project name is the title */
+export const approvalSubtitle = (approval: PendingApproval) =>
+	approval.projectName ? approval.achievementName : '';
+
+/** Adds special interest area project names from the youth's records, matched by achievement id */
+export function withProjectNames(
+	list: readonly PendingApproval[],
+	records: readonly TerrainAchievement[]
+): PendingApproval[] {
+	const names = new Map(
+		records.map((r) => [r.id, String(r.answers?.project_name ?? '').trim()] as const)
+	);
+	return list.map((a) => {
+		const projectName =
+			a.achievementType === 'special_interest_area' ? names.get(a.achievementId) : '';
+		return projectName ? { ...a, projectName } : a;
+	});
 }
 
 /** Whether Beacon can send this leader's approval: a review Terrain lets them action, not an award */

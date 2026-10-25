@@ -8,6 +8,7 @@ import {
 	mayMoveToReview,
 	moveToReviewBody,
 	pendingApprovals,
+	withProjectNames,
 	type DecidedSubmission,
 	type PendingApproval,
 	type Voter
@@ -18,9 +19,24 @@ import type { BeaconContext } from './context.js';
 export class ApprovalsService {
 	constructor(private readonly context: BeaconContext) {}
 
-	/** Submissions in the unit waiting for the Unit Council, oldest first */
+	/**
+	 * Submissions in the unit waiting for the Unit Council, oldest first. Terrain's list gives a special
+	 * interest area only its area, so each youth's projects are read for their names, as Progress reads them
+	 */
 	async pending(unitId: string): Promise<PendingApproval[]> {
-		return pendingApprovals(await this.context.terrain.unitSubmissions(unitId, 'pending'));
+		const list = pendingApprovals(await this.context.terrain.unitSubmissions(unitId, 'pending'));
+		const youth = [
+			...new Set(
+				list.filter((a) => a.achievementType === 'special_interest_area').map((a) => a.memberId)
+			)
+		];
+		// A name that can't be read leaves the area as the title
+		const records = await Promise.all(
+			youth.map((memberId) =>
+				this.context.terrain.memberAchievements(memberId, 'special_interest_area').catch(() => [])
+			)
+		);
+		return withProjectNames(list, records.flat());
 	}
 
 	/** Submissions the Unit Council has finished with, most recently decided first */

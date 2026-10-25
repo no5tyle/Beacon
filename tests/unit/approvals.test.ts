@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
 	achievementName,
+	approvalSubtitle,
+	approvalTitle,
 	decidedSubmissions,
 	decidedWithin,
 	hasVoted,
@@ -456,6 +458,73 @@ describe('showing what the leader just did', () => {
 		const shown = withActioned([award], done([['b', { action: 'done', wasAward: false }]]), sam);
 		expect(shown.list).toEqual([award]);
 		expect(shown.lagging).toEqual([]);
+	});
+});
+
+describe('special interest area project names', () => {
+	const sia = (id: string, member: [string, string, string]) =>
+		submission(id, {
+			type: 'special_interest_area',
+			meta: { sia_area: 'sia_art_literature' },
+			member
+		});
+	const project = (id: string, name: string): TerrainAchievement => ({
+		id,
+		type: 'special_interest_area',
+		status: 'draft_review',
+		answers: { project_name: name }
+	});
+
+	it('names a project card for the project, with its area underneath, and others as before', async () => {
+		const { terrain, calls } = await signedInTerrain({
+			profiles: leaderProfiles(),
+			members: [],
+			records: {
+				m1: { special_interest_area: [project('ach-sp', ' Bracelet making business ')] }
+			},
+			submissions: [
+				sia('sp', ['m1', 'Ava', 'Nguyen']),
+				sia('sq', ['m2', 'Liam', 'Smith']),
+				submission('o')
+			]
+		});
+		const service = new ApprovalsService({ terrain, profiles: leaderProfiles() } as never);
+		const list = await service.pending('unit-1');
+		const byId = (id: string) => list.find((a) => a.submissionId === id)!;
+
+		expect([approvalTitle(byId('sp')), approvalSubtitle(byId('sp'))]).toEqual([
+			'Bracelet making business',
+			'Art Literature'
+		]);
+		// No record to name it from: the area stays the title
+		expect([approvalTitle(byId('sq')), approvalSubtitle(byId('sq'))]).toEqual([
+			'Art Literature',
+			''
+		]);
+		expect([approvalTitle(byId('o')), approvalSubtitle(byId('o'))]).toEqual([
+			'OAS Bushwalking 3',
+			''
+		]);
+		// Only youth with a project waiting are read, once each
+		const reads = calls
+			.filter((c) => c.url.includes('type=special_interest_area'))
+			.map((c) => c.url);
+		expect(reads).toHaveLength(2);
+		expect(reads.some((u) => u.includes('/members/m1/'))).toBe(true);
+	});
+
+	it('still lists everything when a youth’s projects can’t be read', async () => {
+		const { terrain } = await signedInTerrain({
+			profiles: leaderProfiles(),
+			members: [],
+			records: {},
+			submissions: [sia('sp', ['m1', 'Ava', 'Nguyen'])],
+			override: (call) =>
+				call.url.includes('type=special_interest_area') ? { status: 500 } : undefined
+		});
+		const service = new ApprovalsService({ terrain, profiles: leaderProfiles() } as never);
+		const [item] = await service.pending('unit-1');
+		expect(approvalTitle(item)).toBe('Art Literature');
 	});
 });
 
