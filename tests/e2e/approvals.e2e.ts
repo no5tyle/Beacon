@@ -7,18 +7,24 @@ test('lists what is waiting for the Unit Council, with who has voted', async ({ 
 	await navigate(page, 'approvals/');
 	await expect(page.locator('h2')).toHaveText('Approvals');
 	await expect(page.locator('.summary')).toHaveText(
-		'Mt Example Scouts · 5 waiting for the Unit Council'
+		'Mt Example Scouts · 4 to approve · 1 to award'
 	);
-	// Grouped by youth, each card named for what it is
-	await expect(page.locator('.group-heading')).toHaveText([
+	// Reviews to approve, then awards, each grouped by youth and named for what it is
+	const toApprove = page.getByRole('region', { name: /^To approve/ });
+	const toAward = page.getByRole('region', { name: /^Ready to award/ });
+	await expect(toApprove.locator('.group-heading')).toHaveText([
 		'Ava Nguyen (1)',
 		'Liam Smith (1)',
 		'Mia Brown (1)',
-		'Noah Jones (2)'
+		'Noah Jones (1)'
 	]);
-	await expect(
-		page.getByRole('region', { name: 'Noah Jones' }).locator('.approval-card .strong')
-	).toHaveText(['OAS Bushcraft 1', 'Intro To Section']);
+	await expect(toAward.locator('.group-heading')).toHaveText(['Noah Jones (1)']);
+	await expect(toApprove.getByRole('region', { name: 'Noah Jones' }).locator('.strong')).toHaveText(
+		'Intro To Section'
+	);
+	await expect(toAward.getByRole('region', { name: 'Noah Jones' }).locator('.strong')).toHaveText(
+		'OAS Bushcraft 1'
+	);
 	const milestone = page.getByRole('region', { name: 'Liam Smith' }).locator('.approval-card');
 	await expect(milestone).toContainText('Review · submitted 3 days ago');
 	await expect(milestone).toContainText('1 of 2 approved (Kim Leader)');
@@ -36,13 +42,13 @@ test('lists what is waiting for the Unit Council, with who has voted', async ({ 
 	await expect(page.locator('.approval-card')).toHaveCount(1);
 	await page.getByRole('button', { name: 'Everyone' }).click();
 	await page.selectOption('#groupBy', 'achievement');
-	await expect(page.locator('.group-heading')).toHaveText([
+	await expect(toApprove.locator('.group-heading')).toHaveText([
 		'Adventure Sport (1)',
 		'Intro To Section (1)',
 		'Milestone 1 (1)',
-		'OAS Bushcraft 1 (1)',
 		'OAS Camping 1 (1)'
 	]);
+	await expect(toAward.locator('.group-heading')).toHaveText(['OAS Bushcraft 1 (1)']);
 	await expect(
 		page.getByRole('region', { name: 'Milestone 1' }).locator('.approval-card .strong')
 	).toHaveText('Liam Smith');
@@ -87,7 +93,7 @@ test('the second approval sends it through, and it leaves the list', async ({ pa
 		page.getByRole('region', { name: 'Liam Smith' }).locator('.approval-card')
 	).toHaveCount(0);
 	await expect(page.locator('.summary')).toHaveText(
-		'Mt Example Scouts · 4 waiting for the Unit Council'
+		'Mt Example Scouts · 3 to approve · 1 to award'
 	);
 });
 
@@ -209,7 +215,7 @@ test('what the leader did shows at once, even while Terrain is slow to list it',
 	await liam.getByRole('button', { name: 'Yes, approve' }).click();
 	await expect(liam).toHaveCount(0);
 	await expect(page.locator('.summary')).toHaveText(
-		'Mt Example Scouts · 4 waiting for the Unit Council'
+		'Mt Example Scouts · 3 to approve · 1 to award'
 	);
 	// Terrain is checked again until it catches up
 	await expect
@@ -226,10 +232,12 @@ test('an award leaves the list at once, even while Terrain is slow to list it', 
 	await logIn(page);
 	await navigate(page, 'approvals/');
 	const award = page.locator('.approval-card', { hasText: 'Award ·' });
-	await award.getByRole('button', { name: 'Award' }).click();
-	await award.getByRole('button', { name: 'Yes, award' }).click();
+	await page.getByLabel('Award OAS Bushcraft 1 to Noah Jones').check();
+	await page.getByRole('button', { name: /^Award 1$/ }).click();
+	await page.getByRole('button', { name: 'Yes, award' }).click();
 	await expect(page.locator('.alert-success')).toHaveText('Awarded OAS Bushcraft 1 to Noah Jones.');
 	await expect(award).toHaveCount(0);
+	await expect(page.getByRole('region', { name: /^Ready to award/ })).toHaveCount(0);
 });
 
 test('the deciding approval of a special interest area plan can move it on to the review', async ({
@@ -313,15 +321,18 @@ test('awards after confirming the date, sending what Terrain’s Approvals tab s
 	const terrain = await fakeTerrain(page);
 	await logIn(page);
 	await navigate(page, 'approvals/');
-	const award = page.locator('.approval-card', { hasText: 'Award ·' });
-	await expect(page.getByRole('region', { name: 'Noah Jones' })).toContainText('Award · submitted');
+	const section = page.getByRole('region', { name: /^Ready to award/ });
+	await expect(section).toContainText('Approved by the Unit Council.');
+	const award = section.locator('.approval-card');
 	await expect(award).toContainText('Award · submitted 2 days ago');
-	await expect(award).toContainText('Approved by the Unit Council and ready to award.');
 	await expect(award).not.toContainText('of 2 approved');
 	await expect(award.getByRole('button', { name: 'Approve' })).toHaveCount(0);
+	// Nothing ticked, nothing to award
+	await expect(section.getByRole('button', { name: /^Award/ })).toBeDisabled();
 
-	await award.getByRole('button', { name: 'Award' }).click();
-	const confirm = award.locator('.confirm-box');
+	await section.getByLabel('Award OAS Bushcraft 1 to Noah Jones').check();
+	await section.getByRole('button', { name: 'Award 1' }).click();
+	const confirm = section.locator('.confirm-box');
 	await expect(confirm).toContainText('Award OAS Bushcraft 1 to Noah Jones?');
 	const date = confirm.getByLabel('Date awarded');
 	const today = await page.evaluate(() => {
@@ -333,9 +344,9 @@ test('awards after confirming the date, sending what Terrain’s Approvals tab s
 	await confirm.getByRole('button', { name: 'Cancel' }).click();
 	expect(terrain.writes).toEqual([]);
 
-	await award.getByRole('button', { name: 'Award' }).click();
-	await award.getByLabel('Date awarded').fill('2026-01-15');
-	await award.getByRole('button', { name: 'Yes, award' }).click();
+	await section.getByRole('button', { name: 'Award 1' }).click();
+	await confirm.getByLabel('Date awarded').fill('2026-01-15');
+	await confirm.getByRole('button', { name: 'Yes, award' }).click();
 	await expect(page.locator('.alert-success')).toHaveText('Awarded OAS Bushcraft 1 to Noah Jones.');
 	expect(terrain.writes).toEqual([
 		{
@@ -343,6 +354,44 @@ test('awards after confirming the date, sending what Terrain’s Approvals tab s
 			body: { outcome: 'awarded', date_awarded: '2026-01-15' }
 		}
 	]);
-	// Awarded, it leaves the list
-	await expect(page.locator('.approval-card', { hasText: 'Award ·' })).toHaveCount(0);
+	// Awarded, it leaves the list, and with nothing left to award so does the section
+	await expect(section).toHaveCount(0);
+	await expect(page.locator('.summary')).toHaveText('Mt Example Scouts · 4 to approve');
+});
+
+test('awards several together, on one date', async ({ page }) => {
+	const terrain = await fakeTerrain(page, { moreAwards: true });
+	await logIn(page);
+	await navigate(page, 'approvals/');
+	const section = page.getByRole('region', { name: /^Ready to award/ });
+	await expect(section.locator('.group-heading')).toHaveText([
+		'Liam Smith (1)',
+		'Mia Brown (1)',
+		'Noah Jones (1)'
+	]);
+	await section.getByRole('button', { name: 'Tick all' }).click();
+	await section.getByLabel('Award Milestone 1 to Liam Smith').uncheck();
+	await section.getByRole('button', { name: 'Award 2' }).click();
+	const confirm = section.locator('.confirm-box');
+	await expect(confirm).toContainText('Award these 2?');
+	await expect(confirm.locator('li')).toHaveText([
+		'OAS Camping 1, Mia Brown',
+		'OAS Bushcraft 1, Noah Jones'
+	]);
+	await confirm.getByLabel('Date awarded').fill('2026-10-01');
+	await confirm.getByRole('button', { name: 'Yes, award' }).click();
+	await expect(page.locator('.alert-success')).toHaveText('Awarded 2.');
+	expect(terrain.writes).toEqual([
+		{
+			request: 'POST achievements/submissions/sub-7/assessments',
+			body: { outcome: 'awarded', date_awarded: '2026-10-01' }
+		},
+		{
+			request: 'POST achievements/submissions/sub-5/assessments',
+			body: { outcome: 'awarded', date_awarded: '2026-10-01' }
+		}
+	]);
+	// Only the unticked one is left
+	await expect(section.locator('.group-heading')).toHaveText(['Liam Smith (1)']);
+	await expect(section.getByRole('button', { name: 'Tick all' })).toBeVisible();
 });

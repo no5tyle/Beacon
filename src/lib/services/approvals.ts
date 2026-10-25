@@ -110,6 +110,20 @@ export class ApprovalsService {
 		}
 	}
 
+	/**
+	 * Awards several on the same day, one after another, as handing out badges together does. Each has its
+	 * own result, so one Terrain refuses doesn't stop the rest
+	 */
+	async awardMany(
+		list: readonly PendingApproval[],
+		dateAwarded: string
+	): Promise<{ approval: PendingApproval; result: TerrainWriteResult }[]> {
+		const results: { approval: PendingApproval; result: TerrainWriteResult }[] = [];
+		for (const approval of list)
+			results.push({ approval, result: await this.award(approval, dateAwarded) });
+		return results;
+	}
+
 	private async send(write: () => Promise<TerrainWriteResult>): Promise<TerrainWriteResult> {
 		try {
 			return await write();

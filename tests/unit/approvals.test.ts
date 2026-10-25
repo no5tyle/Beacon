@@ -288,6 +288,36 @@ describe('awards', () => {
 		expect(writes).toEqual([]);
 	});
 
+	it('awards several on one date, each with its own result', async () => {
+		const awardOf = (id: string, write = true) => {
+			const item = submission(id, { votes: [], write });
+			item.submission.type = 'award';
+			return item;
+		};
+		const { terrain, writes } = await signedInTerrain({
+			profiles: leaderProfiles(),
+			members: [],
+			records: {},
+			submissions: [awardOf('a1'), awardOf('a2', false), awardOf('a3')],
+			override: (call) =>
+				call.url.endsWith('/submissions/a3/assessments') ? { status: 500 } : undefined
+		});
+		const service = new ApprovalsService({ terrain, profiles: leaderProfiles() } as never);
+		const list = await service.pending('unit-1');
+
+		const results = await service.awardMany(list, '2020-10-25');
+
+		expect(
+			results.map((r) => [r.approval.submissionId, r.result.success, r.result.status])
+		).toEqual([
+			['a1', true, 204],
+			['a2', false, 0],
+			['a3', false, 500]
+		]);
+		// The one Terrain doesn't let the leader award isn't sent
+		expect(writes.map((w) => w.url)).toEqual([`${ACHIEVEMENTS_ADDRESS}submissions/a1/assessments`]);
+	});
+
 	it('takes award dates as real days up to today, in the leader’s time zone', () => {
 		const now = new Date(2026, 9, 25, 23, 30);
 		expect(localDate(now)).toBe('2026-10-25');

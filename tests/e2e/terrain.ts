@@ -11,6 +11,8 @@ export interface FakeOptions {
 	youth?: boolean;
 	/** Ava's special interest area plan (sub-3) has Kim's approval, and waits for this leader's */
 	siaPlan?: boolean;
+	/** Two more awards: Liam's Milestone 1 and Mia's OAS Camping 1 */
+	moreAwards?: boolean;
 	/** After a vote or award, this many reads of the approvals list still show it as it was, as Terrain can */
 	staleReads?: number;
 }
@@ -338,6 +340,20 @@ export async function fakeTerrain(page: Page, options: FakeOptions = {}): Promis
 	// The approvals list as it was before the last vote, while Terrain is slow to show it
 	let stale: typeof approvals | null = null;
 	let staleReads = 0;
+	if (options.moreAwards) {
+		const award = approvals.find((a) => a.submission.id === 'sub-5')!;
+		const like = (id: string, memberId: string, from: string, first: string, last: string) => {
+			const copy = structuredClone(award);
+			copy.submission.id = id;
+			copy.achievement = structuredClone(
+				approvals.find((a) => a.submission.id === from)!.achievement
+			);
+			copy.member = { id: memberId, first_name: first, last_name: last };
+			approvals.push(copy);
+		};
+		like('sub-6', `${units[0].id}-m1`, 'sub-1', 'Liam', 'Smith');
+		like('sub-7', `${units[0].id}-m2`, 'sub-2', 'Mia', 'Brown');
+	}
 	if (options.siaPlan) {
 		const plan = approvals.find((a) => a.submission.id === 'sub-3')!;
 		plan.submission.actioned_by = [
