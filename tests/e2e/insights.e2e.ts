@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { fakeTerrain, logIn, navigate } from './terrain.js';
 
-test('analyses the unit as soon as it opens', async ({ page }) => {
+test('analyses the unit as soon as it opens', async ({ page, isMobile }) => {
 	await fakeTerrain(page);
 	await logIn(page);
 	await navigate(page, 'insights/');
@@ -17,8 +17,14 @@ test('analyses the unit as soon as it opens', async ({ page }) => {
 		page.getByRole('heading', { name: 'Most common missing requirements' })
 	).toBeVisible();
 
-	// Priority youth: Ava moves up soon
-	await page.getByRole('tab', { name: /Priority/ }).click();
+	// Priority youth: Ava moves up soon. Phones have room only for "Priority"
+	const priority = page.getByRole('tab', { name: /Priority/ });
+	await expect(priority).toHaveText(
+		isMobile ? /^\s*Priority\s+1\s*$/ : /^\s*Priority youth\s+1\s*$/,
+		// As it shows on screen, so a lost space or the hidden word on phones is caught
+		{ useInnerText: true }
+	);
+	await priority.click();
 	await expect(page.locator('.candidate-card')).toHaveCount(1);
 	await expect(page.locator('.candidate-card h4')).toHaveText('Ava Nguyen');
 	await expect(page.locator('.task-card').first()).toBeVisible();

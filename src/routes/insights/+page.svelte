@@ -463,7 +463,7 @@
 				role="tab"
 				aria-selected={tab === 'moving-up'}
 				onclick={() => (tab = 'moving-up')}
-				>Priority<span class="wide-only"> youth</span>
+				>Priority<span class="wide-only">{' youth'}</span>
 				<span class="badge">{report.moveUpCandidates.length}</span></button
 			>
 			<button
