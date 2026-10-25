@@ -210,6 +210,7 @@ type Vote = {
 	member_first_name: string;
 	member_last_name: string;
 	outcome: string;
+	time?: string;
 };
 
 /** The unit's approvals list: what's waiting for the Unit Council, and who has voted */
@@ -231,7 +232,14 @@ function submissions(unitId: string) {
 		write = true
 	) => ({
 		achievement: { id: `ach-${id}`, ...achievement },
-		submission: { id, type: 'review', date, status: 'pending', actioned_by: votes },
+		submission: {
+			id,
+			type: 'review',
+			date,
+			status: 'pending',
+			outcome: undefined as string | undefined,
+			actioned_by: votes
+		},
 		unit_permissions: { write },
 		member: {
 			id: `${unitId}-m${memberIndex}`,
@@ -239,6 +247,14 @@ function submissions(unitId: string) {
 			last_name: youth[memberIndex].name.split(' ')[1]
 		}
 	});
+	const decided = <T extends { submission: { status: string; outcome?: string } }>(
+		submission: T,
+		outcome: string
+	) => {
+		submission.submission.status = 'finalised';
+		submission.submission.outcome = outcome;
+		return submission;
+	};
 	return [
 		item('sub-1', 1, { type: 'milestone', achievement_meta: { stage: 1 } }, days(3), [kim]),
 		item(
@@ -258,7 +274,37 @@ function submissions(unitId: string) {
 			[sam]
 		),
 		// Terrain doesn't let this leader action it
-		item('sub-4', 3, { type: 'intro_section' }, days(0), [], false)
+		item('sub-4', 3, { type: 'intro_section' }, days(0), [], false),
+		// Finished with: two recent, and one from long ago
+		decided(
+			item(
+				'old-1',
+				0,
+				{
+					type: 'outdoor_adventure_skill',
+					achievement_meta: { stream: 'bushwalking', branch: 'bushwalking', stage: 3 }
+				},
+				days(14),
+				[
+					{ ...kim, time: days(12) },
+					{ ...sam, time: days(10) }
+				]
+			),
+			'approved'
+		),
+		decided(
+			item('old-2', 1, { type: 'milestone', achievement_meta: { stage: 2 } }, days(30), [
+				{ ...kim, outcome: 'feedback', time: days(29) }
+			]),
+			'feedback'
+		),
+		decided(
+			item('old-3', 2, { type: 'intro_scouting' }, days(400), [
+				{ ...kim, time: days(398) },
+				{ ...sam, time: days(398) }
+			]),
+			'approved'
+		)
 	];
 }
 
@@ -346,10 +392,13 @@ export async function fakeTerrain(page: Page, options: FakeOptions = {}): Promis
 					member_id: 'leader-1',
 					member_first_name: 'Sam',
 					member_last_name: 'Leader',
-					outcome: String(body.outcome)
+					outcome: String(body.outcome),
+					time: new Date().toISOString()
 				});
-				if (approval.submission.actioned_by.filter((v) => v.outcome === 'approved').length >= 2)
+				if (approval.submission.actioned_by.filter((v) => v.outcome === 'approved').length >= 2) {
 					approval.submission.status = 'finalised';
+					approval.submission.outcome = 'approved';
+				}
 				return json(route, {}, 204);
 			}
 			const created = url.pathname.match(/^\/members\/([^/]+)\/achievements$/);

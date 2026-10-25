@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
 	achievementName,
+	decidedSubmissions,
+	decidedWithin,
 	hasVoted,
+	outcomeDisplay,
 	pendingApprovals,
 	submittedDisplay
 } from '#lib/model/approvals.js';
@@ -211,5 +214,77 @@ describe('the badge for approvals waiting for the leader', () => {
 		);
 		await badge.loadIfNeeded('unit-1');
 		expect(badge).toMatchObject({ unitId: '', waiting: 0 });
+	});
+});
+
+describe('the history', () => {
+	const finalised = (
+		id: string,
+		outcome: string,
+		votes: [string, string, string, string][],
+		date = '2026-10-01T00:00:00Z'
+	): TerrainSubmission => {
+		const item = submission(id, { status: 'finalised', date });
+		item.submission.outcome = outcome;
+		item.submission.actioned_by = votes.map(([member_id, name, voteOutcome, time]) => ({
+			member_id,
+			member_first_name: name.split(' ')[0],
+			member_last_name: name.split(' ')[1],
+			outcome: voteOutcome,
+			time
+		}));
+		return item;
+	};
+
+	it('keeps only finalised submissions, most recently decided first, dated by the last vote', () => {
+		const list = decidedSubmissions([
+			finalised('a', 'approved', [
+				['l1', 'Sam Leader', 'approved', '2026-10-05T10:00:00Z'],
+				['l2', 'Kim Leader', 'approved', '2026-10-06T10:00:00Z']
+			]),
+			finalised('b', 'feedback', [['l2', 'Kim Leader', 'feedback', '2026-10-20T10:00:00Z']]),
+			// No vote times: the submission's own date stands in
+			finalised('c', 'approved', [], '2026-10-10T00:00:00Z'),
+			submission('pending')
+		]);
+		expect(list.map((h) => [h.submissionId, h.decidedOn])).toEqual([
+			['b', '2026-10-20T10:00:00.000Z'],
+			['c', '2026-10-10T00:00:00Z'],
+			['a', '2026-10-06T10:00:00.000Z']
+		]);
+		expect(list[2]).toMatchObject({
+			achievementName: 'OAS Bushwalking 3',
+			memberName: 'Ava Nguyen',
+			outcome: 'approved',
+			approvedBy: [
+				{ memberId: 'l1', name: 'Sam Leader' },
+				{ memberId: 'l2', name: 'Kim Leader' }
+			]
+		});
+		expect(list[0].improveBy).toEqual([{ memberId: 'l2', name: 'Kim Leader' }]);
+	});
+
+	it('names outcomes, and tells what is recent', () => {
+		expect(outcomeDisplay('approved')).toBe('Approved');
+		expect(outcomeDisplay('feedback')).toBe('Needs improvement');
+		expect(outcomeDisplay('withdrawn')).toBe('Withdrawn');
+		expect(outcomeDisplay('')).toBe('Finalised');
+		const [item] = decidedSubmissions([finalised('a', 'approved', [], '2026-08-01T00:00:00Z')]);
+		expect(decidedWithin(item, 90, new Date('2026-10-25T00:00:00Z'))).toBe(true);
+		expect(decidedWithin(item, 30, new Date('2026-10-25T00:00:00Z'))).toBe(false);
+	});
+
+	it('loads the unit’s finalised submissions from Terrain', async () => {
+		const { terrain, calls } = await signedInTerrain({
+			profiles: leaderProfiles(),
+			members: [],
+			records: {},
+			submissions: [finalised('a', 'approved', [])]
+		});
+		const service = new ApprovalsService({ terrain, profiles: leaderProfiles() } as never);
+		expect((await service.history('unit-1')).map((h) => h.submissionId)).toEqual(['a']);
+		expect(calls.map((c) => c.url)).toEqual([
+			`${ACHIEVEMENTS_ADDRESS}units/unit-1/submissions?status=finalised`
+		]);
 	});
 });

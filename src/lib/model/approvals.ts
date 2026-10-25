@@ -111,3 +111,58 @@ export function submittedDisplay(submittedOn: string, now = new Date()): string 
 	if (days < 14) return `${days} days ago`;
 	return submitted.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
 }
+
+/** A submission the Unit Council has finished with, for the history */
+export interface DecidedSubmission {
+	submissionId: string;
+	achievementName: string;
+	memberId: string;
+	memberName: string;
+	submissionType: string;
+	/** As Terrain gives it, e.g. "approved" */
+	outcome: string;
+	submittedOn: string;
+	/** When the last vote was cast, or the submission's own date if Terrain gives no vote times */
+	decidedOn: string;
+	approvedBy: Voter[];
+	improveBy: Voter[];
+}
+
+/** Days of history shown before "Show older" */
+export const RECENT_DAYS = 90;
+
+const time = (value: string | undefined) => (value ? Date.parse(value) || 0 : 0);
+
+/** The unit's finalised submissions, most recently decided first */
+export function decidedSubmissions(results: readonly TerrainSubmission[]): DecidedSubmission[] {
+	return results
+		.filter((r) => r.submission.status === 'finalised')
+		.map((r) => {
+			const lastVote = Math.max(0, ...(r.submission.actioned_by ?? []).map((a) => time(a.time)));
+			return {
+				submissionId: r.submission.id,
+				achievementName: achievementName(r.achievement),
+				memberId: r.member.id,
+				memberName: `${r.member.first_name ?? ''} ${r.member.last_name ?? ''}`.trim(),
+				submissionType: titleCase(r.submission.type ?? ''),
+				outcome: r.submission.outcome ?? '',
+				submittedOn: r.submission.date,
+				decidedOn: lastVote > 0 ? new Date(lastVote).toISOString() : r.submission.date,
+				approvedBy: voters(r, ['approved']),
+				improveBy: voters(r, IMPROVE_OUTCOMES)
+			};
+		})
+		.sort((a, b) => time(b.decidedOn) - time(a.decidedOn));
+}
+
+/** Decided within the last few days, e.g. the last 90 */
+export const decidedWithin = (item: DecidedSubmission, days: number, now = new Date()) =>
+	now.getTime() - time(item.decidedOn) <= days * 86_400_000;
+
+/** e.g. "Approved", or "Needs improvement" for the other outcomes Terrain records */
+export const outcomeDisplay = (outcome: string) =>
+	outcome === 'approved'
+		? 'Approved'
+		: IMPROVE_OUTCOMES.includes(outcome)
+			? 'Needs improvement'
+			: titleCase(outcome.replaceAll('_', ' ')) || 'Finalised';

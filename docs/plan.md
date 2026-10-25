@@ -206,7 +206,7 @@ Differences from the current app that are on purpose, so they aren't reported as
 
 New in this app:
 
-- Approvals is back, under More for leaders: the unit's submissions waiting for the Unit Council, filtered by youth and grouped by achievement or youth, with an Approve button (after a confirm) where Terrain says the leader may approve. Asking for improvement will follow once Terrain's request for it has been captured.
+- Approvals is back, under More for leaders: the unit's submissions waiting for the Unit Council, filtered by youth and grouped by achievement or youth, with an Approve button (after a confirm) where Terrain says the leader may approve. A History tab lists what the Unit Council has finished with: the last 90 days, and older on request. Asking for improvement will follow once Terrain's request for it has been captured.
 - Tapping a stage in the Insights heatmap opens that stage's analysis: its statements ranked for youth who have it as their next stage (finishing the stage and priority youth count most), grouped by theme, with a patrol filter and "Sign these off", which opens Record OAS with the statements and youth picked.
 
 ## How contributing will work

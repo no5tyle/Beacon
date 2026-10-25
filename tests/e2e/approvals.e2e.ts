@@ -123,3 +123,56 @@ test('no badge when nothing waits for the leader', async ({ page }) => {
 	await logIn(page);
 	await expect(page.locator('.tab-badge, .nav-badge')).toHaveCount(0);
 });
+
+test('History lists what the Unit Council has finished with, most recent first', async ({
+	page
+}) => {
+	const terrain = await fakeTerrain(page);
+	await logIn(page);
+	await navigate(page, 'approvals/');
+	await expect(page.getByRole('tab', { name: /Waiting/ })).toContainText('4');
+	await page.getByRole('tab', { name: 'History' }).click();
+	await expect
+		.poll(() => terrain.requests.some((r) => r.includes('submissions?status=finalised')))
+		.toBe(true);
+
+	const cards = page.locator('.history-card');
+	await expect(cards).toHaveCount(2);
+	await expect(cards.nth(0)).toContainText('Ava Nguyen');
+	await expect(cards.nth(0)).toContainText('Approved');
+	await expect(cards.nth(0)).toContainText('OAS Bushwalking 3');
+	await expect(cards.nth(0)).toContainText(/decided 10 days ago · submitted \d{1,2} \w+ \d{4}/);
+	await expect(cards.nth(0)).toContainText('Approved by Kim Leader, Sam Leader');
+	await expect(cards.nth(1)).toContainText('Liam Smith');
+	await expect(cards.nth(1)).toContainText('Needs improvement');
+	await expect(cards.nth(1)).toContainText('Improvement asked by Kim Leader');
+
+	// Older than 90 days only on request
+	await page.getByRole('button', { name: 'Show older (1)' }).click();
+	await expect(cards).toHaveCount(3);
+	await expect(cards.nth(2)).toContainText('Mia Brown');
+	await expect(cards.nth(2)).toContainText('Intro To Scouting');
+
+	await page.getByRole('button', { name: 'Liam Smith' }).click();
+	await expect(cards).toHaveCount(1);
+});
+
+test('something approved through shows in the History', async ({ page }) => {
+	await fakeTerrain(page);
+	await logIn(page);
+	await navigate(page, 'approvals/');
+	await page.getByRole('tab', { name: 'History' }).click();
+	await expect(page.locator('.history-card')).toHaveCount(2);
+
+	await page.getByRole('tab', { name: /Waiting/ }).click();
+	const card = page.locator('.approval-card', { hasText: 'Liam Smith' });
+	await card.getByRole('button', { name: 'Approve' }).click();
+	await card.getByRole('button', { name: 'Yes, approve' }).click();
+	await expect(page.locator('.alert-success')).toHaveText('Approved Milestone 1 for Liam Smith.');
+
+	await page.getByRole('tab', { name: 'History' }).click();
+	const first = page.locator('.history-card').first();
+	await expect(first).toContainText('Liam Smith');
+	await expect(first).toContainText('Milestone 1');
+	await expect(first).toContainText('decided today');
+});

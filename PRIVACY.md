@@ -26,7 +26,7 @@ Depending on the page you use, Beacon loads:
 - **Your unit's members:** names, member numbers, dates of birth, patrols, roles and Unit Council membership.
 - **Each youth member's achievements:** Outdoor Adventure Skills stages and their statements, milestones and the activities counted towards them, introductions, special interest area projects, and peak award parts.
 - **Logbook totals**, such as kilometres hiked and nights camped.
-- **Your unit's approvals list:** submissions waiting for the Unit Council, with the youth's name, the achievement, when it was submitted, and the names of Unit Council members who have voted on it.
+- **Your unit's approvals list:** submissions waiting for the Unit Council, and on the History tab those it has finished with, each with the youth's name, the achievement, when it was submitted and decided, the outcome, and the names of Unit Council members who voted on it.
 - **Terrain's public OAS templates:** the statements and explanations for each stage. These need no login and contain nothing about any member.
 
 All of this goes from Terrain straight to your browser. Beacon uses it to show its pages, and forgets it when you close or reload Beacon, log out, or choose a different unit. Beacon never sends it anywhere except back to Terrain, as described in the next section.
