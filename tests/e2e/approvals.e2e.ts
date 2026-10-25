@@ -37,10 +37,8 @@ test('lists what is waiting for the Unit Council, with who has voted', async ({ 
 		page.getByRole('region', { name: 'Noah Jones' }).getByRole('button', { name: 'Approve' })
 	).toHaveCount(0);
 
-	// Filtered by youth, and grouped by youth instead
-	await page.getByRole('button', { name: 'Mia Brown' }).click();
-	await expect(page.locator('.approval-card')).toHaveCount(1);
-	await page.getByRole('button', { name: 'Everyone' }).click();
+	// No youth filter, just a choice of grouping
+	await expect(page.getByRole('button', { name: 'Everyone' })).toHaveCount(0);
 	await page.selectOption('#groupBy', 'achievement');
 	await expect(toApprove.locator('.group-heading')).toHaveText([
 		'Adventure Sport (1)',
@@ -172,9 +170,6 @@ test('History lists what the Unit Council has finished with, most recent first',
 	await expect(cards).toHaveCount(3);
 	await expect(cards.nth(2)).toContainText('Mia Brown');
 	await expect(cards.nth(2)).toContainText('Intro To Scouting');
-
-	await page.getByRole('button', { name: 'Liam Smith' }).click();
-	await expect(cards).toHaveCount(1);
 });
 
 test('something approved through shows in the History', async ({ page }) => {
