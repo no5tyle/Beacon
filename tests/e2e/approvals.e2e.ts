@@ -86,25 +86,26 @@ test('youth members don’t see Approvals', async ({ page, isMobile }) => {
 	await expect(page.getByRole('link', { name: 'Approvals' })).toHaveCount(0);
 });
 
-test('a badge on More and Approvals shows what waits for the leader’s vote', async ({
+test('a badge on More and Approvals shows what waits for the leader’s vote or award', async ({
 	page,
 	isMobile
 }) => {
 	await fakeTerrain(page);
 	await logIn(page);
-	// Liam's milestone and Mia's camping: Ava's is voted on already, and Noah's isn't this leader's
+	// Liam's milestone, Mia's camping and Noah's bushcraft award: Ava's is voted on already, and Noah's intro
+	// isn't this leader's
 	if (isMobile) {
-		const more = page.getByRole('button', { name: 'More, 2 waiting' });
-		await expect(more.locator('.tab-badge')).toHaveText('2');
+		const more = page.getByRole('button', { name: 'More, 3 waiting' });
+		await expect(more.locator('.tab-badge')).toHaveText('3');
 		await more.click();
 		await expect(
 			page.locator('.more-item', { hasText: 'Approvals' }).locator('.nav-badge')
-		).toHaveText(/^2/);
+		).toHaveText(/^3/);
 		await page.locator('.more-item', { hasText: 'Approvals' }).click();
 	} else {
 		await expect(
 			page.locator('.side-link', { hasText: 'Approvals' }).locator('.nav-badge')
-		).toHaveText(/^2/);
+		).toHaveText(/^3/);
 		await navigate(page, 'approvals/');
 	}
 
@@ -112,11 +113,11 @@ test('a badge on More and Approvals shows what waits for the leader’s vote', a
 	await card.getByRole('button', { name: 'Approve' }).click();
 	await card.getByRole('button', { name: 'Yes, approve' }).click();
 	await expect(card).toContainText("You've voted on this one.");
-	if (isMobile) await expect(page.locator('.tab-badge')).toHaveText('1');
+	if (isMobile) await expect(page.locator('.tab-badge')).toHaveText('2');
 	else
 		await expect(
 			page.locator('.side-link', { hasText: 'Approvals' }).locator('.nav-badge')
-		).toHaveText(/^1/);
+		).toHaveText(/^2/);
 });
 
 test('no badge when nothing waits for the leader', async ({ page }) => {
@@ -178,7 +179,7 @@ test('something approved through shows in the History', async ({ page }) => {
 	await expect(first).toContainText('decided today');
 });
 
-test('items waiting to be awarded say to award them in Terrain, with no Approve', async ({
+test('awards after confirming the date, sending what Terrain’s Approvals tab sends', async ({
 	page
 }) => {
 	const terrain = await fakeTerrain(page);
@@ -187,8 +188,33 @@ test('items waiting to be awarded say to award them in Terrain, with no Approve'
 	const award = page.locator('.approval-card', { hasText: 'Award ·' });
 	await expect(award).toContainText('Noah Jones');
 	await expect(award).toContainText('Award · submitted 2 days ago');
-	await expect(award).toContainText('ready to award. Award it in Terrain for now.');
+	await expect(award).toContainText('Approved by the Unit Council and ready to award.');
 	await expect(award).not.toContainText('of 2 approved');
-	await expect(award.getByRole('button')).toHaveCount(0);
+	await expect(award.getByRole('button', { name: 'Approve' })).toHaveCount(0);
+
+	await award.getByRole('button', { name: 'Award' }).click();
+	const confirm = award.locator('.confirm-box');
+	await expect(confirm).toContainText('Award OAS Bushcraft 1 to Noah Jones?');
+	const date = confirm.getByLabel('Date awarded');
+	const today = await page.evaluate(() => {
+		const d = new Date();
+		const pad = (n: number) => String(n).padStart(2, '0');
+		return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+	});
+	await expect(date).toHaveValue(today);
+	await confirm.getByRole('button', { name: 'Cancel' }).click();
 	expect(terrain.writes).toEqual([]);
+
+	await award.getByRole('button', { name: 'Award' }).click();
+	await award.getByLabel('Date awarded').fill('2026-01-15');
+	await award.getByRole('button', { name: 'Yes, award' }).click();
+	await expect(page.locator('.alert-success')).toHaveText('Awarded OAS Bushcraft 1 to Noah Jones.');
+	expect(terrain.writes).toEqual([
+		{
+			request: 'POST achievements/submissions/sub-5/assessments',
+			body: { outcome: 'awarded', date_awarded: '2026-01-15' }
+		}
+	]);
+	// Awarded, it leaves the list
+	await expect(page.locator('.approval-card', { hasText: 'Award ·' })).toHaveCount(0);
 });

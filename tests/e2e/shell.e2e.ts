@@ -125,7 +125,7 @@ test.describe('phone', () => {
 		await logIn(page);
 		await page.locator('.tab-bar button', { hasText: 'More' }).click();
 		await expect(page.locator('.more-item')).toHaveText([
-			/^\s*Approvals 2 waiting for you\s*$/,
+			/^\s*Approvals 3 waiting for you\s*$/,
 			/^\s*Turn on logging\s*$/,
 			/^\s*Logout\s*$/
 		]);
@@ -154,7 +154,7 @@ test.describe('desktop', () => {
 				'Record OAS',
 				'Personal Progress',
 				'Reference',
-				'Approvals 2 waiting for you',
+				'Approvals 3 waiting for you',
 				'Turn on logging',
 				'Logout'
 			].map((name) => new RegExp(`^\\s*${name}\\s*$`))

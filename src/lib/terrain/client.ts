@@ -394,6 +394,19 @@ export class Terrain {
 		);
 	}
 
+	/**
+	 * Awards a submission the Unit Council has approved, sent as the leader, exactly as Terrain's Approvals
+	 * tab sends it: {"outcome":"awarded","date_awarded":"2026-10-25"}. The date is the award's own, as
+	 * YYYY-MM-DD. Any 2xx counts as done: Terrain's answer to it hasn't been captured
+	 */
+	awardSubmission(submissionId: string, dateAwarded: string): Promise<TerrainWriteResult> {
+		return this.write(
+			'POST',
+			`${ACHIEVEMENTS_ADDRESS}submissions/${pathPart(submissionId)}/assessments`,
+			{ outcome: 'awarded', date_awarded: dateAwarded }
+		);
+	}
+
 	/** Starts a youth's record for a stage they haven't started (POST, answered with 200) */
 	createAchievement(memberId: string, body: object): Promise<TerrainWriteResult> {
 		return this.write(

@@ -404,6 +404,13 @@ export async function fakeTerrain(page: Page, options: FakeOptions = {}): Promis
 			if (assessed) {
 				const approval = approvals.find((a) => a.submission.id === assessed[1]);
 				if (!approval || !approval.unit_permissions.write) return json(route, {}, 403);
+				// Awarding finalises it straight away
+				if (body.outcome === 'awarded') {
+					if (approval.submission.type !== 'award') return json(route, {}, 400);
+					approval.submission.status = 'finalised';
+					approval.submission.outcome = 'awarded';
+					return json(route, {}, 204);
+				}
 				approval.submission.actioned_by.push({
 					member_id: 'leader-1',
 					member_first_name: 'Sam',

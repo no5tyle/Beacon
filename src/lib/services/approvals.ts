@@ -1,8 +1,9 @@
-// The unit's submissions waiting for the Unit Council, and approving them. Ported from Beacon's C#
-// ApprovalsService, with approving added from Terrain's own Approvals tab.
+// The unit's submissions waiting for the Unit Council, and approving and awarding them. Ported from
+// Beacon's C# ApprovalsService, with approving and awarding added from Terrain's own Approvals tab.
 
 import {
 	decidedSubmissions,
+	isAwardDate,
 	pendingApprovals,
 	type DecidedSubmission,
 	type PendingApproval
@@ -27,11 +28,30 @@ export class ApprovalsService {
 	async approve(approval: PendingApproval): Promise<TerrainWriteResult> {
 		if (!approval.canAction)
 			return { success: false, status: 0, body: "Terrain doesn't let you approve this one." };
-		// An award isn't approved with a review vote; Beacon doesn't know Terrain's request for awarding yet
+		// An award isn't approved with a review vote: it's awarded
 		if (approval.isAward)
-			return { success: false, status: 0, body: 'Award this in Terrain: Beacon can’t award yet.' };
+			return { success: false, status: 0, body: 'This one is ready to award, not approve.' };
+		return this.send(() =>
+			this.context.terrain.assessSubmission(approval.submissionId, 'approved')
+		);
+	}
+
+	/** Awards a submission the Unit Council has approved, on a day such as "2026-10-25". Sent as the leader */
+	async award(approval: PendingApproval, dateAwarded: string): Promise<TerrainWriteResult> {
+		if (!approval.canAction)
+			return { success: false, status: 0, body: "Terrain doesn't let you award this one." };
+		if (!approval.isAward)
+			return { success: false, status: 0, body: 'The Unit Council needs to approve this first.' };
+		if (!isAwardDate(dateAwarded))
+			return { success: false, status: 0, body: 'Choose the day it was awarded, up to today.' };
+		return this.send(() =>
+			this.context.terrain.awardSubmission(approval.submissionId, dateAwarded)
+		);
+	}
+
+	private async send(write: () => Promise<TerrainWriteResult>): Promise<TerrainWriteResult> {
 		try {
-			return await this.context.terrain.assessSubmission(approval.submissionId, 'approved');
+			return await write();
 		} catch (error) {
 			return {
 				success: false,

@@ -4,6 +4,8 @@ import {
 	decidedSubmissions,
 	decidedWithin,
 	hasVoted,
+	isAwardDate,
+	localDate,
 	outcomeDisplay,
 	pendingApprovals,
 	submittedDisplay
@@ -218,29 +220,77 @@ describe('the badge for approvals waiting for the leader', () => {
 });
 
 describe('awards', () => {
-	const award = () => {
-		const item = submission('aw', { votes: [] });
+	const award = (write = true) => {
+		const item = submission('aw', { votes: [], write });
 		item.submission.type = 'award';
 		return item;
 	};
+	const awardTerrain = (item = award()) =>
+		signedInTerrain({ profiles: leaderProfiles(), members: [], records: {}, submissions: [item] });
 
-	it('marks Terrain’s award submissions, which Beacon can’t approve yet', () => {
+	it('marks Terrain’s award submissions, and counts those the leader can award as waiting', () => {
 		const [item] = pendingApprovals([award()]);
 		expect(item).toMatchObject({ isAward: true, canAction: true, submissionType: 'Award' });
-		expect(waitingForLeader([item], 'leader-1')).toBe(0);
+		expect(waitingForLeader([item], 'leader-1')).toBe(1);
+		expect(waitingForLeader(pendingApprovals([award(false)]), 'leader-1')).toBe(0);
 	});
 
 	it('never sends an award a review vote', async () => {
-		const { terrain, writes } = await signedInTerrain({
-			profiles: leaderProfiles(),
-			members: [],
-			records: {},
-			submissions: [award()]
-		});
+		const { terrain, writes } = await awardTerrain();
 		const service = new ApprovalsService({ terrain, profiles: leaderProfiles() } as never);
 		const [item] = await service.pending('unit-1');
 		expect(await service.approve(item)).toMatchObject({ success: false, status: 0 });
 		expect(writes).toEqual([]);
+	});
+
+	it('sends exactly what Terrain’s Approvals tab sends to award, as the leader', async () => {
+		const { terrain, writes } = await awardTerrain();
+		const service = new ApprovalsService({ terrain, profiles: leaderProfiles() } as never);
+		const [item] = await service.pending('unit-1');
+
+		const result = await service.award(item, '2020-10-25');
+
+		expect(result.success).toBe(true);
+		expect(writes.map((w) => [w.method, w.url, w.body])).toEqual([
+			[
+				'POST',
+				`${ACHIEVEMENTS_ADDRESS}submissions/aw/assessments`,
+				'{"outcome":"awarded","date_awarded":"2020-10-25"}'
+			]
+		]);
+		expect(writes.some((w) => w.url.includes('assume-profiles'))).toBe(false);
+		expect(writes[0].headers['Content-Type']).toBe('application/json');
+	});
+
+	it('doesn’t award a review, one Terrain says the leader can’t action, or a bad date', async () => {
+		const { terrain, writes } = await signedInTerrain({
+			profiles: leaderProfiles(),
+			members: [],
+			records: {},
+			submissions: [award(false), submission('s1')]
+		});
+		const service = new ApprovalsService({ terrain, profiles: leaderProfiles() } as never);
+		const list = await service.pending('unit-1');
+		const locked = list.find((a) => a.isAward)!;
+		const review = list.find((a) => !a.isAward)!;
+		expect(await service.award(locked, '2020-10-25')).toMatchObject({ success: false });
+		expect(await service.award(review, '2020-10-25')).toMatchObject({ success: false });
+		const open = { ...locked, canAction: true };
+		expect(await service.award(open, '')).toMatchObject({ success: false });
+		expect(await service.award(open, '2999-01-01')).toMatchObject({ success: false });
+		expect(writes).toEqual([]);
+	});
+
+	it('takes award dates as real days up to today, in the leader’s time zone', () => {
+		const now = new Date(2026, 9, 25, 23, 30);
+		expect(localDate(now)).toBe('2026-10-25');
+		expect(localDate(new Date(2026, 0, 5))).toBe('2026-01-05');
+		expect(isAwardDate('2026-10-25', now)).toBe(true);
+		expect(isAwardDate('2026-02-28', now)).toBe(true);
+		expect(isAwardDate('2026-10-26', now)).toBe(false);
+		expect(isAwardDate('2026-02-30', now)).toBe(false);
+		expect(isAwardDate('25/10/2026', now)).toBe(false);
+		expect(isAwardDate('', now)).toBe(false);
 	});
 });
 
