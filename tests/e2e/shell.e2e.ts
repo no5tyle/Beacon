@@ -111,7 +111,8 @@ test.describe('phone', () => {
 	test('tab bar moves between pages and shows the current one', async ({ page }) => {
 		await logIn(page);
 		await expect(page.locator('.top-bar')).toHaveCount(0);
-		const tabs = page.locator('.tab-bar .tab');
+		// The labels: More also carries the approvals badge
+		const tabs = page.locator('.tab-bar .tab .tab-label');
 		await expect(tabs).toHaveText(['Home', 'Insights', 'Record', 'Progress', 'Reference', 'More']);
 		await expect(page.locator('.tab-bar .tab.active')).toHaveText('Home');
 
@@ -123,7 +124,11 @@ test.describe('phone', () => {
 	test('More opens the less used pages, and Logout signs out', async ({ page }) => {
 		await logIn(page);
 		await page.locator('.tab-bar button', { hasText: 'More' }).click();
-		await expect(page.locator('.more-item')).toHaveText(['Approvals', 'Turn on logging', 'Logout']);
+		await expect(page.locator('.more-item')).toHaveText([
+			/^\s*Approvals 2 waiting for you\s*$/,
+			/^\s*Turn on logging\s*$/,
+			/^\s*Logout\s*$/
+		]);
 		await expect(page.locator('.more-version')).toHaveText(/^Beacon version /);
 
 		await page.locator('.more-item', { hasText: 'Logout' }).click();
@@ -142,16 +147,18 @@ test.describe('desktop', () => {
 		await expect(page.locator('.side-link')).toHaveText(['Login', 'Reference']);
 		await logIn(page);
 		await navigate(page, 'insights/');
-		await expect(page.locator('.side-link')).toHaveText([
-			'Home',
-			'Insights',
-			'Record OAS',
-			'Personal Progress',
-			'Reference',
-			'Approvals',
-			'Turn on logging',
-			'Logout'
-		]);
+		await expect(page.locator('.side-link')).toHaveText(
+			[
+				'Home',
+				'Insights',
+				'Record OAS',
+				'Personal Progress',
+				'Reference',
+				'Approvals 2 waiting for you',
+				'Turn on logging',
+				'Logout'
+			].map((name) => new RegExp(`^\\s*${name}\\s*$`))
+		);
 		await expect(page.locator('.side-link.active')).toHaveText('Insights');
 		await expect(page.locator('.tab-bar')).toBeHidden();
 	});

@@ -6,6 +6,7 @@ import {
 	submittedDisplay
 } from '#lib/model/approvals.js';
 import { ApprovalsService } from '#lib/services/approvals.js';
+import { ApprovalsBadge, waitingForLeader } from '#lib/stores/approvals.svelte.js';
 import { ACHIEVEMENTS_ADDRESS } from '#lib/terrain/client.js';
 import type { TerrainSubmission } from '#lib/terrain/types.js';
 import { leaderProfiles, signedInTerrain } from './fakeTerrain.js';
@@ -159,5 +160,56 @@ describe('approving', () => {
 		expect(
 			new ApprovalsService({ terrain, profiles: leaderProfiles() } as never).leaderMemberId()
 		).toBe('leader-1');
+	});
+});
+
+describe('the badge for approvals waiting for the leader', () => {
+	const list = () =>
+		pendingApprovals([
+			submission('mine', { votes: [['l2', 'Kim Leader', 'approved']] }),
+			submission('voted', { votes: [['leader-1', 'Sam Leader', 'approved']] }),
+			submission('improve', { votes: [['leader-1', 'Sam Leader', 'feedback']] }),
+			submission('not-mine', { write: false })
+		]);
+
+	it('counts only what the leader may approve and hasn’t voted on', () => {
+		expect(waitingForLeader(list(), 'leader-1')).toBe(1);
+		expect(waitingForLeader(list(), 'someone-else')).toBe(3);
+		expect(waitingForLeader([], 'leader-1')).toBe(0);
+	});
+
+	it('loads once per unit, and follows what the Approvals page loads', async () => {
+		const { terrain, calls } = await signedInTerrain({
+			profiles: leaderProfiles(),
+			members: [],
+			records: {},
+			submissions: [submission('a'), submission('b')]
+		});
+		const badge = new ApprovalsBadge(
+			new ApprovalsService({ terrain, profiles: leaderProfiles() } as never)
+		);
+		await badge.loadIfNeeded('unit-1');
+		await badge.loadIfNeeded('unit-1');
+		expect(badge).toMatchObject({ unitId: 'unit-1', waiting: 2 });
+		expect(calls.filter((c) => c.url.includes('/submissions')).length).toBe(1);
+
+		badge.update('unit-1', list());
+		expect(badge.waiting).toBe(1);
+		badge.clear();
+		expect(badge).toMatchObject({ unitId: '', waiting: 0 });
+	});
+
+	it('stays off when Terrain can’t be reached', async () => {
+		const { terrain } = await signedInTerrain({
+			profiles: leaderProfiles(),
+			members: [],
+			records: {},
+			override: (call) => (call.url.includes('/submissions') ? new Error('offline') : undefined)
+		});
+		const badge = new ApprovalsBadge(
+			new ApprovalsService({ terrain, profiles: leaderProfiles() } as never)
+		);
+		await badge.loadIfNeeded('unit-1');
+		expect(badge).toMatchObject({ unitId: '', waiting: 0 });
 	});
 });

@@ -9,6 +9,7 @@
 	import {
 		isActive,
 		mainPages,
+		moreBadge,
 		morePages,
 		signedOutPages,
 		type NavOptions,
@@ -19,12 +20,16 @@
 	let { options, version }: { options: NavOptions; version: string } = $props();
 
 	let moreOpen = $state(false);
+	// Read after a badge's count. Kept with its space in a string: as plain text the space is trimmed, and a
+	// screen reader hears "2waiting"
+	const WAITING = ' waiting for you';
 	const main = $derived(options.signedIn ? mainPages(options) : []);
 	const more = $derived(options.signedIn ? morePages(options) : []);
 	const sidebar = $derived(options.signedIn ? [...main, ...more] : signedOutPages());
 	// The current address within the app, without the base path
 	const path = $derived(page.url.pathname.slice(pagePath('').length - 1));
 	const onMorePage = $derived(more.some((item) => isActive(item, path)));
+	const moreCount = $derived(moreBadge(more));
 
 	const href = (item: NavPage) => pagePath(item.href);
 
@@ -34,6 +39,12 @@
 		moreOpen = false;
 	});
 </script>
+
+{#snippet badge(item: NavPage)}
+	{#if item.badge}
+		<span class="badge nav-badge">{item.badge}<span class="visually-hidden">{WAITING}</span></span>
+	{/if}
+{/snippet}
 
 <svelte:window onkeydown={(e) => e.key === 'Escape' && (moreOpen = false)} />
 
@@ -47,6 +58,7 @@
 			<a class="side-link" class:active={isActive(item, path)} href={href(item)}>
 				<Icon name={item.icon} />
 				{item.title}
+				{@render badge(item)}
 			</a>
 		{/each}
 		<span class="side-version">Version {version}</span>
@@ -76,6 +88,7 @@
 			<a class="more-item" class:active={isActive(item, path)} role="menuitem" href={href(item)}>
 				<Icon name={item.icon} />
 				{item.title}
+				{@render badge(item)}
 			</a>
 		{/each}
 		<div class="more-version">Beacon version {version}</div>
@@ -96,9 +109,13 @@
 			class:active={moreOpen || onMorePage}
 			aria-haspopup="menu"
 			aria-expanded={moreOpen}
+			aria-label={moreCount > 0 ? `More, ${moreCount} waiting` : undefined}
 			onclick={() => (moreOpen = !moreOpen)}
 		>
-			<Icon name="ellipses" />
+			<span class="tab-icon">
+				<Icon name="ellipses" />
+				{#if moreCount > 0}<span class="badge tab-badge" aria-hidden="true">{moreCount}</span>{/if}
+			</span>
 			<span class="tab-label">More</span>
 		</button>
 	</nav>
@@ -255,6 +272,25 @@
 	.tab.active {
 		color: #fff;
 		box-shadow: inset 0 3px 0 var(--accent);
+	}
+
+	/* The More tab's count sits on the corner of its icon */
+	.tab-icon {
+		position: relative;
+		display: inline-flex;
+	}
+
+	.tab-badge {
+		position: absolute;
+		top: -0.45rem;
+		left: 0.85rem;
+		font-size: 0.65rem;
+		box-shadow: 0 0 0 2px var(--tab-bar-bg);
+	}
+
+	/* A count beside a page's name in the sidebar and the More menu, pushed to the right */
+	.nav-badge {
+		margin-left: auto;
 	}
 
 	.tab-label {

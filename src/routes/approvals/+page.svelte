@@ -16,7 +16,7 @@
 	} from '#lib/model/approvals.js';
 	import { asc, distinct, groupBy, sortBy } from '#lib/model/util.js';
 	import { pagePath } from '#lib/paths.js';
-	import { app, approvals } from '#lib/services/index.js';
+	import { app, approvals, approvalsBadge } from '#lib/services/index.js';
 
 	let pending = $state<PendingApproval[]>([]);
 	let loading = $state(false);
@@ -40,6 +40,8 @@
 			const found = await approvals.pending(id);
 			if (id !== app.unitId) return;
 			pending = found;
+			// Keeps the badge on More and Approvals in step, e.g. once the leader has voted
+			approvalsBadge.update(id, found);
 			selectedNames = selectedNames.filter((n) => found.some((a) => a.memberName === n));
 		} catch {
 			errorMessage = "Couldn't load approvals from Terrain. Try again in a moment.";
