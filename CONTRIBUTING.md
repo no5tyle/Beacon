@@ -8,15 +8,16 @@ Thanks for helping. Beacon is used by leaders to record youth members' achieveme
 2. `npm install`
 3. `npm run dev` and open http://localhost:5173
 
-| Command             | What it does                                                                                                                     |
-| ------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `npm run dev`       | Runs Beacon locally, reloading as you edit                                                                                       |
-| `npm run check`     | Type checks the app and the service worker                                                                                       |
-| `npm run lint`      | Checks formatting (Prettier) and code (ESLint)                                                                                   |
-| `npm run format`    | Fixes formatting                                                                                                                 |
-| `npm run test:unit` | Unit tests (Vitest), watching for changes                                                                                        |
-| `npm run test:e2e`  | Page tests (Playwright) against a production build, at phone and desktop sizes. Run `npx playwright install chromium` once first |
-| `npm run build`     | Builds the site into `build/`                                                                                                    |
+| Command               | What it does                                                                                                                                             |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run dev`         | Runs Beacon locally, reloading as you edit                                                                                                               |
+| `npm run check`       | Type checks the app and the service worker                                                                                                               |
+| `npm run lint`        | Checks formatting (Prettier) and code (ESLint)                                                                                                           |
+| `npm run format`      | Fixes formatting                                                                                                                                         |
+| `npm run test:unit`   | Unit tests (Vitest), watching for changes                                                                                                                |
+| `npm run test:e2e`    | Page tests (Playwright) against a production build, at phone and desktop sizes. Run `npx playwright install chromium` once first                         |
+| `npm run screenshots` | Takes the README's screenshots again into `docs/screenshots/`, from the made-up unit the page tests use. Run it after changing how a pictured page looks |
+| `npm run build`       | Builds the site into `build/`                                                                                                                            |
 
 Before pushing, run `npm run check && npm run lint && npm run test:unit -- --run && npm run test:e2e`. CI runs the same on every pull request.
 
