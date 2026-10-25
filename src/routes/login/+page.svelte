@@ -122,6 +122,12 @@
 	<button id="logIn" type="submit" class="btn btn-primary" disabled={loggingIn}>
 		{loggingIn ? 'Logging in...' : 'Log In'}
 	</button>
+	<p class="small muted privacy">
+		Your password goes only to Terrain and is never saved.
+		<a href="https://github.com/no5tyle/Beacon/blob/main/PRIVACY.md" target="_blank" rel="noopener"
+			>How Beacon handles your information</a
+		>
+	</p>
 </form>
 
 {#if showDiagnostics}
@@ -138,6 +144,10 @@
 
 	/* Version at the bottom of the screen, clear of the iPhone home indicator. Tapping it shows what the
 	   login fields heard, to help track down a password manager fill that isn't picked up */
+	.privacy {
+		margin-top: 1rem;
+	}
+
 	.version {
 		position: fixed;
 		left: 0;

@@ -1,6 +1,6 @@
 # Field test
 
-Phase 5: running a real unit night on the new app at https://no5tyle.github.io/beacon-next/ instead of the current one.
+Phase 5: running a real unit night on the new app at https://no5tyle.github.io/Beacon/ instead of the current one.
 Everything here talks to real Terrain and changes real records, so use statements the youth have actually done.
 Note anything that differs from the current app, with the phone and browser, in an issue on this repository.
 

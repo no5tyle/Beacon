@@ -2,7 +2,7 @@ import { defineConfig } from 'vitest/config';
 import adapter from '@sveltejs/adapter-static';
 import { sveltekit } from '@sveltejs/kit/vite';
 
-// The site is served from a sub-path on GitHub Pages (e.g. /beacon-next), set by the deploy workflow
+// The site is served from a sub-path on GitHub Pages (e.g. /Beacon), set by the deploy workflow
 const base = (process.env.BASE_PATH ?? '') as '' | `/${string}`;
 
 export default defineConfig({
