@@ -1,7 +1,12 @@
 // The unit's submissions waiting for the Unit Council, and approving them. Ported from Beacon's C#
 // ApprovalsService, with approving added from Terrain's own Approvals tab.
 
-import { pendingApprovals, type PendingApproval } from '#lib/model/approvals.js';
+import {
+	decidedSubmissions,
+	pendingApprovals,
+	type DecidedSubmission,
+	type PendingApproval
+} from '#lib/model/approvals.js';
 import type { TerrainWriteResult } from '#lib/terrain/errors.js';
 import type { BeaconContext } from './context.js';
 
@@ -11,6 +16,11 @@ export class ApprovalsService {
 	/** Submissions in the unit waiting for the Unit Council, oldest first */
 	async pending(unitId: string): Promise<PendingApproval[]> {
 		return pendingApprovals(await this.context.terrain.unitSubmissions(unitId, 'pending'));
+	}
+
+	/** Submissions the Unit Council has finished with, most recently decided first */
+	async history(unitId: string): Promise<DecidedSubmission[]> {
+		return decidedSubmissions(await this.context.terrain.unitSubmissions(unitId, 'finalised'));
 	}
 
 	/** Records the signed in leader's approval. Sent as the leader: approving isn't done as the youth */

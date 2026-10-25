@@ -1,6 +1,6 @@
 <!--
 	Approvals: the unit's submissions waiting for the Unit Council, as Terrain's Approvals tab lists them,
-	with an Approve button on those Terrain lets the leader action.
+	with an Approve button on those Terrain lets the leader action, and a history of those it has finished with.
 -->
 <script lang="ts">
 	import { untrack } from 'svelte';
@@ -9,9 +9,13 @@
 	import Icon from '#lib/components/Icon.svelte';
 	import { pullToRefresh } from '#lib/actions/pullToRefresh.js';
 	import {
+		decidedWithin,
 		hasVoted,
+		outcomeDisplay,
+		RECENT_DAYS,
 		submittedDisplay,
 		VOTES_NEEDED,
+		type DecidedSubmission,
 		type PendingApproval
 	} from '#lib/model/approvals.js';
 	import { asc, distinct, groupBy, sortBy } from '#lib/model/util.js';
@@ -27,6 +31,13 @@
 	let confirming = $state('');
 	let working = $state('');
 	let message = $state<{ text: string; isError: boolean } | null>(null);
+	let tab = $state<'waiting' | 'history'>('waiting');
+	// The history loads the first time its tab is opened, for the unit it was loaded for
+	let history = $state<DecidedSubmission[]>([]);
+	let historyFor = $state('');
+	let historyLoading = $state(false);
+	let historyError = $state('');
+	let showOlder = $state(false);
 
 	const unitId = $derived(app.unitId);
 	const me = $derived(approvals.leaderMemberId());
@@ -50,6 +61,31 @@
 		}
 	}
 
+	async function loadHistory() {
+		const id = unitId;
+		if (!id || historyLoading) return;
+		historyLoading = true;
+		historyError = '';
+		try {
+			const found = await approvals.history(id);
+			if (id !== app.unitId) return;
+			history = found;
+			historyFor = id;
+		} catch {
+			historyError = "Couldn't load the history from Terrain. Try again in a moment.";
+		} finally {
+			historyLoading = false;
+		}
+	}
+
+	// Refresh and pull to refresh reload whichever tab is showing
+	const refresh = () => (tab === 'history' ? loadHistory() : load());
+
+	function showTab(next: 'waiting' | 'history') {
+		tab = next;
+		if (next === 'history' && historyFor !== unitId) loadHistory();
+	}
+
 	$effect(() => {
 		// Approvals are for leaders on the Unit Council; a youth goes back to Home
 		if (app.isYouth) {
@@ -58,8 +94,12 @@
 		}
 		void unitId;
 		pending = [];
+		history = [];
+		historyFor = '';
+		showOlder = false;
 		message = null;
 		confirming = '';
+		if (untrack(() => tab) === 'history') untrack(loadHistory);
 		// Only the unit reloads the list; what load() reads, such as whether it is loading, mustn't
 		untrack(load);
 	});
@@ -86,6 +126,19 @@
 			: `${pending.length} waiting for the Unit Council`
 	);
 	const names = (voters: { name: string }[]) => voters.map((v) => v.name).join(', ');
+
+	const historyNames = $derived(
+		sortBy(
+			distinct(history.map((h) => h.memberName)),
+			asc((n) => n)
+		)
+	);
+	const recentHistory = $derived(history.filter((h) => decidedWithin(h, RECENT_DAYS)));
+	const shownHistory = $derived(
+		(showOlder ? history : recentHistory).filter(
+			(h) => selectedNames.length === 0 || selectedNames.includes(h.memberName)
+		)
+	);
 
 	function toggleName(name: string) {
 		selectedNames = selectedNames.includes(name)
@@ -120,6 +173,8 @@
 		}
 		// Terrain's list shows the new vote, or that the submission has gone through
 		await load();
+		// Something that went through belongs in the history now
+		if (historyFor) historyFor = '';
 	}
 </script>
 
@@ -127,14 +182,89 @@
 	<title>Beacon / Approvals</title>
 </svelte:head>
 
-<div use:pullToRefresh={load}>
+{#snippet youthChips(list: string[])}
+	<div class="chip-group" aria-label="Youth">
+		<button
+			type="button"
+			class="btn chip {selectedNames.length === 0 ? 'btn-primary' : 'btn-outline-primary'}"
+			onclick={() => (selectedNames = [])}>Everyone</button
+		>
+		{#each list as name (name)}
+			<button
+				type="button"
+				class="btn chip {selectedNames.includes(name) ? 'btn-primary' : 'btn-outline-primary'}"
+				aria-pressed={selectedNames.includes(name)}
+				onclick={() => toggleName(name)}>{name}</button
+			>
+		{/each}
+	</div>
+{/snippet}
+
+{#snippet historyTab()}
+	{#if historyLoading && history.length === 0}
+		<p class="muted">Loading the history from Terrain...</p>
+	{:else if historyError}
+		<div class="alert alert-danger">{historyError}</div>
+	{:else if history.length === 0}
+		<div class="approvals-empty">Nothing has been through the Unit Council yet.</div>
+	{:else}
+		{#if historyNames.length > 1}
+			<div class="filters">{@render youthChips(historyNames)}</div>
+		{/if}
+		<p class="small muted">
+			{showOlder
+				? `All ${history.length} the Unit Council has finished with, most recent first.`
+				: `Finished with in the last ${RECENT_DAYS} days, most recent first.`}
+		</p>
+		{#if shownHistory.length === 0}
+			<p class="muted">Nothing in the last {RECENT_DAYS} days.</p>
+		{/if}
+		{#each shownHistory as item (item.submissionId)}
+			<div class="approval-card history-card">
+				<div class="history-title">
+					<span class="strong">{item.memberName}</span>
+					<span class="badge {item.outcome === 'approved' ? 'badge-success' : 'badge-muted'}"
+						>{outcomeDisplay(item.outcome)}</span
+					>
+				</div>
+				<div>{item.achievementName}</div>
+				<div class="small muted">
+					{item.submissionType} · decided {submittedDisplay(item.decidedOn)} · submitted {submittedDisplay(
+						item.submittedOn
+					)}
+				</div>
+				{#if item.approvedBy.length > 0 || item.improveBy.length > 0}
+					<div class="small votes">
+						{#if item.approvedBy.length > 0}
+							<span class="text-success"
+								><Icon name="check" /> Approved by {names(item.approvedBy)}</span
+							>
+						{/if}
+						{#if item.improveBy.length > 0}
+							<span class="text-danger"
+								><Icon name="action-undo" /> Improvement asked by {names(item.improveBy)}</span
+							>
+						{/if}
+					</div>
+				{/if}
+			</div>
+		{/each}
+		{#if !showOlder && history.length > recentHistory.length}
+			<button type="button" class="btn btn-outline-secondary" onclick={() => (showOlder = true)}
+				>Show older ({history.length - recentHistory.length})</button
+			>
+		{/if}
+	{/if}
+{/snippet}
+
+<div use:pullToRefresh={refresh}>
 	<div class="approvals-header">
 		<h2>Approvals</h2>
 		<button
 			type="button"
 			class="btn icon-btn btn-outline-secondary"
-			onclick={load}
-			disabled={loading || !unitId}
+			onclick={refresh}
+			disabled={(tab === 'history' ? historyLoading : loading) || !unitId}
 			title="Check Terrain again"
 			aria-label="Refresh"
 		>
@@ -149,13 +279,32 @@
 			{app.unitName}{loading ? '' : ` · ${countText}`}
 		</p>
 
+		<div class="tabs" role="tablist">
+			<button
+				type="button"
+				role="tab"
+				aria-selected={tab === 'waiting'}
+				onclick={() => showTab('waiting')}
+				>Waiting{#if pending.length > 0}
+					<span class="badge tab-count">{pending.length}</span>{/if}</button
+			>
+			<button
+				type="button"
+				role="tab"
+				aria-selected={tab === 'history'}
+				onclick={() => showTab('history')}>History</button
+			>
+		</div>
+
 		{#if message}
 			<div class="alert {message.isError ? 'alert-danger' : 'alert-success'}" role="status">
 				{message.text}
 			</div>
 		{/if}
 
-		{#if loading && pending.length === 0}
+		{#if tab === 'history'}
+			{@render historyTab()}
+		{:else if loading && pending.length === 0}
 			<p class="muted">Loading approvals from Terrain...</p>
 		{:else if errorMessage}
 			<div class="alert alert-danger">{errorMessage}</div>
@@ -167,23 +316,7 @@
 		{:else}
 			{#if pending.length > 1}
 				<div class="filters">
-					<div class="chip-group" aria-label="Youth">
-						<button
-							type="button"
-							class="btn chip {selectedNames.length === 0 ? 'btn-primary' : 'btn-outline-primary'}"
-							onclick={() => (selectedNames = [])}>Everyone</button
-						>
-						{#each memberNames as name (name)}
-							<button
-								type="button"
-								class="btn chip {selectedNames.includes(name)
-									? 'btn-primary'
-									: 'btn-outline-primary'}"
-								aria-pressed={selectedNames.includes(name)}
-								onclick={() => toggleName(name)}>{name}</button
-							>
-						{/each}
-					</div>
+					{@render youthChips(memberNames)}
 					<div class="field group-by">
 						<label class="form-label small" for="groupBy">Group by</label>
 						<select
@@ -296,6 +429,21 @@
 
 	.summary {
 		margin-bottom: 0.75rem;
+	}
+
+	.tab-count {
+		margin-left: 0.25rem;
+	}
+
+	.history-title {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.5rem;
+	}
+
+	.badge-muted {
+		background: var(--faint);
 	}
 
 	.filters {
