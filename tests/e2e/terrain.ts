@@ -11,6 +11,8 @@ export interface FakeOptions {
 	youth?: boolean;
 	/** Ava's special interest area plan (sub-3) has Kim's approval, and waits for this leader's */
 	siaPlan?: boolean;
+	/** After a vote or award, this many reads of the approvals list still show it as it was, as Terrain can */
+	staleReads?: number;
 }
 
 export interface FakeTerrain {
@@ -333,6 +335,9 @@ export async function fakeTerrain(page: Page, options: FakeOptions = {}): Promis
 	const fake: FakeTerrain = { requests: [], writes: [] };
 	const store = units.flatMap((unit) => records(unit.id));
 	const approvals = units.flatMap((unit) => submissions(unit.id));
+	// The approvals list as it was before the last vote, while Terrain is slow to show it
+	let stale: typeof approvals | null = null;
+	let staleReads = 0;
 	if (options.siaPlan) {
 		const plan = approvals.find((a) => a.submission.id === 'sub-3')!;
 		plan.submission.actioned_by = [
@@ -433,6 +438,10 @@ export async function fakeTerrain(page: Page, options: FakeOptions = {}): Promis
 			fake.writes.push({ request: `${request.method()} ${name}`, body });
 			// A Unit Council vote: two approvals and Terrain finalises it
 			const assessed = url.pathname.match(/^\/submissions\/([^/]+)\/assessments$/);
+			if (assessed && options.staleReads) {
+				stale = structuredClone(approvals);
+				staleReads = options.staleReads;
+			}
 			if (assessed) {
 				const approval = approvals.find((a) => a.submission.id === assessed[1]);
 				if (!approval || !approval.unit_permissions.write) return json(route, {}, 403);
@@ -514,9 +523,10 @@ export async function fakeTerrain(page: Page, options: FakeOptions = {}): Promis
 			});
 
 		const unitSubmissions = url.pathname.match(/^\/units\/([^/]+)\/submissions$/);
+		const listed = () => (stale && staleReads-- > 0 ? stale : approvals);
 		if (unitSubmissions)
 			return json(route, {
-				results: approvals.filter(
+				results: listed().filter(
 					(a) =>
 						a.member.id.startsWith(unitSubmissions[1]) &&
 						a.submission.status === url.searchParams.get('status')

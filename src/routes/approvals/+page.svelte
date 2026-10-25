@@ -5,6 +5,7 @@
 -->
 <script lang="ts">
 	import { untrack } from 'svelte';
+	import { SvelteMap } from 'svelte/reactivity';
 	import { goto } from '$app/navigation';
 	import ChooseUnit from '#lib/components/ChooseUnit.svelte';
 	import Icon from '#lib/components/Icon.svelte';
@@ -19,8 +20,11 @@
 		mayMoveToReview,
 		outcomeDisplay,
 		RECENT_DAYS,
+		isDecidingVote,
 		submittedDisplay,
 		VOTES_NEEDED,
+		withActioned,
+		type Actioned,
 		type DecidedSubmission,
 		type PendingApproval
 	} from '#lib/model/approvals.js';
@@ -49,26 +53,62 @@
 	let historyError = $state('');
 	let showOlder = $state(false);
 
+	// What the leader has just done, shown straight away and kept until Terrain's list shows it too
+	let actioned = new SvelteMap<string, Actioned>();
+	// Checking Terrain again a few times, a little longer apart each time, while it catches up
+	const CHECK_AGAIN_MS = [1500, 3000, 6000];
+	let checksAgain = 0;
+	let checkTimer: ReturnType<typeof setTimeout> | undefined;
+	// A load asked for while one was running, e.g. straight after an approval, runs once it's finished
+	let loadAgain = false;
+
 	const unitId = $derived(app.unitId);
 	const me = $derived(approvals.leaderMemberId());
 
 	async function load() {
 		const id = unitId;
-		if (!id || loading) return;
+		if (!id) return;
+		if (loading) {
+			loadAgain = true;
+			return;
+		}
 		loading = true;
 		errorMessage = '';
 		try {
-			const found = await approvals.pending(id);
+			const shown = withActioned(await approvals.pending(id), actioned, approvals.leader());
 			if (id !== app.unitId) return;
-			pending = found;
-			// Keeps the badge on More and Approvals in step, e.g. once the leader has voted
-			approvalsBadge.update(id, found);
-			selectedNames = selectedNames.filter((n) => found.some((a) => a.memberName === n));
+			// Forget what Terrain now shows; keep checking for the rest
+			actioned = new SvelteMap([...actioned].filter(([key]) => shown.lagging.includes(key)));
+			showList(id, shown.list);
+			clearTimeout(checkTimer);
+			if (shown.lagging.length > 0 && checksAgain < CHECK_AGAIN_MS.length)
+				checkTimer = setTimeout(load, CHECK_AGAIN_MS[checksAgain++]);
 		} catch {
 			errorMessage = "Couldn't load approvals from Terrain. Try again in a moment.";
 		} finally {
 			loading = false;
+			if (loadAgain) {
+				loadAgain = false;
+				load();
+			}
 		}
+	}
+
+	function showList(id: string, list: PendingApproval[]) {
+		pending = list;
+		// Keeps the badge on More and Approvals in step, e.g. once the leader has voted
+		approvalsBadge.update(id, list);
+		selectedNames = selectedNames.filter((n) => list.some((a) => a.memberName === n));
+	}
+
+	/** Shows what the leader did straight away, then reloads the list from Terrain */
+	async function recordAction(approval: PendingApproval, action: Actioned['action']) {
+		actioned.set(approval.submissionId, { action, wasAward: approval.isAward });
+		showList(unitId, withActioned(pending, actioned, approvals.leader()).list);
+		checksAgain = 0;
+		await load();
+		// Something that went through belongs in the history now
+		if (historyFor) historyFor = '';
 	}
 
 	async function loadHistory() {
@@ -96,6 +136,9 @@
 		if (next === 'history' && historyFor !== unitId) loadHistory();
 	}
 
+	// No more checking once the page closes
+	$effect(() => () => clearTimeout(checkTimer));
+
 	$effect(() => {
 		// Approvals are for leaders on the Unit Council; a youth goes back to Home
 		if (app.isYouth) {
@@ -103,6 +146,8 @@
 			return;
 		}
 		void unitId;
+		actioned = new SvelteMap();
+		clearTimeout(checkTimer);
 		pending = [];
 		history = [];
 		historyFor = '';
@@ -195,10 +240,8 @@
 				isError: true
 			};
 		}
-		// Terrain's list shows the new vote, or that the submission has gone through
-		await load();
-		// Something that went through belongs in the history now
-		if (historyFor) historyFor = '';
+		if (result.success) await recordAction(approval, isDecidingVote(approval) ? 'done' : 'voted');
+		else await load();
 	}
 
 	function confirmApprove(approval: PendingApproval) {
@@ -227,8 +270,8 @@
 							: result.body || "Couldn't award. Check it in Terrain before trying again.",
 					isError: true
 				};
-		await load();
-		if (historyFor) historyFor = '';
+		if (result.success) await recordAction(approval, 'done');
+		else await load();
 	}
 </script>
 

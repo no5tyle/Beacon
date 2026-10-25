@@ -9,7 +9,8 @@ import {
 	moveToReviewBody,
 	pendingApprovals,
 	type DecidedSubmission,
-	type PendingApproval
+	type PendingApproval,
+	type Voter
 } from '#lib/model/approvals.js';
 import type { TerrainWriteResult } from '#lib/terrain/errors.js';
 import type { BeaconContext } from './context.js';
@@ -108,5 +109,11 @@ export class ApprovalsService {
 	/** The signed in leader's member id, to tell whether they've already voted */
 	leaderMemberId(): string {
 		return this.context.profiles?.profiles[0]?.member.id ?? '';
+	}
+
+	/** The signed in leader, as a voter on what they've just approved */
+	leader(): Voter {
+		const member = this.context.profiles?.profiles[0]?.member;
+		return { memberId: member?.id ?? '', name: member?.name ?? '' };
 	}
 }

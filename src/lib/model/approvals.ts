@@ -166,6 +166,42 @@ export function moveToReviewBody(record: TerrainAchievement): Record<string, unk
 	};
 }
 
+/**
+ * What the leader has just done to a submission, kept until Terrain's list shows it: "voted" for an
+ * approval that still needs more, "done" for one that went through or was awarded. Which it was is kept
+ * too, as a review that went through may come back as an award
+ */
+export interface Actioned {
+	action: 'voted' | 'done';
+	wasAward: boolean;
+}
+
+/**
+ * The list as it should look after the leader's actions, as Terrain can take a moment to show them. A
+ * submission that's done is left out, and the leader's approval is added where it's missing. Says which
+ * actions Terrain's list hasn't caught up with yet, so it can be checked again
+ */
+export function withActioned(
+	list: readonly PendingApproval[],
+	actioned: ReadonlyMap<string, Actioned>,
+	leader: Voter
+): { list: PendingApproval[]; lagging: string[] } {
+	const lagging: string[] = [];
+	const shown: PendingApproval[] = [];
+	for (const approval of list) {
+		const done = actioned.get(approval.submissionId);
+		// Listed as something else now, e.g. the review came back as an award: Terrain has moved it on
+		if (!done || done.wasAward !== approval.isAward) shown.push(approval);
+		else if (done.action === 'done') lagging.push(approval.submissionId);
+		else if (hasVoted(approval, leader.memberId)) shown.push(approval);
+		else {
+			lagging.push(approval.submissionId);
+			shown.push({ ...approval, approvedBy: [...approval.approvedBy, leader] });
+		}
+	}
+	return { list: shown, lagging };
+}
+
 /** Whether this leader has already voted on it, either way */
 export const hasVoted = (approval: PendingApproval, memberId: string) =>
 	[...approval.approvedBy, ...approval.improveBy].some((v) => v.memberId === memberId);

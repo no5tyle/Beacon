@@ -179,6 +179,47 @@ test('something approved through shows in the History', async ({ page }) => {
 	await expect(first).toContainText('decided today');
 });
 
+test('what the leader did shows at once, even while Terrain is slow to list it', async ({
+	page
+}) => {
+	const terrain = await fakeTerrain(page, { staleReads: 2 });
+	await logIn(page);
+	await navigate(page, 'approvals/');
+	// A first approval: the vote shows although Terrain's next reads still have none
+	const mia = page.locator('.approval-card', { hasText: 'Mia Brown' });
+	await mia.getByRole('button', { name: 'Approve' }).click();
+	await mia.getByRole('button', { name: 'Yes, approve' }).click();
+	await expect(mia).toContainText('1 of 2 approved (Sam Leader)');
+	await expect(mia).toContainText("You've voted on this one.");
+	// The deciding approval: it leaves the list straight away and stays gone
+	const liam = page.locator('.approval-card', { hasText: 'Liam Smith' });
+	await liam.getByRole('button', { name: 'Approve' }).click();
+	await liam.getByRole('button', { name: 'Yes, approve' }).click();
+	await expect(liam).toHaveCount(0);
+	await expect(page.locator('.summary')).toHaveText(
+		'Mt Example Scouts · 4 waiting for the Unit Council'
+	);
+	// Terrain is checked again until it catches up
+	await expect
+		.poll(() => terrain.requests.filter((r) => r.includes('/submissions?status=pending')).length)
+		.toBeGreaterThanOrEqual(5);
+	await expect(liam).toHaveCount(0);
+	await expect(mia).toContainText('1 of 2 approved (Sam Leader)');
+});
+
+test('an award leaves the list at once, even while Terrain is slow to list it', async ({
+	page
+}) => {
+	await fakeTerrain(page, { staleReads: 1 });
+	await logIn(page);
+	await navigate(page, 'approvals/');
+	const award = page.locator('.approval-card', { hasText: 'Award ·' });
+	await award.getByRole('button', { name: 'Award' }).click();
+	await award.getByRole('button', { name: 'Yes, award' }).click();
+	await expect(page.locator('.alert-success')).toHaveText('Awarded OAS Bushcraft 1 to Noah Jones.');
+	await expect(award).toHaveCount(0);
+});
+
 test('the deciding approval of a special interest area plan can move it on to the review', async ({
 	page
 }) => {

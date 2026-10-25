@@ -11,7 +11,9 @@ import {
 	moveToReviewBody,
 	outcomeDisplay,
 	pendingApprovals,
-	submittedDisplay
+	submittedDisplay,
+	withActioned,
+	type Actioned
 } from '#lib/model/approvals.js';
 import { ApprovalsService } from '#lib/services/approvals.js';
 import { ApprovalsBadge, waitingForLeader } from '#lib/stores/approvals.svelte.js';
@@ -410,6 +412,50 @@ describe('moving a special interest area plan on to the review', () => {
 			moved: false
 		});
 		expect(writes).toEqual([]);
+	});
+});
+
+describe('showing what the leader just did', () => {
+	const sam = { memberId: 'leader-1', name: 'Sam Leader' };
+	const list = () =>
+		pendingApprovals([
+			submission('a'),
+			submission('b', { votes: [['l2', 'Kim Leader', 'approved']] }),
+			submission('c')
+		]);
+	const done = (entries: [string, Actioned][]) => new Map(entries);
+
+	it('adds the leader’s vote Terrain doesn’t list yet, and says it lags', () => {
+		const shown = withActioned(list(), done([['a', { action: 'voted', wasAward: false }]]), sam);
+		expect(shown.list.find((a) => a.submissionId === 'a')?.approvedBy).toEqual([sam]);
+		expect(shown.lagging).toEqual(['a']);
+	});
+
+	it('leaves out what went through, while Terrain still lists it', () => {
+		const shown = withActioned(list(), done([['b', { action: 'done', wasAward: false }]]), sam);
+		expect(shown.list.map((a) => a.submissionId)).toEqual(['a', 'c']);
+		expect(shown.lagging).toEqual(['b']);
+	});
+
+	it('stops once Terrain shows it', () => {
+		const voted = pendingApprovals([
+			submission('a', { votes: [['leader-1', 'Sam Leader', 'approved']] })
+		]);
+		const actions = done([
+			['a', { action: 'voted', wasAward: false }],
+			['gone', { action: 'done', wasAward: false }]
+		]);
+		const shown = withActioned(voted, actions, sam);
+		expect(shown.list[0].approvedBy).toHaveLength(1);
+		expect(shown.lagging).toEqual([]);
+	});
+
+	it('shows a review that went through and came back as an award', () => {
+		const [item] = pendingApprovals([submission('b')]);
+		const award = { ...item, isAward: true };
+		const shown = withActioned([award], done([['b', { action: 'done', wasAward: false }]]), sam);
+		expect(shown.list).toEqual([award]);
+		expect(shown.lagging).toEqual([]);
 	});
 });
 
