@@ -39,8 +39,7 @@
 	let pending = $state<PendingApproval[]>([]);
 	let loading = $state(false);
 	let errorMessage = $state('');
-	// Youth to show (none picked means everyone), and how the cards are grouped
-	let selectedNames = $state<string[]>([]);
+	// How the cards are grouped: by youth, or by achievement
 	let groupByMember = $state(true);
 	let confirming = $state('');
 	// Awards ticked to hand out together, and the day they're recorded against, today unless the leader
@@ -115,7 +114,6 @@
 		pending = list;
 		// Keeps the badge on More and Approvals in step, e.g. once the leader has voted
 		approvalsBadge.update(id, list);
-		selectedNames = selectedNames.filter((n) => list.some((a) => a.memberName === n));
 	}
 
 	/** Shows what the leader did straight away, then reloads the list from Terrain */
@@ -182,16 +180,10 @@
 		untrack(load);
 	});
 
-	const memberNames = $derived(
-		sortBy(
-			distinct(pending.map((a) => a.memberName)),
-			asc((n) => n)
-		)
-	);
 	const grouped = (list: PendingApproval[]) =>
 		groupBy(
 			sortBy(
-				list.filter((a) => selectedNames.length === 0 || selectedNames.includes(a.memberName)),
+				list,
 				asc((a) => (groupByMember ? a.memberName : a.achievementName)),
 				asc((a) => Date.parse(a.submittedOn) || 0)
 			),
@@ -215,7 +207,7 @@
 				const items = pending.filter((a) => a.unitId === unit.id);
 				const toAward = items.filter((a) => a.isAward);
 				const awardGroups = grouped(toAward);
-				// The awards this leader can tick, as shown with the youth filter
+				// The awards this leader can tick
 				const awardable = awardGroups.flatMap((g) => g.items).filter(canAwardInBeacon);
 				return {
 					unit,
@@ -245,24 +237,8 @@
 	const historyUnits = $derived(distinct(history.map((h) => h.unitId)).length > 1);
 	const names = (voters: { name: string }[]) => voters.map((v) => v.name).join(', ');
 
-	const historyNames = $derived(
-		sortBy(
-			distinct(history.map((h) => h.memberName)),
-			asc((n) => n)
-		)
-	);
 	const recentHistory = $derived(history.filter((h) => decidedWithin(h, RECENT_DAYS)));
-	const shownHistory = $derived(
-		(showOlder ? history : recentHistory).filter(
-			(h) => selectedNames.length === 0 || selectedNames.includes(h.memberName)
-		)
-	);
-
-	function toggleName(name: string) {
-		selectedNames = selectedNames.includes(name)
-			? selectedNames.filter((n) => n !== name)
-			: [...selectedNames, name];
-	}
+	const shownHistory = $derived(showOlder ? history : recentHistory);
 
 	async function approve(approval: PendingApproval) {
 		if (working) return;
@@ -554,24 +530,6 @@
 	{/if}
 {/snippet}
 
-{#snippet youthChips(list: string[])}
-	<div class="chip-group" aria-label="Youth">
-		<button
-			type="button"
-			class="btn chip {selectedNames.length === 0 ? 'btn-primary' : 'btn-outline-primary'}"
-			onclick={() => (selectedNames = [])}>Everyone</button
-		>
-		{#each list as name (name)}
-			<button
-				type="button"
-				class="btn chip {selectedNames.includes(name) ? 'btn-primary' : 'btn-outline-primary'}"
-				aria-pressed={selectedNames.includes(name)}
-				onclick={() => toggleName(name)}>{name}</button
-			>
-		{/each}
-	</div>
-{/snippet}
-
 {#snippet historyTab()}
 	{#if historyLoading && history.length === 0}
 		<p class="muted">Loading the history from Terrain...</p>
@@ -580,9 +538,6 @@
 	{:else if history.length === 0}
 		<div class="approvals-empty">Nothing has been through the Unit Council yet.</div>
 	{:else}
-		{#if historyNames.length > 1}
-			<div class="filters">{@render youthChips(historyNames)}</div>
-		{/if}
 		<p class="small muted">
 			{showOlder
 				? `All ${history.length} the Unit Council has finished with, most recent first.`
@@ -696,7 +651,6 @@
 		{:else}
 			{#if pending.length > 1}
 				<div class="filters">
-					{@render youthChips(memberNames)}
 					<div class="field group-by">
 						<label class="form-label small" for="groupBy">Group by</label>
 						<select
@@ -781,10 +735,6 @@
 
 	.filters {
 		margin-bottom: 1rem;
-	}
-
-	.filters .chip-group {
-		margin-bottom: 0.5rem;
 	}
 
 	.group-by {
