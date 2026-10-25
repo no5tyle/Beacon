@@ -9,6 +9,8 @@ export interface FakeOptions {
 	refuseLogin?: string;
 	/** Log in as a youth member rather than a leader */
 	youth?: boolean;
+	/** Ava's special interest area plan (sub-3) has Kim's approval, and waits for this leader's */
+	siaPlan?: boolean;
 }
 
 export interface FakeTerrain {
@@ -105,7 +107,9 @@ interface Fixture {
 	last_updated?: string;
 	achievement_meta?: { stream?: string; stage?: number; branch?: string };
 	template?: string;
+	version?: number;
 	answers?: Record<string, unknown>;
+	uploads?: unknown[];
 	event_log?: unknown[];
 	imported?: unknown;
 }
@@ -329,6 +333,34 @@ export async function fakeTerrain(page: Page, options: FakeOptions = {}): Promis
 	const fake: FakeTerrain = { requests: [], writes: [] };
 	const store = units.flatMap((unit) => records(unit.id));
 	const approvals = units.flatMap((unit) => submissions(unit.id));
+	if (options.siaPlan) {
+		const plan = approvals.find((a) => a.submission.id === 'sub-3')!;
+		plan.submission.actioned_by = [
+			{
+				member_id: 'leader-2',
+				member_first_name: 'Kim',
+				member_last_name: 'Leader',
+				outcome: 'approved'
+			}
+		];
+		store.push({
+			id: plan.achievement.id,
+			member_id: plan.member.id,
+			type: 'special_interest_area',
+			status: 'draft_review',
+			section: 'scout',
+			status_updated: new Date().toISOString(),
+			template: 'sia/scout/plan',
+			version: 2,
+			last_updated: new Date().toISOString(),
+			answers: {
+				attach_documentation: [],
+				project_name: 'Bracelet making business',
+				special_interest_area_selection: 'sia_adventure_sport'
+			},
+			uploads: []
+		});
+	}
 	const json = (route: Route, body: unknown, status = 200) =>
 		route.fulfill({
 			status,

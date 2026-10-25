@@ -179,6 +179,75 @@ test('something approved through shows in the History', async ({ page }) => {
 	await expect(first).toContainText('decided today');
 });
 
+test('the deciding approval of a special interest area plan can move it on to the review', async ({
+	page
+}) => {
+	const terrain = await fakeTerrain(page, { siaPlan: true });
+	await logIn(page);
+	await navigate(page, 'approvals/');
+	const card = page.locator('.approval-card', { hasText: 'Ava' });
+	await card.getByRole('button', { name: 'Approve' }).click();
+	const box = card.getByLabel("If it's the plan, move it on to the review for Ava Nguyen");
+	await expect(box).toBeChecked();
+	await card.getByRole('button', { name: 'Yes, approve' }).click();
+	await expect(page.locator('.alert-success')).toHaveText(
+		'Approved Adventure Sport for Ava Nguyen. Moved it on to the review.'
+	);
+	expect(terrain.writes).toEqual([
+		{
+			request: 'POST achievements/submissions/sub-3/assessments',
+			body: { outcome: 'approved', comment: '' }
+		},
+		{
+			request: 'PUT achievements/members/unit-1-m0/achievements/ach-sub-3',
+			body: {
+				achievement_type: 'special_interest_area',
+				template: 'sia/scout/plan',
+				version: 2,
+				section: 'scout',
+				answers: {
+					attach_documentation: [],
+					project_name: 'Bracelet making business',
+					special_interest_area_selection: 'sia_adventure_sport'
+				},
+				uploads: [],
+				reset_to_draft: false
+			}
+		}
+	]);
+	// Sent as Ava, and switched back afterwards
+	const put = terrain.requests.indexOf('PUT achievements/members/unit-1-m0/achievements/ach-sub-3');
+	expect(terrain.requests.slice(0, put)).toContain(
+		'POST members/members/unit-1-m0/assume-profiles'
+	);
+	expect(terrain.requests.slice(put)).toContain('POST members/revoke-assumed-profiles');
+});
+
+test('unticked, the deciding approval of a plan only approves', async ({ page }) => {
+	const terrain = await fakeTerrain(page, { siaPlan: true });
+	await logIn(page);
+	await navigate(page, 'approvals/');
+	const card = page.locator('.approval-card', { hasText: 'Ava' });
+	await card.getByRole('button', { name: 'Approve' }).click();
+	await card.getByLabel("If it's the plan, move it on to the review for Ava Nguyen").uncheck();
+	await card.getByRole('button', { name: 'Yes, approve' }).click();
+	await expect(page.locator('.alert-success')).toHaveText(
+		'Approved Adventure Sport for Ava Nguyen.'
+	);
+	expect(terrain.writes.map((w) => w.request)).toEqual([
+		'POST achievements/submissions/sub-3/assessments'
+	]);
+});
+
+test('no move-on box on a first approval', async ({ page }) => {
+	await fakeTerrain(page);
+	await logIn(page);
+	await navigate(page, 'approvals/');
+	const card = page.locator('.approval-card', { hasText: 'Mia Brown' });
+	await card.getByRole('button', { name: 'Approve' }).click();
+	await expect(card.getByRole('checkbox')).toHaveCount(0);
+});
+
 test('awards after confirming the date, sending what Terrain’s Approvals tab sends', async ({
 	page
 }) => {

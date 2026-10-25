@@ -16,6 +16,7 @@
 		hasVoted,
 		isAwardDate,
 		localDate,
+		mayMoveToReview,
 		outcomeDisplay,
 		RECENT_DAYS,
 		submittedDisplay,
@@ -36,6 +37,8 @@
 	let confirming = $state('');
 	// The day an award is recorded against, today unless the leader picks an earlier one
 	let awardDate = $state(localDate());
+	// Whether approving a special interest area plan through also moves it on to the review for the youth
+	let moveToReview = $state(true);
 	let working = $state('');
 	let message = $state<{ text: string; isError: boolean } | null>(null);
 	let tab = $state<'waiting' | 'history'>('waiting');
@@ -158,17 +161,31 @@
 		working = approval.submissionId;
 		message = null;
 		const result = await approvals.approve(approval);
+		// Only once the approval is in: a plan Terrain hasn't approved can't move on
+		const moved =
+			result.success && moveToReview && mayMoveToReview(approval)
+				? await approvals.moveToReview(approval)
+				: null;
 		working = '';
 		confirming = '';
 		if (result.success) {
 			const votes = approval.approvedBy.length + 1;
-			message = {
-				text:
-					votes >= VOTES_NEEDED
-						? `Approved ${approval.achievementName} for ${approval.memberName}.`
-						: `Approved ${approval.achievementName} for ${approval.memberName}. It needs ${VOTES_NEEDED - votes} more Unit Council ${VOTES_NEEDED - votes === 1 ? 'member' : 'members'} to approve.`,
-				isError: false
-			};
+			const approved = `Approved ${approval.achievementName} for ${approval.memberName}.`;
+			message =
+				moved && !moved.success
+					? {
+							text: `${approved} It couldn't be moved on to the review${moved.status > 0 ? ` (response ${moved.status})` : ''}: ${approval.memberName} can move it on in Terrain.`,
+							isError: true
+						}
+					: {
+							text:
+								votes >= VOTES_NEEDED
+									? moved?.moved
+										? `${approved} Moved it on to the review.`
+										: approved
+									: `${approved} It needs ${VOTES_NEEDED - votes} more Unit Council ${VOTES_NEEDED - votes === 1 ? 'member' : 'members'} to approve.`,
+							isError: false
+						};
 		} else {
 			message = {
 				text:
@@ -182,6 +199,11 @@
 		await load();
 		// Something that went through belongs in the history now
 		if (historyFor) historyFor = '';
+	}
+
+	function confirmApprove(approval: PendingApproval) {
+		moveToReview = true;
+		confirming = approval.submissionId;
 	}
 
 	function confirmAward(approval: PendingApproval) {
@@ -455,6 +477,16 @@
 										members have approved; this would be approval {approval.approvedBy.length + 1} of
 										{VOTES_NEEDED}.
 									</p>
+									{#if mayMoveToReview(approval)}
+										<label class="small move-to-review"
+											><input
+												type="checkbox"
+												class="form-check-input"
+												bind:checked={moveToReview}
+											/>
+											If it's the plan, move it on to the review for {approval.memberName}</label
+										>
+									{/if}
 									<button
 										type="button"
 										class="btn btn-sm btn-success"
@@ -475,8 +507,7 @@
 										type="button"
 										class="btn btn-sm btn-outline-primary"
 										disabled={working !== ''}
-										onclick={() => (confirming = approval.submissionId)}
-										><Icon name="check" /> Approve</button
+										onclick={() => confirmApprove(approval)}><Icon name="check" /> Approve</button
 									>
 								</div>
 							{/if}
@@ -580,6 +611,13 @@
 
 	.confirm-box p {
 		margin: 0.3rem 0 0.5rem;
+	}
+
+	.move-to-review {
+		display: flex;
+		gap: 0.4rem;
+		align-items: flex-start;
+		margin-bottom: 0.5rem;
 	}
 
 	.award-date {

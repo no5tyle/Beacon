@@ -1,7 +1,7 @@
 // Submissions waiting for the Unit Council, as Terrain's Approvals tab shows them.
 // Ported from Beacon's C# PendingApproval.
 
-import type { TerrainSubmission } from '../terrain/types.js';
+import type { TerrainAchievement, TerrainSubmission } from '../terrain/types.js';
 import { asc, sortBy, titleCase } from './util.js';
 
 export interface PendingApproval {
@@ -128,6 +128,42 @@ export function isAwardDate(value: string, now = new Date()): boolean {
 		date.getDate() === day &&
 		value <= localDate(now)
 	);
+}
+
+/** Whether this leader's approval would be the one that sends it through */
+export const isDecidingVote = (approval: PendingApproval) =>
+	approval.approvedBy.length + 1 >= VOTES_NEEDED;
+
+/**
+ * Whether approving it could leave a special interest area plan waiting for the youth to move it on to
+ * the review. Whether it really is the plan is only known from the youth's record, read after approving
+ */
+export const mayMoveToReview = (approval: PendingApproval) =>
+	approval.achievementType === 'special_interest_area' &&
+	canApproveInBeacon(approval) &&
+	isDecidingVote(approval);
+
+/** A special interest area record still on its plan, e.g. template "sia/cub/plan", and not yet awarded */
+export const isSIAPlan = (record: TerrainAchievement) =>
+	record.type === 'special_interest_area' &&
+	/\/plan$/.test(record.template ?? '') &&
+	record.status !== 'awarded';
+
+/**
+ * What Terrain sends when the youth moves an approved plan on to the review: the record as it stands,
+ * not reset to draft. e.g. {"achievement_type":"special_interest_area","template":"sia/cub/plan",
+ * "version":2,"section":"cub","answers":{...},"uploads":[],"reset_to_draft":false}
+ */
+export function moveToReviewBody(record: TerrainAchievement): Record<string, unknown> {
+	return {
+		achievement_type: 'special_interest_area',
+		template: record.template,
+		version: record.version,
+		section: record.section,
+		answers: structuredClone(record.answers ?? {}),
+		uploads: Array.isArray(record.uploads) ? structuredClone(record.uploads) : [],
+		reset_to_draft: false
+	};
 }
 
 /** Whether this leader has already voted on it, either way */
