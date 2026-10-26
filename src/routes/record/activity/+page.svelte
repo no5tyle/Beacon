@@ -162,11 +162,11 @@
 						: false
 	);
 
-	// e.g. "2 nights, 6 km walked, towards Walkabout"
+	// e.g. "2 nights towards camping, 6 km walked, towards Walkabout"
 	const logbookSummary = $derived(
 		[
-			draft.type === 'Camp'
-				? `${nightsOf(draft)} ${nightsOf(draft) === 1 ? 'night' : 'nights'}`
+			draft.type === 'Camp' || nightsOf(draft) > 0
+				? `${nightsOf(draft)} ${nightsOf(draft) === 1 ? 'night' : 'nights'} towards camping`
 				: '',
 			draft.kilometres > 0
 				? `${draft.kilometres} km walked${draft.walkabout ? ', towards Walkabout' : ''}`
@@ -335,11 +335,17 @@
 	{:else if step === 'logbook'}
 		<div class="small muted subtitle">{draft.title} · {attendanceSummary(draft.attendance)}</div>
 		<p class="small muted">These go in the logbook of everyone who came.</p>
-		{#if draft.type === 'Camp'}
+		{#if draft.type === 'Camp' || nightsOf(draft) > 0}
 			<div class="nights">
 				<strong>{nightsOf(draft)} {nightsOf(draft) === 1 ? 'night' : 'nights'} camped</strong>
-				<div class="small muted">From the dates. Change the dates to change it.</div>
+				<div class="small muted">
+					From the dates, and they count towards camping. Change the dates to change it.
+				</div>
 			</div>
+		{:else}
+			<p class="small muted">
+				An overnight hike's nights count towards camping too: set it to end on a later day.
+			</p>
 		{/if}
 		<div class="field">
 			<label class="form-label" for="kilometres"

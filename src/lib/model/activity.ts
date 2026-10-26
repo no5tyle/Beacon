@@ -152,12 +152,12 @@ export function withType(draft: ActivityDraft, type: ActivityType): ActivityDraf
 export const nightsBetween = (start: CalendarDate, end: CalendarDate) =>
 	Math.max(0, daysBetween(start, end));
 
-/** Whether the activity goes in logbooks: a camp's nights and walking, or a hike's walking */
+/** Whether the activity goes in logbooks: a camp's or overnight hike's nights, and walking */
 export const hasLogbook = (type: ActivityType) => type === 'Camp' || type === 'Hike';
 
-/** A camp's nights, from its dates, as Terrain counts them */
+/** Nights away on a camp or hike, from its dates, as Terrain counts them */
 export const nightsOf = (draft: ActivityDraft) =>
-	draft.type === 'Camp' ? nightsBetween(draft.startDate, draft.endDate) : 0;
+	hasLogbook(draft.type) ? nightsBetween(draft.startDate, draft.endDate) : 0;
 
 /**
  * Whether the activity is over. Log activity takes only those, as Terrain concludes only activities whose
@@ -218,19 +218,17 @@ export const terrainDateTime = (date: CalendarDate, time: string) =>
 
 /**
  * The logbook part of Terrain's activity: metres walked (all of it counting towards Walkabout, or none),
- * the OAS stream it's logged against, and its categories. A camp is logged against Camping, its nights
- * counted from its dates, with walking_hike too if they walked; a hike against Bushwalking. Anything else
- * goes in no logbook
+ * the OAS stream it's logged against, and its categories. A camp is logged against Camping and a hike
+ * against Bushwalking. Terrain counts nights towards camping only with the camping category, so a camp
+ * has it, and so does a hike that went overnight; walking_hike is for a hike, or a camp where they walked.
+ * Terrain counts the nights from the dates. Anything else goes in no logbook
  */
 export function logbookData(draft: ActivityDraft) {
 	const metres = hasLogbook(draft.type) ? Math.round(Math.max(0, draft.kilometres) * 1000) : 0;
 	const stream = draft.type === 'Camp' ? 'camping' : draft.type === 'Hike' ? 'bushwalking' : '';
-	const categories =
-		draft.type === 'Camp'
-			? ['camping', ...(metres > 0 ? ['walking_hike'] : [])]
-			: draft.type === 'Hike'
-				? ['walking_hike']
-				: [];
+	const camping = draft.type === 'Camp' || nightsOf(draft) > 0;
+	const walking = draft.type === 'Hike' || (draft.type === 'Camp' && metres > 0);
+	const categories = [...(camping ? ['camping'] : []), ...(walking ? ['walking_hike'] : [])];
 	return {
 		distance_travelled: metres,
 		distance_walkabout: draft.walkabout ? metres : 0,

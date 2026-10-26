@@ -79,7 +79,7 @@ test('logs a camp that’s over: details, who came, logbook, how it went, then s
 	await expect(review).toContainText('2026-10-23 18:00 to 2026-10-25 12:00');
 	await expect(review).toContainText('Outdoors');
 	await expect(review).toContainText('2 participants, 1 leader');
-	await expect(review).toContainText('2 nights, 6 km walked, towards Walkabout');
+	await expect(review).toContainText('2 nights towards camping, 6 km walked, towards Walkabout');
 	await expect(review.locator('li')).toHaveText(['Ava Nguyen (Leader)', 'Liam Smith', 'Mia Brown']);
 	expect(terrain.writes).toEqual([]);
 
@@ -165,6 +165,46 @@ test('a unit night has no logbook step, and is concluded with its review', async
 		'POST events/units/unit-1/events',
 		'PATCH events/events/event-1'
 	]);
+});
+
+test('an overnight hike counts its nights towards camping', async ({ page }) => {
+	const terrain = await fakeTerrain(page);
+	await logIn(page);
+	await navigate(page, 'record/activity/');
+	await page.getByRole('button', { name: 'Hike' }).click();
+	await page.getByLabel('Starts').fill('2026-10-17');
+	await page.getByLabel('Ends').fill('2026-10-17');
+	await page.getByLabel('Title').fill('Heysen Trail');
+	await page.getByRole('button', { name: 'Outdoors' }).click();
+	await page.getByRole('button', { name: /^Next/ }).click();
+	await page.locator('.attendee', { hasText: 'Mia Brown' }).getByRole('checkbox').check();
+	await page.getByRole('button', { name: /^Next/ }).click();
+	// A day hike: no nights, and a hint for an overnight one
+	await expect(page.locator('.nights')).toHaveCount(0);
+	await expect(page.getByText("An overnight hike's nights count towards camping")).toBeVisible();
+	await page.getByRole('button', { name: 'Back' }).click();
+	await page.getByRole('button', { name: 'Back' }).click();
+	await page.getByLabel('Ends').fill('2026-10-18');
+	await page.getByRole('button', { name: /^Next/ }).click();
+	await page.getByRole('button', { name: /^Next/ }).click();
+	await expect(page.locator('.nights')).toContainText('1 night camped');
+	await page.getByLabel(/Kilometres walked/).fill('18');
+	await page.getByRole('button', { name: /^Next/ }).click();
+	await page.getByRole('button', { name: 'Great' }).click();
+	await page.getByLabel('Nature and outdoors').check();
+	await page.getByLabel('Physical').check();
+	await page.getByRole('button', { name: /^Next/ }).click();
+	await expect(page.locator('.review')).toContainText('1 night towards camping, 18 km walked');
+	await page.getByRole('button', { name: 'Save to Terrain' }).click();
+	await expect(page.locator('.alert-success')).toContainText('and concluded it');
+	expect(terrain.writes[1].body).toMatchObject({
+		achievement_pathway_logbook_data: {
+			distance_travelled: 18000,
+			distance_walkabout: 18000,
+			achievement_meta: { stream: 'bushwalking', branch: 'bushwalking' },
+			categories: ['camping', 'walking_hike']
+		}
+	});
 });
 
 test('only takes activities that are over', async ({ page }) => {
