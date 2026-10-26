@@ -1,6 +1,6 @@
 <!--
-	Log activity: a unit programme activity (a unit night, outing, camp or hike), who came and in what role,
-	a camp's nights and the kilometres walked for their logbooks, and how it went. Only activities that are
+	Log an Activity: a unit programme activity, over one day or more, who came and who led it,
+	the nights away and kilometres walked for their logbooks, and how it went. Only activities that are
 	over: saved to the unit's programme in Terrain already concluded, with their review.
 -->
 <script lang="ts">
@@ -171,12 +171,12 @@
 </script>
 
 <svelte:head>
-	<title>Beacon / Log activity</title>
+	<title>Beacon / Log an Activity</title>
 </svelte:head>
 
 <div class="activity has-action-bar">
 	<RecordSwitch />
-	<h2>Log activity</h2>
+	<h2>Log an Activity</h2>
 	<StepBar steps={steps.map((s) => stepNames[s])} current={index} />
 
 	{#if !unitId}

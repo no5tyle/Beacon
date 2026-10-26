@@ -11,7 +11,7 @@ test('Record moves between OAS, Activity and SIA plan, staying the current tab',
 	const record = page.getByRole('navigation', { name: 'Record' });
 	await expect(record.getByRole('link')).toHaveText(['OAS', 'Activity', 'SIA plan']);
 	await record.getByRole('link', { name: 'Activity' }).click();
-	await expect(page.locator('h2')).toHaveText('Log activity');
+	await expect(page.locator('h2')).toHaveText('Log an Activity');
 	await expect(record.getByRole('link', { name: 'Activity' })).toHaveAttribute(
 		'aria-current',
 		'page'
@@ -21,7 +21,7 @@ test('Record moves between OAS, Activity and SIA plan, staying the current tab',
 		: page.locator('.side-link.active');
 	await expect(current).toHaveText('Record');
 	await record.getByRole('link', { name: 'SIA plan' }).click();
-	await expect(page.locator('h2')).toHaveText('SIA plan');
+	await expect(page.locator('h2')).toHaveText('Plan an SIA');
 	await expect(current).toHaveText('Record');
 });
 
