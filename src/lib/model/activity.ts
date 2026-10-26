@@ -88,19 +88,39 @@ export interface ActivityDraft {
 	review: ActivityReview;
 }
 
+/** A one-day activity's start and end times, e.g. remembered from the last one logged */
+export interface DayTimes {
+	start: string;
+	end: string;
+}
+
+/** Until a leader has logged one, a one-day activity is an evening at the hall */
+export const DEFAULT_TIMES: DayTimes = { start: '19:00', end: '21:00' };
+
+/** Times as a time input gives them, e.g. "19:00", with the end after the start */
+export const isDayTimes = (times: unknown): times is DayTimes => {
+	const t = times as DayTimes;
+	const time = /^([01]\d|2[0-3]):[0-5]\d$/;
+	return !!t && time.test(t.start ?? '') && time.test(t.end ?? '') && t.end > t.start;
+};
+
 /**
- * A new activity on a given day, or by default the most recent evening that's over: tonight once it's
- * finished, otherwise last night
+ * A new one-day activity on a given day, or by default today, with the times given (the last ones
+ * used); yesterday instead if today's would still be to come
  */
-export function newActivity(on?: CalendarDate, now = new Date()): ActivityDraft {
+export function newActivity(
+	on?: CalendarDate,
+	now = new Date(),
+	times: DayTimes = DEFAULT_TIMES
+): ActivityDraft {
 	const day = on ?? today(now);
 	const draft: ActivityDraft = {
 		title: '',
 		multiDay: false,
 		startDate: day,
-		startTime: '19:00',
+		startTime: times.start,
 		endDate: day,
-		endTime: '21:00',
+		endTime: times.end,
 		location: '',
 		challengeArea: '',
 		attendance: {},
@@ -125,20 +145,21 @@ export function finishedBy(draft: ActivityDraft, now = new Date()): ActivityDraf
 }
 
 /**
- * Over more than one day or not. More than one day starts with the next day as its last, if it ended
- * the day it started; one day ends the day it starts. Moved back if need be, so it's still over
+ * Over more than one day or not, with the dates and times to suit. More than one day: yesterday midday to
+ * midday today, or a day earlier if it isn't midday yet. One day: today with the times given (the last
+ * ones used), or yesterday if they'd still be to come
  */
 export function withMultiDay(
 	draft: ActivityDraft,
 	multiDay: boolean,
-	now = new Date()
+	now = new Date(),
+	times: DayTimes = DEFAULT_TIMES
 ): ActivityDraft {
-	const endDate = multiDay
-		? draft.endDate > draft.startDate
-			? draft.endDate
-			: addDays(draft.startDate, 1)
-		: draft.startDate;
-	return finishedBy({ ...draft, multiDay, endDate }, now);
+	const day = today(now);
+	const dates = multiDay
+		? { startDate: addDays(day, -1), startTime: '12:00', endDate: day, endTime: '12:00' }
+		: { startDate: day, startTime: times.start, endDate: day, endTime: times.end };
+	return finishedBy({ ...draft, multiDay, ...dates }, now);
 }
 
 /** Nights away for an activity from one day to another, e.g. Friday to Sunday is 2 */

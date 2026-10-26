@@ -36,6 +36,12 @@ test('logs a camp that’s over: details, who came, logbook, how it went, then s
 	// One activity, with a tick for one over more than one day
 	await expect(page.getByLabel('Ends on')).toHaveCount(0);
 	await page.getByLabel(/Runs over more than one day/).check();
+	// Midday to midday, ending today or, before midday, yesterday
+	await expect(page.getByLabel('From')).toHaveValue('12:00');
+	await expect(page.getByLabel('To')).toHaveValue('12:00');
+	const ends = await page.getByLabel('Ends on').inputValue();
+	const starts = await page.getByLabel('Starts on').inputValue();
+	expect(Date.parse(ends) - Date.parse(starts)).toBe(86_400_000);
 	await expect(next).toBeDisabled();
 	await page.getByLabel('Title').fill('Spring camp');
 	await page.getByLabel('Where').fill('The hall');
@@ -87,7 +93,7 @@ test('logs a camp that’s over: details, who came, logbook, how it went, then s
 
 	const review = page.locator('.review');
 	await expect(review.locator('h3')).toHaveText('Spring camp');
-	await expect(review).toContainText('2026-10-23 19:00 to 2026-10-25 21:00');
+	await expect(review).toContainText('2026-10-23 12:00 to 2026-10-25 12:00');
 	await expect(review).toContainText('Outdoors');
 	await expect(review).toContainText('3 came, 2 led');
 	await expect(review).toContainText(
@@ -150,6 +156,8 @@ test('an evening at the hall has an empty logbook, and is concluded with its rev
 	await navigate(page, 'record/activity/');
 	// One day: the date, and it ends that day
 	await page.getByLabel('Date').fill('2026-10-20');
+	await page.getByLabel('From').fill('18:30');
+	await page.getByLabel('To').fill('20:00');
 	await expect(page.locator('.step-bar li')).toHaveText([
 		'Activity',
 		'Who came',
@@ -171,7 +179,7 @@ test('an evening at the hall has an empty logbook, and is concluded with its rev
 	await page.getByLabel('Patrol system').check();
 	await page.getByLabel('Social').check();
 	await page.getByRole('button', { name: /^Next/ }).click();
-	await expect(page.locator('.review')).toContainText('2026-10-20, 19:00 to 21:00');
+	await expect(page.locator('.review')).toContainText('2026-10-20, 18:30 to 20:00');
 	await expect(page.locator('.review')).toContainText('1 came');
 	await expect(page.locator('.review')).toContainText('Okay');
 	await expect(page.locator('.review')).toContainText('Logbook');
@@ -182,6 +190,10 @@ test('an evening at the hall has an empty logbook, and is concluded with its rev
 	expect(terrain.writes[0].body).toMatchObject({
 		achievement_pathway_logbook_data: { distance_travelled: 0, categories: [] }
 	});
+	// The next one-day activity starts with the same times
+	await page.getByRole('button', { name: 'Log another activity' }).click();
+	await expect(page.getByLabel('From')).toHaveValue('18:30');
+	await expect(page.getByLabel('To')).toHaveValue('20:00');
 });
 
 test('nights away count towards camping when they camped', async ({ page }) => {

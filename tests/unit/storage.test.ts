@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { removeOldYouthData } from '#lib/stores/storage.js';
+import { readActivityTimes, removeOldYouthData, writeActivityTimes } from '#lib/stores/storage.js';
 
 function fakeStorage(entries: Record<string, string>) {
 	const store = new Map(Object.entries(entries));
@@ -44,5 +44,26 @@ describe('removing youth details older versions left on the device', () => {
 			}
 		});
 		expect(removeOldYouthData()).toBe(0);
+	});
+});
+
+describe('the times of the last one-day activity', () => {
+	it('are kept, and read back for the next one', () => {
+		const storage = fakeStorage({});
+		vi.stubGlobal('localStorage', storage);
+		expect(readActivityTimes()).toEqual({ start: '19:00', end: '21:00' });
+		writeActivityTimes({ start: '18:30', end: '20:00' });
+		expect(readActivityTimes()).toEqual({ start: '18:30', end: '20:00' });
+		expect(storage.store.get('beacon-activity-times')).toBe('{"start":"18:30","end":"20:00"}');
+	});
+
+	it('fall back to an evening when what’s kept isn’t usable, or storage isn’t there', () => {
+		vi.stubGlobal('localStorage', fakeStorage({ 'beacon-activity-times': 'not json' }));
+		expect(readActivityTimes()).toEqual({ start: '19:00', end: '21:00' });
+		vi.stubGlobal('localStorage', fakeStorage({ 'beacon-activity-times': '{"start":"9pm"}' }));
+		expect(readActivityTimes()).toEqual({ start: '19:00', end: '21:00' });
+		vi.stubGlobal('localStorage', undefined);
+		writeActivityTimes({ start: '18:30', end: '20:00' });
+		expect(readActivityTimes()).toEqual({ start: '19:00', end: '21:00' });
 	});
 });

@@ -4,6 +4,7 @@ import {
 	attendanceSummary,
 	eventBody,
 	finishedBy,
+	isDayTimes,
 	isOver,
 	logbookData,
 	NOT_OVER,
@@ -19,33 +20,66 @@ import { addDays } from './dates.js';
 import { newSIAPlan, siaAreaName, siaPlanProblems } from './siaPlan.js';
 
 describe('logging an activity', () => {
-	it('is one evening by default, or over more than one day', () => {
-		const night = newActivity('2026-10-23');
-		expect([
-			night.multiDay,
-			night.startTime,
-			night.endTime,
-			night.endDate,
-			nightsOf(night)
-		]).toEqual([false, '19:00', '21:00', '2026-10-23', 0]);
-		const after = new Date(2026, 9, 30);
-		// Over more than one day: the next day is its last, unless it already ends later
-		const camp = withMultiDay(night, true, after);
-		expect([camp.endDate, nightsOf(camp)]).toEqual(['2026-10-24', 1]);
-		expect(withMultiDay({ ...camp, endDate: '2026-10-25' }, true, after).endDate).toBe(
-			'2026-10-25'
-		);
-		// Back to one day, it ends the day it starts
-		expect(withMultiDay({ ...camp, endDate: '2026-10-25' }, false, after)).toMatchObject({
+	it('starts on today with the last times used, or yesterday if they’re still to come', () => {
+		const evening = new Date(2026, 9, 26, 22, 0);
+		const morning = new Date(2026, 9, 26, 9, 0);
+		// Until one's been logged, an evening at the hall
+		expect(newActivity(undefined, evening)).toMatchObject({
 			multiDay: false,
-			endDate: '2026-10-23'
+			startDate: '2026-10-26',
+			startTime: '19:00',
+			endDate: '2026-10-26',
+			endTime: '21:00'
 		});
-		// Moved back if that would end it after now
-		const evening = new Date(2026, 9, 23, 22, 0);
-		expect(withMultiDay(night, true, evening)).toMatchObject({
-			startDate: '2026-10-22',
-			endDate: '2026-10-23'
+		expect(newActivity(undefined, morning)).toMatchObject({
+			startDate: '2026-10-25',
+			endDate: '2026-10-25'
 		});
+		// The last times used: a morning activity already over today is today's
+		const times = { start: '07:00', end: '08:30' };
+		expect(newActivity(undefined, morning, times)).toMatchObject({
+			startDate: '2026-10-26',
+			startTime: '07:00',
+			endTime: '08:30'
+		});
+		expect(nightsOf(newActivity(undefined, evening))).toBe(0);
+	});
+
+	it('over more than one day is yesterday midday to midday today, or a day earlier before midday', () => {
+		const afternoon = new Date(2026, 9, 26, 15, 0);
+		const morning = new Date(2026, 9, 26, 9, 0);
+		const night = newActivity('2026-10-20');
+		expect(withMultiDay(night, true, afternoon)).toMatchObject({
+			multiDay: true,
+			startDate: '2026-10-25',
+			startTime: '12:00',
+			endDate: '2026-10-26',
+			endTime: '12:00'
+		});
+		expect(withMultiDay(night, true, morning)).toMatchObject({
+			startDate: '2026-10-24',
+			endDate: '2026-10-25'
+		});
+		expect(nightsOf(withMultiDay(night, true, afternoon))).toBe(1);
+		// Back to one day: today with the last times used, or yesterday
+		const times = { start: '18:30', end: '20:00' };
+		expect(
+			withMultiDay(withMultiDay(night, true, afternoon), false, afternoon, times)
+		).toMatchObject({
+			multiDay: false,
+			startDate: '2026-10-25',
+			startTime: '18:30',
+			endDate: '2026-10-25',
+			endTime: '20:00'
+		});
+	});
+
+	it('only takes times as a time input gives them, ending after they start', () => {
+		expect(isDayTimes({ start: '18:30', end: '20:00' })).toBe(true);
+		expect(isDayTimes({ start: '20:00', end: '18:30' })).toBe(false);
+		expect(isDayTimes({ start: '7pm', end: '9pm' })).toBe(false);
+		expect(isDayTimes(null)).toBe(false);
+		expect(isDayTimes('19:00')).toBe(false);
 	});
 
 	it('counts nights away, never below none', () => {
