@@ -36,9 +36,9 @@ test('every page fits the screen without scrolling sideways', async ({ page }) =
 test('dark mode follows the phone', async ({ page }) => {
 	await page.emulateMedia({ colorScheme: 'dark' });
 	await page.goto('login/');
-	await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(18, 20, 23)');
+	await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(0, 0, 0)');
 	await page.emulateMedia({ colorScheme: 'light' });
-	await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+	await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(242, 242, 247)');
 });
 
 test('printing stays light when the phone is in dark mode', async ({ page }) => {
@@ -170,4 +170,17 @@ test.describe('desktop', () => {
 		await page.locator('.side-version', { hasText: /^Version / }).click();
 		await expect(page).toHaveURL(/\/logging\/$/);
 	});
+});
+
+test('the tabs shrink while scrolling down and come back on a tap', async ({ page }, testInfo) => {
+	test.skip(testInfo.project.name !== 'phone', 'The tab bar is only on phones');
+	await logIn(page);
+	await navigate(page, 'oas-reference/');
+	const tabs = page.locator('.tab-bar');
+	await expect(tabs).not.toHaveClass(/minimized/);
+	await page.evaluate(() => window.scrollTo(0, 600));
+	await expect(tabs).toHaveClass(/minimized/);
+	await tabs.locator('.tab.current').click();
+	await expect(tabs).not.toHaveClass(/minimized/);
+	await expect(page).toHaveURL(/oas-reference/);
 });
