@@ -36,10 +36,45 @@
 
 	const href = (item: NavPage) => pagePath(item.href);
 
-	// Close the menu after moving to another page
+	// Close the menu after moving to another page, and bring the tabs back
 	$effect(() => {
 		void page.url.pathname;
 		moreOpen = false;
+		minimized = false;
+	});
+
+	/*
+		As in iOS, the tabs shrink out of the way while the leader scrolls down through a page and come
+		back when they scroll up, reach the top, or tap the shrunk tab. The page's action bar moves up
+		beside them while they're shrunk, so it's marked on the page too.
+	*/
+	let minimized = $state(false);
+	let lastY = 0;
+	const MINIMIZE_AFTER = 60;
+
+	function onScroll() {
+		const y = window.scrollY;
+		const delta = y - lastY;
+		if (Math.abs(delta) < 8) return;
+		lastY = y;
+		if (moreOpen) return;
+		if (y < MINIMIZE_AFTER || delta < 0) minimized = false;
+		else minimized = true;
+	}
+
+	// A tap on the shrunk bar only brings it back. Returns whether the tap should go on to act
+	function expandOnTap(event: Event): boolean {
+		if (!minimized) return true;
+		event.preventDefault();
+		minimized = false;
+		return false;
+	}
+
+	$effect(() => {
+		const root = document.documentElement;
+		if (minimized) root.dataset.tabsMinimized = '';
+		else delete root.dataset.tabsMinimized;
+		return () => delete root.dataset.tabsMinimized;
 	});
 </script>
 
@@ -49,7 +84,7 @@
 	{/if}
 {/snippet}
 
-<svelte:window onkeydown={(e) => e.key === 'Escape' && (moreOpen = false)} />
+<svelte:window onkeydown={(e) => e.key === 'Escape' && (moreOpen = false)} onscroll={onScroll} />
 
 <aside class="sidebar no-print">
 	<a class="brand" href={pagePath('')}>
@@ -95,7 +130,7 @@
 
 {#if moreOpen}
 	<button class="more-backdrop" aria-label="Close menu" onclick={() => (moreOpen = false)}></button>
-	<div class="more-menu" role="menu">
+	<div class="more-menu glass" role="menu">
 		{#each more as item (item.href)}
 			<a class="more-item" class:active={isActive(item, path)} role="menuitem" href={href(item)}>
 				<Icon name={item.icon} />
@@ -114,9 +149,15 @@
 {/if}
 
 {#if options.signedIn}
-	<nav class="tab-bar no-print" aria-label="Main">
+	<nav class="tab-bar glass no-print" class:minimized aria-label="Main">
 		{#each main as item (item.href)}
-			<a class="tab" class:active={isActive(item, path)} href={href(item)}>
+			<a
+				class="tab"
+				class:active={isActive(item, path) && !moreOpen}
+				class:current={isActive(item, path) && !onMorePage}
+				href={href(item)}
+				onclick={expandOnTap}
+			>
 				<Icon name={item.icon} />
 				<span class="tab-label">{item.shortTitle}</span>
 			</a>
@@ -125,10 +166,13 @@
 			type="button"
 			class="tab"
 			class:active={moreOpen || onMorePage}
+			class:current={onMorePage || !main.some((item) => isActive(item, path))}
 			aria-haspopup="menu"
 			aria-expanded={moreOpen}
 			aria-label={moreCount > 0 ? `More, ${moreCount} waiting` : undefined}
-			onclick={() => (moreOpen = !moreOpen)}
+			onclick={(e) => {
+				if (expandOnTap(e)) moreOpen = !moreOpen;
+			}}
 		>
 			<span class="tab-icon">
 				<Icon name="ellipses" />
@@ -264,15 +308,28 @@
 		display: flex;
 		gap: 0.15rem;
 		height: var(--tab-bar-pill);
-		padding: 0.3rem;
-		border: 1px solid var(--glass-edge);
+		padding: 0.25rem;
 		border-radius: 999px;
-		background: var(--glass-bg);
-		box-shadow:
-			var(--glass-shadow),
-			inset 0 1px 0 var(--glass-highlight);
-		-webkit-backdrop-filter: blur(28px) saturate(180%);
-		backdrop-filter: blur(28px) saturate(180%);
+		transition:
+			right 0.35s cubic-bezier(0.32, 0.72, 0, 1),
+			width 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+	}
+
+	/* Scrolled down: the bar shrinks to a circle holding only the current tab, out of the content's way,
+	   and comes back on scrolling up or tapping it */
+	.tab-bar.minimized {
+		gap: 0;
+		right: calc(100% - max(env(safe-area-inset-left), 0.75rem) - var(--tab-bar-pill));
+	}
+
+	.tab-bar.minimized .tab:not(.current) {
+		flex: 0 0 0;
+		opacity: 0;
+		pointer-events: none;
+	}
+
+	.tab-bar.minimized .tab-label {
+		display: none;
 	}
 
 	.tab {
@@ -281,29 +338,40 @@
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		gap: 0.15rem;
+		gap: 0.1rem;
 		min-width: 0;
 		padding: 0;
+		overflow: hidden;
 		border: 0;
 		border-radius: 999px;
 		background: none;
 		color: var(--glass-text);
 		font: inherit;
-		font-size: 0.7rem;
+		font-size: 0.625rem;
+		font-weight: 600;
+		letter-spacing: 0.01em;
 		text-decoration: none;
+		transition:
+			flex-grow 0.35s cubic-bezier(0.32, 0.72, 0, 1),
+			flex-basis 0.35s cubic-bezier(0.32, 0.72, 0, 1),
+			opacity 0.2s ease,
+			background-color 0.2s ease;
 		cursor: pointer;
 		-webkit-tap-highlight-color: transparent;
 	}
 
 	.tab :global(.icon) {
-		font-size: 1.25rem;
+		font-size: 1.375rem;
 	}
 
-	/* The current tab sits in its own pill */
+	/* The current tab sits in a lens of its own, its icon and name in the app's tint */
 	.tab.active {
 		background: var(--glass-active-bg);
 		color: var(--glass-active-text);
-		font-weight: 600;
+	}
+
+	.tab:active {
+		transform: scale(0.94);
 	}
 
 	/* The More tab's count sits on the corner of its icon */
@@ -335,7 +403,7 @@
 	/* Six tabs on the narrowest phones: shrink the labels so none get cut off */
 	@media (max-width: 359.98px) {
 		.tab {
-			font-size: 0.62rem;
+			font-size: 0.58rem;
 		}
 	}
 
@@ -345,7 +413,7 @@
 		inset: 0;
 		z-index: 21;
 		border: 0;
-		background: rgba(0, 0, 0, 0.25);
+		background: transparent;
 	}
 
 	.more-menu {
@@ -354,26 +422,42 @@
 		bottom: calc(var(--tab-bar-height) + 0.5rem);
 		z-index: 22;
 		min-width: 13rem;
-		padding: 0.35rem 0;
+		padding: 0.4rem;
 		overflow: hidden;
-		border: 1px solid var(--glass-edge);
-		border-radius: var(--radius-lg);
-		background: var(--glass-bg);
-		box-shadow:
-			var(--glass-shadow),
-			inset 0 1px 0 var(--glass-highlight);
-		-webkit-backdrop-filter: blur(28px) saturate(180%);
-		backdrop-filter: blur(28px) saturate(180%);
+		border-radius: 1.75rem;
+		transform-origin: bottom right;
+		animation: menu-in 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+	}
+
+	@keyframes menu-in {
+		from {
+			opacity: 0;
+			transform: scale(0.6);
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.tab-bar,
+		.tab,
+		.more-menu {
+			transition: none;
+			animation: none;
+		}
 	}
 
 	.more-item {
 		display: flex;
 		align-items: center;
 		gap: 0.75rem;
-		min-height: 48px;
-		padding: 0 1rem;
-		color: var(--text);
+		min-height: 44px;
+		padding: 0 0.85rem;
+		border-radius: 1.35rem;
+		color: var(--glass-text);
 		text-decoration: none;
+	}
+
+	.more-item:hover {
+		background: var(--glass-active-bg);
 	}
 
 	.more-item :global(.icon) {
@@ -381,14 +465,19 @@
 	}
 
 	.more-item.active {
-		color: var(--brand-text);
+		color: var(--tint);
 		font-weight: 600;
+	}
+
+	.more-item.active :global(.icon) {
+		color: var(--tint);
 	}
 
 	.more-version {
 		display: block;
-		padding: 0.4rem 1rem 0.3rem;
-		border-top: 1px solid var(--border-soft);
+		margin-top: 0.25rem;
+		padding: 0.5rem 0.85rem 0.3rem;
+		border-top: 0.5px solid var(--border);
 		color: var(--faint);
 		font-size: 0.75rem;
 		text-decoration: none;

@@ -11,28 +11,15 @@
 	const current = $derived(page.url.pathname);
 </script>
 
-<nav class="record-switch" aria-label="Record">
+<nav class="tabs record-switch" aria-label="Record">
 	{#each choices as choice (choice.href)}
 		{@const here = current.endsWith(`/${choice.href}`)}
-		<a
-			class="btn btn-sm {here ? 'btn-primary' : 'btn-outline-primary'}"
-			aria-current={here ? 'page' : undefined}
-			href={pagePath(choice.href)}>{choice.label}</a
-		>
+		<a aria-current={here ? 'page' : undefined} href={pagePath(choice.href)}>{choice.label}</a>
 	{/each}
 </nav>
 
 <style>
 	.record-switch {
-		display: flex;
-		gap: 0.4rem;
 		margin-bottom: 0.75rem;
-	}
-
-	.record-switch a {
-		flex: 1 1 0;
-		min-height: 36px;
-		border-radius: 999px;
-		text-align: center;
 	}
 </style>

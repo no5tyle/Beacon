@@ -5,64 +5,80 @@
 :root {
 	color-scheme: light dark;
 
-	--bg: #fff;
+	/* Apple's system colours (iOS 26, Liquid Glass): a grouped background with white content on it */
+	--bg: #f2f2f7;
 	--surface: #fff;
-	--surface-2: #f8f9fa;
-	--surface-3: #f1f3f5;
-	--border: #dee2e6;
-	--border-soft: #f1f3f5;
-	--input-border: #ced4da;
-	--text: #212529;
-	--text-2: #495057;
-	--muted: #6c757d;
-	--faint: #adb5bd;
+	--surface-2: #f7f7fa;
+	--surface-3: #e5e5ea;
+	--fill: rgba(118, 118, 128, 0.12);
+	--fill-strong: rgba(118, 118, 128, 0.2);
+	--border: rgba(60, 60, 67, 0.16);
+	--border-soft: rgba(60, 60, 67, 0.1);
+	--input-border: rgba(60, 60, 67, 0.2);
+	--text: #000;
+	--text-2: #3c3c43;
+	--muted: #6e6e73;
+	--faint: #aeaeb2;
 
 	--brand: #052767;
-	--brand-text: #052767;
 	--brand-deep: #3a0647;
 	--accent: #e8a33d;
 
-	--link: #0071c1;
-	--primary: #1b6ec2;
-	--primary-hover: #1861ac;
+	/* The app's tint, as iOS tints controls: the selected tab, buttons and links */
+	--tint: #007aff;
+	--brand-text: var(--tint);
+	--link: var(--tint);
+	--primary: var(--tint);
+	--primary-hover: #0066d6;
 	--primary-text: #fff;
-	--focus-ring: rgba(27, 110, 194, 0.35);
-	--success: #198754;
-	--danger: #dc3545;
-	--warning: #ffc107;
+	--tint-fill: rgba(0, 122, 255, 0.12);
+	--tint-fill-strong: rgba(0, 122, 255, 0.2);
+	--focus-ring: rgba(0, 122, 255, 0.35);
+	/* Apple's accessible green and red, which read well as text */
+	--success: #248a3d;
+	--danger: #d70015;
+	--warning: #ff9500;
 
-	--alert-success-bg: #d1e7dd;
-	--alert-success-border: #badbcc;
-	--alert-success-text: #0f5132;
-	--alert-warning-bg: #fff3cd;
-	--alert-warning-border: #ffecb5;
-	--alert-warning-text: #664d03;
-	--alert-danger-bg: #f8d7da;
-	--alert-danger-border: #f5c2c7;
-	--alert-danger-text: #842029;
-	--alert-info-bg: #e7f1ff;
-	--alert-info-border: #c5dcfb;
-	--alert-info-text: #084298;
+	--alert-success-bg: rgba(52, 199, 89, 0.14);
+	--alert-success-border: transparent;
+	--alert-success-text: #1b6b30;
+	--alert-warning-bg: rgba(255, 149, 0, 0.14);
+	--alert-warning-border: transparent;
+	--alert-warning-text: #8a4b00;
+	--alert-danger-bg: rgba(255, 59, 48, 0.12);
+	--alert-danger-border: transparent;
+	--alert-danger-text: #b0000f;
+	--alert-info-bg: rgba(0, 122, 255, 0.1);
+	--alert-info-border: transparent;
+	--alert-info-text: #0055b3;
 
-	--stripe: rgba(0, 0, 0, 0.04);
-	--hover: rgba(5, 39, 103, 0.06);
-	--shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+	--stripe: rgba(118, 118, 128, 0.06);
+	--hover: rgba(118, 118, 128, 0.1);
+	--shadow: 0 10px 40px rgba(0, 0, 0, 0.16);
 
+	/* Concentric rounding: controls are capsules, fields rounded, cards and panels rounder */
 	--radius: 0.75rem;
-	/* Cards and panels: rounder still, as phones' own apps are */
-	--radius-lg: 1.1rem;
+	--radius-lg: 1.375rem;
 
-	/* Floating glass: the tab bar, More menu and bottom action bar float over the page, translucent
-	   with what's behind blurred, as the phone's own apps do */
-	--glass-bg: rgba(255, 255, 255, 0.82);
-	--glass-edge: rgba(0, 0, 0, 0.08);
-	--glass-highlight: rgba(255, 255, 255, 0.7);
-	--glass-shadow: 0 8px 28px rgba(0, 0, 0, 0.16);
-	--glass-text: #4a5470;
-	--glass-active-bg: rgba(5, 39, 103, 0.1);
-	--glass-active-text: #052767;
+	/*
+		Liquid Glass: controls float above the content in a layer of their own, translucent, with what's
+		behind blurred and brightened, a bright rim and a sheen across the top. Web pages can't bend what's
+		behind as the phone does, so this is the closest it gets without refraction.
+	*/
+	--glass-bg: rgba(255, 255, 255, 0.62);
+	--glass-sheen: rgba(255, 255, 255, 0.55);
+	--glass-rim: rgba(255, 255, 255, 0.85);
+	--glass-edge: rgba(0, 0, 0, 0.07);
+	--glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.14);
+	--glass-filter: blur(20px) saturate(190%) brightness(1.06);
+	--glass-text: #000;
+	/* The selected tab's lens */
+	--glass-active-bg: rgba(0, 0, 0, 0.06);
+	--glass-active-text: var(--tint);
+
 	--font:
-		'Helvetica Neue', Helvetica, Arial, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+		-apple-system, system-ui, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', 'Segoe UI',
+		Roboto, Arial, sans-serif;
 
 	/* Space below the floating tabs: the home indicator area where the phone reports one, and at least a
 	   little everywhere else so they stay clear of rounded screen corners. The height is all the room the
@@ -79,52 +95,52 @@
 
 @media screen and (prefers-color-scheme: dark) {
 	:root {
-		--ref-open-bg: #232a33;
-		--ref-open-border: #4d7fc4;
+		--ref-open-bg: #1c1c1e;
+		--ref-open-border: #0a84ff;
 		--ref-highlight: #3a3320;
-		--bg: #121417;
-		--surface: #1e2227;
-		--surface-2: #23282e;
-		--surface-3: #2c3239;
-		--border: #3a4048;
-		--border-soft: #2c3239;
-		--input-border: #3a4048;
-		--text: #e4e6e9;
-		--text-2: #c3c9d0;
-		--muted: #9aa3ad;
-		--faint: #6f7882;
+		--bg: #000;
+		--surface: #1c1c1e;
+		--surface-2: #2c2c2e;
+		--surface-3: #3a3a3c;
+		--fill: rgba(118, 118, 128, 0.24);
+		--fill-strong: rgba(118, 118, 128, 0.36);
+		--border: rgba(84, 84, 88, 0.6);
+		--border-soft: rgba(84, 84, 88, 0.4);
+		--input-border: rgba(84, 84, 88, 0.65);
+		--text: #fff;
+		--text-2: #ebebf5;
+		--muted: #98989f;
+		--faint: #636366;
 
-		--brand-text: #9dbbff;
-		--link: #7fb0ff;
-		--primary: #2f6fd0;
-		--primary-hover: #3d7be0;
-		--focus-ring: rgba(127, 176, 255, 0.35);
-		--success: #2e9e68;
-		--danger: #e05260;
+		--tint: #0a84ff;
+		--primary-hover: #409cff;
+		--tint-fill: rgba(10, 132, 255, 0.18);
+		--tint-fill-strong: rgba(10, 132, 255, 0.28);
+		--focus-ring: rgba(10, 132, 255, 0.45);
+		--success: #30d158;
+		--danger: #ff453a;
+		--warning: #ff9f0a;
 
-		--alert-success-bg: #16301f;
-		--alert-success-border: #24563a;
-		--alert-success-text: #9fdcb5;
-		--alert-warning-bg: #332a12;
-		--alert-warning-border: #5c4a1a;
-		--alert-warning-text: #f0d58a;
-		--alert-danger-bg: #3a1a1d;
-		--alert-danger-border: #6a2a30;
-		--alert-danger-text: #f2a7ad;
-		--alert-info-bg: #122b33;
-		--alert-info-border: #1f4c5a;
-		--alert-info-text: #9fd8e8;
+		--alert-success-bg: rgba(48, 209, 88, 0.16);
+		--alert-success-text: #7ee29b;
+		--alert-warning-bg: rgba(255, 159, 10, 0.16);
+		--alert-warning-text: #ffc670;
+		--alert-danger-bg: rgba(255, 69, 58, 0.16);
+		--alert-danger-text: #ff8a82;
+		--alert-info-bg: rgba(10, 132, 255, 0.16);
+		--alert-info-text: #7cb8ff;
 
-		--stripe: rgba(255, 255, 255, 0.04);
-		--hover: rgba(157, 187, 255, 0.08);
-		--shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+		--stripe: rgba(118, 118, 128, 0.1);
+		--hover: rgba(118, 118, 128, 0.18);
+		--shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
 
-		--glass-bg: rgba(40, 45, 54, 0.78);
-		--glass-edge: rgba(255, 255, 255, 0.12);
-		--glass-highlight: rgba(255, 255, 255, 0.08);
-		--glass-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
-		--glass-text: #b9c0ca;
+		--glass-bg: rgba(30, 30, 32, 0.58);
+		--glass-sheen: rgba(255, 255, 255, 0.07);
+		--glass-rim: rgba(255, 255, 255, 0.22);
+		--glass-edge: rgba(0, 0, 0, 0.4);
+		--glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.55);
+		--glass-filter: blur(20px) saturate(170%) brightness(0.92);
+		--glass-text: #fff;
 		--glass-active-bg: rgba(255, 255, 255, 0.14);
-		--glass-active-text: #fff;
 	}
 }
