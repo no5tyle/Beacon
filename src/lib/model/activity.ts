@@ -11,8 +11,11 @@ export type ActivityType = (typeof ACTIVITY_TYPES)[number];
 export const CHALLENGE_AREAS = ['Community', 'Outdoors', 'Creative', 'Personal growth'] as const;
 export type ChallengeArea = (typeof CHALLENGE_AREAS)[number];
 
-/** How a youth took part, which is how milestones count it */
-export const ROLES = ['Participant', 'Assistant', 'Leader'] as const;
+/**
+ * How a youth took part, which is how milestones count it: everyone who came participated, and any number
+ * of them may have led it too. Terrain no longer uses assisting
+ */
+export const ROLES = ['Participant', 'Leader'] as const;
 export type Role = (typeof ROLES)[number];
 
 /** How it went, as Terrain's review rates an activity */
@@ -193,13 +196,12 @@ export function activityProblems(draft: ActivityDraft, now = new Date()): string
 	return problems;
 }
 
-/** How many came in each role, e.g. "8 participants, 2 assistants, 1 leader" */
+/** How many came and how many of them led, e.g. "8 came, 2 led" */
 export function attendanceSummary(attendance: Record<string, Role>): string {
-	const count = (role: Role) => Object.values(attendance).filter((r) => r === role).length;
-	return ROLES.map((role) => [role, count(role)] as const)
-		.filter(([, n]) => n > 0)
-		.map(([role, n]) => `${n} ${role.toLowerCase()}${n === 1 ? '' : 's'}`)
-		.join(', ');
+	const came = Object.keys(attendance).length;
+	const led = Object.values(attendance).filter((r) => r === 'Leader').length;
+	if (came === 0) return '';
+	return led > 0 ? `${came} came, ${led} led` : `${came} came`;
 }
 
 /** Who is saving the activity, and where, for Terrain's activity */
@@ -247,8 +249,7 @@ const terrainChallengeArea = (area: ChallengeArea | '') => area.toLowerCase().re
 
 /**
  * The activity as Terrain's planner sends it to units/{unit}/events, already concluded: everyone who
- * came as attendees and participants, those who assisted or led as well, its logbook figures, and its
- * review
+ * came as attendees and participants, those who led it as well, its logbook figures, and its review
  */
 export function eventBody(draft: ActivityDraft, context: ActivityContext): Record<string, unknown> {
 	const inRole = (role: Role) =>
@@ -267,8 +268,9 @@ export function eventBody(draft: ActivityDraft, context: ActivityContext): Recor
 		event_type: { type: 'unit', id: context.unitId },
 		attendance: {
 			leader_member_ids: inRole('Leader'),
-			assistant_member_ids: inRole('Assistant'),
-			// Everyone who came took part; assisting or leading is as well as that
+			// Terrain no longer uses assisting
+			assistant_member_ids: [],
+			// Everyone who came took part; leading is as well as that
 			attendee_member_ids: Object.keys(draft.attendance),
 			participant_member_ids: Object.keys(draft.attendance)
 		},
