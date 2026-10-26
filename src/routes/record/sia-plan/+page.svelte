@@ -8,6 +8,7 @@
 	import { goto } from '$app/navigation';
 	import ChooseUnit from '#lib/components/ChooseUnit.svelte';
 	import RecordSwitch from '#lib/components/RecordSwitch.svelte';
+	import StepBar from '#lib/components/StepBar.svelte';
 	import { newSIAPlan, SIA_AREAS, siaAreaName, siaPlanProblems } from '#lib/model/siaPlan.js';
 	import { titleCase } from '#lib/model/util.js';
 	import { pagePath } from '#lib/paths.js';
@@ -65,11 +66,7 @@
 <div class="sia-plan has-action-bar">
 	<RecordSwitch />
 	<h2>SIA plan</h2>
-	<ol class="steps">
-		{#each steps as s, i (s)}
-			<li class={s === step ? 'current' : i < index ? 'done' : ''}>{stepNames[s]}</li>
-		{/each}
-	</ol>
+	<StepBar steps={steps.map((s) => stepNames[s])} current={index} />
 
 	{#if !unitId}
 		<ChooseUnit />

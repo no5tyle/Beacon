@@ -8,6 +8,7 @@
 	import ChooseUnit from '#lib/components/ChooseUnit.svelte';
 	import Icon from '#lib/components/Icon.svelte';
 	import RecordSwitch from '#lib/components/RecordSwitch.svelte';
+	import StepBar from '#lib/components/StepBar.svelte';
 	import { isCoreStream } from '#lib/model/insights/insightsCalculator.js';
 	import {
 		MAX_LEADER_VERIFIABLE_STAGE,
@@ -313,11 +314,10 @@
 <div class="sign-off has-action-bar">
 	<RecordSwitch />
 	<h2>Record OAS</h2>
-	<ol class="steps">
-		<li class={step === 'statements' ? 'current' : 'done'}>Statements</li>
-		<li class={step === 'youth' ? 'current' : step === 'review' ? 'done' : ''}>Youth</li>
-		<li class={step === 'review' ? 'current' : ''}>Save</li>
-	</ol>
+	<StepBar
+		steps={['Statements', 'Youth', 'Save']}
+		current={['statements', 'youth', 'review'].indexOf(step)}
+	/>
 
 	{#if message}
 		<div class="alert alert-danger">{message}</div>

@@ -42,7 +42,9 @@ test('logs a camp that’s over: details, who came, logbook, how it went, then s
 	await page.getByLabel('Starts on').fill('2026-10-23');
 	await page.getByLabel('Ends on').fill('2026-10-25');
 	// Every activity has a logbook and a review step
-	await expect(page.locator('.steps li')).toHaveText([
+	await expect(page.locator('.step-caption')).toHaveText('Activity · 1 of 5');
+	await expect(page.locator('.step-bar li.current')).toHaveText('Activity');
+	await expect(page.locator('.step-bar li')).toHaveText([
 		'Activity',
 		'Who came',
 		'Logbook',
@@ -62,6 +64,8 @@ test('logs a camp that’s over: details, who came, logbook, how it went, then s
 	await expect(page.getByRole('button', { name: /Assist/ })).toHaveCount(0);
 	await page.locator('.attendee', { hasText: 'Noah Jones' }).getByRole('checkbox').uncheck();
 	await next.click();
+	await expect(page.locator('.step-caption')).toHaveText('Logbook · 3 of 5');
+	await expect(page.locator('.step-bar li.done')).toHaveCount(2);
 
 	// Two nights from the dates, and the walking they did, for everyone who came
 	await expect(page.locator('.nights')).toContainText('2 nights away');
@@ -146,7 +150,7 @@ test('an evening at the hall has an empty logbook, and is concluded with its rev
 	await navigate(page, 'record/activity/');
 	// One day: the date, and it ends that day
 	await page.getByLabel('Date').fill('2026-10-20');
-	await expect(page.locator('.steps li')).toHaveText([
+	await expect(page.locator('.step-bar li')).toHaveText([
 		'Activity',
 		'Who came',
 		'Logbook',

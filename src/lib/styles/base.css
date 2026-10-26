@@ -452,49 +452,6 @@ html:has(.tab-bar) {
 	padding-bottom: 5rem;
 }
 
-.steps {
-	display: flex;
-	gap: 0.5rem;
-	margin: 0 0 1rem;
-	padding: 0;
-	list-style: none;
-	counter-reset: step;
-	font-size: 0.85rem;
-	color: var(--muted);
-}
-
-.steps li {
-	counter-increment: step;
-}
-
-.steps li::before {
-	content: counter(step);
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: 1.4rem;
-	height: 1.4rem;
-	margin-right: 0.3rem;
-	border-radius: 50%;
-	background: var(--surface-3);
-	font-size: 0.75rem;
-}
-
-.steps li.current {
-	color: var(--brand-text);
-	font-weight: 600;
-}
-
-.steps li.current::before {
-	background: var(--brand);
-	color: #fff;
-}
-
-.steps li.done::before {
-	background: var(--success);
-	color: #fff;
-}
-
 .group-title {
 	margin-top: 0.75rem;
 	font-size: 0.9rem;
