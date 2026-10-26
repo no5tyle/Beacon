@@ -182,6 +182,7 @@ export const NOT_OVER = "It hasn't finished yet. Log activities once they're ove
 export function activityProblems(draft: ActivityDraft, now = new Date()): string[] {
 	const problems: string[] = [];
 	if (!draft.title.trim()) problems.push('Give the activity a title.');
+	if (!draft.location.trim()) problems.push('Say where it was.');
 	if (!draft.challengeArea) problems.push('Choose a challenge area.');
 	if (`${draft.endDate}T${draft.endTime}` <= `${draft.startDate}T${draft.startTime}`)
 		problems.push('It needs to end after it starts.');

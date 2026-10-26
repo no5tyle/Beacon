@@ -138,6 +138,7 @@
 	const canContinue = $derived(
 		step === 'details'
 			? !!draft.title.trim() &&
+					!!draft.location.trim() &&
 					!!draft.challengeArea &&
 					!problems.includes('It needs to end after it starts.') &&
 					!problems.includes(NOT_OVER)
@@ -252,8 +253,13 @@
 			<div class="small text-danger">{NOT_OVER}</div>
 		{/if}
 		<div class="field">
-			<label class="form-label" for="location">Where <span class="muted">(optional)</span></label>
-			<input id="location" class="form-control" bind:value={draft.location} />
+			<label class="form-label" for="location">Where</label>
+			<input
+				id="location"
+				class="form-control"
+				placeholder={draft.type === 'Camp' ? 'e.g. Woodhouse' : 'e.g. the hall'}
+				bind:value={draft.location}
+			/>
 		</div>
 		<div class="field">
 			<span class="form-label">Challenge area</span>
@@ -431,8 +437,8 @@
 				<dd>{draft.type}</dd>
 				<dt>When</dt>
 				<dd>{when}</dd>
-				{#if draft.location}<dt>Where</dt>
-					<dd>{draft.location}</dd>{/if}
+				<dt>Where</dt>
+				<dd>{draft.location}</dd>
 				<dt>Challenge area</dt>
 				<dd>{draft.challengeArea}</dd>
 				<dt>Who came</dt>

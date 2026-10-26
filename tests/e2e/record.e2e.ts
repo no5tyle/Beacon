@@ -36,6 +36,7 @@ test('logs a camp that’s over: details, who came, logbook, how it went, then s
 	await page.getByRole('button', { name: 'Camp', exact: true }).click();
 	await expect(next).toBeDisabled();
 	await page.getByLabel('Title').fill('Spring camp');
+	await page.getByLabel('Where').fill('The hall');
 	await page.getByLabel('Starts').fill('2026-10-23');
 	await page.getByLabel('Ends').fill('2026-10-25');
 	// Over, so it has a review step
@@ -93,6 +94,7 @@ test('logs a camp that’s over: details, who came, logbook, how it went, then s
 	const body = terrain.writes[0].body as Record<string, unknown>;
 	expect(body).toMatchObject({
 		title: 'Spring camp',
+		location: 'The hall',
 		organisers: ['leader-1'],
 		challenge_area: 'outdoors',
 		event_type: { type: 'unit', id: 'unit-1' },
@@ -137,6 +139,7 @@ test('a unit night has no logbook step, and is concluded with its review', async
 		'Save'
 	]);
 	await page.getByLabel('Title').fill('Knots night');
+	await page.getByLabel('Where').fill('The hall');
 	await page.getByRole('button', { name: 'Creative' }).click();
 	await page.getByRole('button', { name: /^Next/ }).click();
 	await page.locator('.attendee', { hasText: 'Mia Brown' }).getByRole('checkbox').check();
@@ -162,6 +165,7 @@ test('an overnight hike counts its nights towards camping', async ({ page }) => 
 	await page.getByLabel('Starts').fill('2026-10-17');
 	await page.getByLabel('Ends').fill('2026-10-17');
 	await page.getByLabel('Title').fill('Heysen Trail');
+	await page.getByLabel('Where').fill('The hall');
 	await page.getByRole('button', { name: 'Outdoors' }).click();
 	await page.getByRole('button', { name: /^Next/ }).click();
 	await page.locator('.attendee', { hasText: 'Mia Brown' }).getByRole('checkbox').check();
@@ -201,8 +205,13 @@ test('only takes activities that are over', async ({ page }) => {
 	// It starts on one that's already over
 	await expect(page.locator('.text-danger')).toHaveCount(0);
 	await page.getByLabel('Title').fill('Knots night');
+	await page.getByLabel('Where').fill('The hall');
 	await page.getByRole('button', { name: 'Creative' }).click();
 	await expect(page.getByRole('button', { name: /^Next/ })).toBeEnabled();
+	// Where it was is needed
+	await page.getByLabel('Where').fill('');
+	await expect(page.getByRole('button', { name: /^Next/ })).toBeDisabled();
+	await page.getByLabel('Where').fill('The hall');
 	// Moved to the future, it can't go on
 	await page.getByLabel('Starts').fill('2030-03-07');
 	await page.getByLabel('Ends').fill('2030-03-07');
@@ -229,6 +238,7 @@ test('says when Terrain won’t take the activity, and keeps it to try again', a
 	await page.getByLabel('Starts').fill('2026-10-20');
 	await page.getByLabel('Ends').fill('2026-10-20');
 	await page.getByLabel('Title').fill('Knots night');
+	await page.getByLabel('Where').fill('The hall');
 	await page.getByRole('button', { name: 'Community' }).click();
 	await page.getByRole('button', { name: /^Next/ }).click();
 	await page.locator('.attendee', { hasText: 'Mia Brown' }).getByRole('checkbox').check();

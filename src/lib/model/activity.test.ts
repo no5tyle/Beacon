@@ -97,6 +97,7 @@ describe('logging an activity', () => {
 		const after = new Date(2026, 9, 24);
 		expect(activityProblems(draft, after)).toEqual([
 			'Give the activity a title.',
+			'Say where it was.',
 			'Choose a challenge area.',
 			'Tick who came.',
 			'Say how it went.',
@@ -106,6 +107,7 @@ describe('logging an activity', () => {
 		const done = {
 			...draft,
 			title: 'Knots night',
+			location: 'The hall',
 			challengeArea: 'Outdoors' as const,
 			attendance: { m1: 'Participant' as const },
 			review: { rating: 'okay' as const, tags: [], method: ['patrol_system'], spices: ['social'] }
@@ -140,6 +142,7 @@ describe('logging an activity', () => {
 		const draft = {
 			...newActivity('Unit night', '2026-10-23'),
 			title: 'Knots night',
+			location: 'The hall',
 			challengeArea: 'Outdoors' as const,
 			attendance: { m1: 'Participant' as const }
 		};
