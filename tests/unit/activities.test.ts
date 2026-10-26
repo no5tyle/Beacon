@@ -7,6 +7,7 @@ import { leaderProfiles, signedInTerrain } from './fakeTerrain.js';
 const camp = () => ({
 	...newActivity('Camp', '2026-10-23'),
 	title: 'Spring camp',
+	location: 'Woodhouse',
 	challengeArea: 'Outdoors' as const,
 	attendance: { m1: 'Participant' as const }
 });
