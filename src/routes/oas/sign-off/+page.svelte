@@ -607,10 +607,6 @@
 </div>
 
 <style>
-	.sign-off {
-		max-width: 640px;
-	}
-
 	.chip-more {
 		min-height: 40px;
 		padding-left: 0.25rem;
