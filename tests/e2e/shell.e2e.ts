@@ -115,7 +115,7 @@ test.describe('phone', () => {
 		await expect(page.locator('.top-bar')).toHaveCount(0);
 		// The labels: More also carries the approvals badge
 		const tabs = page.locator('.tab-bar .tab .tab-label');
-		await expect(tabs).toHaveText(['Home', 'Insights', 'Record', 'Progress', 'Reference', 'More']);
+		await expect(tabs).toHaveText(['Home', 'Insights', 'Record', 'Reference', 'More']);
 		await expect(page.locator('.tab-bar .tab.active')).toHaveText('Home');
 
 		await page.locator('.tab-bar a', { hasText: 'Record' }).click();
@@ -123,10 +123,34 @@ test.describe('phone', () => {
 		await expect(page.locator('.tab-bar .tab.active')).toHaveText('Record');
 	});
 
+	test("a page opened from More takes Reference's place in the bar", async ({ page }) => {
+		await logIn(page);
+		const tabs = page.locator('.tab-bar .tab .tab-label');
+		await page.locator('.tab-bar button', { hasText: 'More' }).click();
+		await page.locator('.more-item', { hasText: 'Progress' }).click();
+		await expect(page).toHaveURL(/\/progress\/$/);
+		await expect(tabs).toHaveText(['Home', 'Insights', 'Record', 'Progress', 'More']);
+		await expect(page.locator('.tab-bar .tab.active')).toHaveText('Progress');
+		await page.locator('.tab-bar button', { hasText: 'More' }).click();
+		await expect(page.locator('.more-item')).toHaveText([
+			/^\s*Reference\s*$/,
+			/^\s*Approvals 3 waiting for you\s*$/,
+			/^\s*Logout\s*$/
+		]);
+		await page.locator('.more-item', { hasText: 'Approvals' }).click();
+		await expect(tabs).toHaveText(['Home', 'Insights', 'Record', 'Approvals', 'More']);
+		await expect(page.locator('.tab-bar a', { hasText: 'Approvals' })).toHaveAccessibleName(
+			'Approvals, 3 waiting'
+		);
+		await page.locator('.tab-bar a', { hasText: 'Home' }).click();
+		await expect(tabs).toHaveText(['Home', 'Insights', 'Record', 'Reference', 'More']);
+	});
+
 	test('More opens the less used pages, and Logout signs out', async ({ page }) => {
 		await logIn(page);
 		await page.locator('.tab-bar button', { hasText: 'More' }).click();
 		await expect(page.locator('.more-item')).toHaveText([
+			/^\s*Progress\s*$/,
 			/^\s*Approvals 3 waiting for you\s*$/,
 			/^\s*Logout\s*$/
 		]);

@@ -12,6 +12,7 @@
 		mainPages,
 		moreBadge,
 		morePages,
+		phoneTabs,
 		signedOutPages,
 		type NavOptions,
 		type NavPage
@@ -24,11 +25,14 @@
 	// Read after a badge's count. Kept with its space in a string: as plain text the space is trimmed, and a
 	// screen reader hears "2waiting"
 	const WAITING = ' waiting for you';
-	const main = $derived(options.signedIn ? mainPages(options) : []);
-	const more = $derived(options.signedIn ? morePages(options) : []);
-	const sidebar = $derived(options.signedIn ? [...main, ...more] : signedOutPages());
 	// The current address within the app, without the base path
 	const path = $derived(page.url.pathname.slice(pagePath('').length - 1));
+	const sidebar = $derived(
+		options.signedIn ? [...mainPages(options), ...morePages(options)] : signedOutPages()
+	);
+	const tabs = $derived(options.signedIn ? phoneTabs(options, path) : { main: [], more: [] });
+	const main = $derived(tabs.main);
+	const more = $derived(tabs.more);
 	const onLogging = $derived(path.startsWith(`/${LOGGING_HREF}`));
 	const onMorePage = $derived(onLogging || more.some((item) => isActive(item, path)));
 	const versionText = $derived(options.logging ? ' · logging on' : '');
@@ -168,9 +172,13 @@
 				class:active={isActive(item, path) && !moreOpen}
 				class:current={isActive(item, path) && !onMorePage}
 				href={href(item)}
+				aria-label={item.badge ? `${item.shortTitle}, ${item.badge} waiting` : undefined}
 				onclick={expandOnTap}
 			>
-				<Icon name={item.icon} />
+				<span class="tab-icon">
+					<Icon name={item.icon} />
+					{#if item.badge}<span class="badge tab-badge" aria-hidden="true">{item.badge}</span>{/if}
+				</span>
 				<span class="tab-label">{item.shortTitle}</span>
 			</a>
 		{/each}

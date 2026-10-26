@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { isActive, mainPages, moreBadge, morePages, signedOutPages } from './navigation.js';
+import {
+	isActive,
+	mainPages,
+	moreBadge,
+	morePages,
+	phoneTabs,
+	signedOutPages
+} from './navigation.js';
 
 const leader = { signedIn: true, isYouth: false, logging: false };
 const youth = { signedIn: true, isYouth: true, logging: false };
@@ -50,5 +57,46 @@ describe('navigation', () => {
 		expect(isActive(progress, '/progress/')).toBe(true);
 		expect(isActive(progress, '/progress/m1/record-oas')).toBe(true);
 		expect(isActive(progress, '/oas/sign-off/')).toBe(false);
+	});
+
+	describe('phone tabs', () => {
+		const titles = ({ main, more }: ReturnType<typeof phoneTabs>) => ({
+			main: main.map((p) => p.shortTitle),
+			more: more.map((p) => p.title)
+		});
+
+		it('put Progress under More for leaders, to keep the tab bar roomy', () => {
+			expect(titles(phoneTabs(leader, '/insights/'))).toEqual({
+				main: ['Home', 'Insights', 'Record', 'Reference'],
+				more: ['Progress', 'Approvals', 'Logout']
+			});
+		});
+
+		it('swap the open page from More into the bar, and Reference into More', () => {
+			expect(titles(phoneTabs(leader, '/progress/m1/'))).toEqual({
+				main: ['Home', 'Insights', 'Record', 'Progress'],
+				more: ['Reference', 'Approvals', 'Logout']
+			});
+			expect(titles(phoneTabs(leader, '/approvals/'))).toEqual({
+				main: ['Home', 'Insights', 'Record', 'Approvals'],
+				more: ['Reference', 'Progress', 'Logout']
+			});
+		});
+
+		it('keep Progress in the bar for youth, as their main page', () => {
+			expect(titles(phoneTabs(youth, '/progress/'))).toEqual({
+				main: ['Home', 'Progress', 'Reference'],
+				more: ['Logout']
+			});
+		});
+
+		it('leave the bar as it is on the logging page', () => {
+			expect(titles(phoneTabs(leader, '/logging/')).main).toEqual([
+				'Home',
+				'Insights',
+				'Record',
+				'Reference'
+			]);
+		});
 	});
 });
