@@ -3,8 +3,10 @@ import {
 	activityProblems,
 	attendanceSummary,
 	eventBody,
+	finishedBy,
 	hasLogbook,
 	isOver,
+	NOT_OVER,
 	logbookOf,
 	newActivity,
 	nightsBetween,
@@ -47,22 +49,48 @@ describe('logging an activity', () => {
 
 	it('says what’s missing, in the order the form asks', () => {
 		const draft = newActivity('Unit night', '2026-10-23');
-		const before = new Date(2026, 9, 1);
-		expect(activityProblems(draft, before)).toEqual([
+		const after = new Date(2026, 9, 24);
+		expect(activityProblems(draft, after)).toEqual([
 			'Give the activity a title.',
 			'Choose a challenge area.',
-			'Tick who came.'
+			'Tick who came.',
+			'Say how it went.',
+			'Tick the Scout method it used.',
+			'Tick the SPICES it developed.'
 		]);
 		const done = {
 			...draft,
 			title: 'Knots night',
 			challengeArea: 'Outdoors' as const,
-			attendance: { m1: 'Participant' as const }
+			attendance: { m1: 'Participant' as const },
+			review: { rating: 'okay' as const, tags: [], method: ['patrol_system'], spices: ['social'] }
 		};
-		expect(activityProblems(done, before)).toEqual([]);
-		expect(activityProblems({ ...done, endTime: '18:00' }, before)).toEqual([
+		expect(activityProblems(done, after)).toEqual([]);
+		expect(activityProblems({ ...done, endTime: '18:00' }, after)).toEqual([
 			'It needs to end after it starts.'
 		]);
+		// Still to come: only activities that are over can be logged
+		expect(activityProblems(done, new Date(2026, 9, 23, 20, 0))).toEqual([NOT_OVER]);
+	});
+
+	it('starts on the most recent one that’s over', () => {
+		const evening = new Date(2026, 9, 26, 22, 0);
+		const morning = new Date(2026, 9, 26, 9, 0);
+		expect(newActivity('Unit night', undefined, evening)).toMatchObject({
+			startDate: '2026-10-26',
+			endDate: '2026-10-26'
+		});
+		expect(newActivity('Unit night', undefined, morning)).toMatchObject({
+			startDate: '2026-10-25',
+			endDate: '2026-10-25'
+		});
+		// A camp ends two days after it starts, by midday
+		expect(newActivity('Camp', undefined, morning)).toMatchObject({
+			startDate: '2026-10-23',
+			endDate: '2026-10-25',
+			nights: 2
+		});
+		expect(isOver(finishedBy(newActivity('Hike', '2026-10-26'), morning), morning)).toBe(true);
 	});
 
 	it('needs a review once it’s over, as Terrain concludes it', () => {

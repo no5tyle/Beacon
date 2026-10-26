@@ -1,8 +1,8 @@
 <!--
 	Log activity: a unit programme activity (a unit night, outing, camp or hike), who came and in what role,
-	the nights camped and kilometres hiked for their logbooks, and for one that's over, how it went. Saved
-	to the unit's programme in Terrain, and concluded with its review once it's over; the logbook figures
-	aren't sent yet.
+	the nights camped and kilometres hiked for their logbooks, and how it went. Only activities that are
+	over: saved to the unit's programme in Terrain and concluded with their review in one go; the logbook
+	figures aren't sent yet.
 -->
 <script lang="ts">
 	import { goto } from '$app/navigation';
@@ -14,7 +14,8 @@
 		attendanceSummary,
 		CHALLENGE_AREAS,
 		hasLogbook,
-		isOver,
+		finishedBy,
+		NOT_OVER,
 		logbookOf,
 		newActivity,
 		nightsBetween,
@@ -28,6 +29,7 @@
 		type ActivityType,
 		type Role
 	} from '#lib/model/activity.js';
+	import { today } from '#lib/model/dates.js';
 	import { pagePath } from '#lib/paths.js';
 	import { activities, app, members } from '#lib/services/index.js';
 	import type { MemberSummary } from '#lib/services/members.js';
@@ -51,13 +53,11 @@
 	let saveError = $state('');
 
 	const unitId = $derived(app.unitId);
-	// An activity that's over is concluded, which needs its review
-	const over = $derived(isOver(draft));
 	const steps = $derived<Step[]>([
 		'details',
 		'attendance',
 		...(hasLogbook(draft.type) ? (['logbook'] as const) : []),
-		...(over ? (['review'] as const) : []),
+		'review',
 		'save'
 	]);
 	const stepNames: Record<Step, string> = {
@@ -94,7 +94,8 @@
 	});
 
 	function chooseType(type: ActivityType) {
-		draft = withType(draft, type);
+		// Moved back if need be, so a camp chosen today still ends before now
+		draft = finishedBy(withType(draft, type));
 	}
 
 	function changeDates() {
@@ -169,7 +170,8 @@
 		step === 'details'
 			? !!draft.title.trim() &&
 					!!draft.challengeArea &&
-					!problems.includes('It needs to end after it starts.')
+					!problems.includes('It needs to end after it starts.') &&
+					!problems.includes(NOT_OVER)
 			: step === 'attendance'
 				? came.length > 0
 				: step === 'logbook'
@@ -210,9 +212,6 @@
 				Saved {saved.title} to the unit's programme in Terrain as planned, but couldn't conclude it{saved.why
 					? ` (${saved.why})`
 					: ''}. Conclude it in Terrain so those who came get credit.
-			{:else}
-				Saved {saved.title} to the unit's programme in Terrain as a planned activity. Conclude it in Terrain
-				once it's over, so those who came get credit.
 			{/if}
 		</div>
 		<button type="button" class="btn btn-primary" onclick={logAnother}>Log another activity</button>
@@ -245,6 +244,7 @@
 				<input
 					id="startDate"
 					type="date"
+					max={today()}
 					class="form-control"
 					bind:value={draft.startDate}
 					onchange={changeDates}
@@ -261,6 +261,7 @@
 				<input
 					id="endDate"
 					type="date"
+					max={today()}
 					class="form-control"
 					bind:value={draft.endDate}
 					onchange={changeDates}
@@ -273,6 +274,8 @@
 		</div>
 		{#if problems.includes('It needs to end after it starts.')}
 			<div class="small text-danger">It needs to end after it starts.</div>
+		{:else if problems.includes(NOT_OVER)}
+			<div class="small text-danger">{NOT_OVER}</div>
 		{/if}
 		<div class="field">
 			<label class="form-label" for="location">Where <span class="muted">(optional)</span></label>
@@ -406,7 +409,7 @@
 		</details>
 	{:else if step === 'review'}
 		<div class="small muted subtitle">{draft.title} · {attendanceSummary(draft.attendance)}</div>
-		<p class="small muted">It's over, so Terrain concludes it with this review.</p>
+		<p class="small muted">Terrain concludes the activity with this review.</p>
 		<div class="field">
 			<span class="form-label">How did it go?</span>
 			<div class="chip-group" role="group" aria-label="How did it go?">
@@ -491,10 +494,8 @@
 				<dd>{draft.challengeArea}</dd>
 				<dt>Who came</dt>
 				<dd>{attendanceSummary(draft.attendance)}</dd>
-				{#if over}
-					<dt>How it went</dt>
-					<dd>{RATINGS.find((r) => r.id === draft.review.rating)?.name ?? ''}</dd>
-				{/if}
+				<dt>How it went</dt>
+				<dd>{RATINGS.find((r) => r.id === draft.review.rating)?.name ?? ''}</dd>
 				{#if hasLogbook(draft.type)}
 					<dt>Logbook</dt>
 					<dd>

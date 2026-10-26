@@ -1,7 +1,7 @@
 // A unit programme activity as Record's Log activity builds it: what it was, who came and in what role,
-// and what goes in their logbooks, and for one that's over, how it went. Saved to Terrain as its activity
-// planner saves one: planned, then concluded with its review once it's over. The logbook figures aren't
-// sent yet, as how Terrain records them hasn't been captured.
+// what goes in their logbooks, and how it went. Only activities that are over: saved to Terrain as its
+// activity planner saves one, planned and then straight away concluded with its review. The logbook
+// figures aren't sent yet, as how Terrain records them hasn't been captured.
 
 import { addDays, daysBetween, today, type CalendarDate } from './dates.js';
 
@@ -83,13 +83,22 @@ export interface ActivityDraft {
 	review: ActivityReview;
 }
 
-export function newActivity(type: ActivityType = 'Unit night', on = today()): ActivityDraft {
+/**
+ * A new activity of a type, on a given day, or by default the most recent one that's over: tonight's unit
+ * night once it's finished, otherwise last night's
+ */
+export function newActivity(
+	type: ActivityType = 'Unit night',
+	on?: CalendarDate,
+	now = new Date()
+): ActivityDraft {
+	const day = on ?? today(now);
 	const draft: ActivityDraft = {
 		type,
 		title: '',
-		startDate: on,
+		startDate: day,
 		startTime: '19:00',
-		endDate: on,
+		endDate: day,
 		endTime: '21:00',
 		location: '',
 		challengeArea: '',
@@ -99,7 +108,20 @@ export function newActivity(type: ActivityType = 'Unit night', on = today()): Ac
 		logbookFor: {},
 		review: { rating: '', tags: [], method: [], spices: [] }
 	};
-	return withType(draft, type);
+	const typed = withType(draft, type);
+	return on ? typed : finishedBy(typed, now);
+}
+
+/** Moves the activity back a day at a time, keeping its length, until it's over by now */
+export function finishedBy(draft: ActivityDraft, now = new Date()): ActivityDraft {
+	let moved = draft;
+	for (let days = 1; !isOver(moved, now) && days <= 14; days++)
+		moved = {
+			...draft,
+			startDate: addDays(draft.startDate, -days),
+			endDate: addDays(draft.endDate, -days)
+		};
+	return moved;
 }
 
 /**
@@ -138,8 +160,8 @@ export const logbookOf = (draft: ActivityDraft, memberId: string) =>
 	draft.logbookFor[memberId] ?? { nights: draft.nights, kilometres: draft.kilometres };
 
 /**
- * Whether the activity is over, so it can be concluded: Terrain concludes only activities whose end has
- * passed, giving those who came credit for it
+ * Whether the activity is over. Log activity takes only those, as Terrain concludes only activities whose
+ * end has passed, giving those who came credit for it
  */
 export const isOver = (draft: ActivityDraft, now = new Date()) =>
 	new Date(`${draft.endDate}T${draft.endTime}`).getTime() <= now.getTime();
@@ -153,6 +175,9 @@ export function reviewProblems(review: ActivityReview): string[] {
 	return problems;
 }
 
+/** Why an activity still to come can't be logged */
+export const NOT_OVER = "It hasn't finished yet. Log activities once they're over.";
+
 /** What's missing before the activity could be saved, in the order the form asks for it */
 export function activityProblems(draft: ActivityDraft, now = new Date()): string[] {
 	const problems: string[] = [];
@@ -160,9 +185,10 @@ export function activityProblems(draft: ActivityDraft, now = new Date()): string
 	if (!draft.challengeArea) problems.push('Choose a challenge area.');
 	if (`${draft.endDate}T${draft.endTime}` <= `${draft.startDate}T${draft.startTime}`)
 		problems.push('It needs to end after it starts.');
+	else if (!isOver(draft, now)) problems.push(NOT_OVER);
 	if (Object.keys(draft.attendance).length === 0) problems.push('Tick who came.');
 	if (draft.nights < 0 || draft.kilometres < 0) problems.push("Logbook figures can't be negative.");
-	if (isOver(draft, now)) problems.push(...reviewProblems(draft.review));
+	problems.push(...reviewProblems(draft.review));
 	return problems;
 }
 
