@@ -44,6 +44,8 @@ test('record OAS', async ({ page }) => {
 	await page.getByLabel('I can help plan a menu for a camping activity.').check();
 	await page.getByLabel('I can pack the gear I need for a camping activity.').check();
 	await page.evaluate(() => window.scrollTo(0, 0));
+	// Off the stage buttons, which would otherwise show as hovered where the last tap was
+	await page.mouse.move(0, 0);
 	await shot(page, 'record-oas');
 });
 

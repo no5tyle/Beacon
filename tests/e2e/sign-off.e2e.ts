@@ -5,7 +5,7 @@ test('signs off statements for several youth at once', async ({ page }) => {
 	const terrain = await fakeTerrain(page);
 	await logIn(page);
 	await navigate(page, 'oas/sign-off/');
-	await expect(page.locator('h2')).toHaveText('Record OAS');
+	await expect(page.locator('h2')).toHaveText('Record OAS Statements');
 
 	await page.getByRole('button', { name: 'Camping', exact: true }).click();
 	await page.getByRole('button', { name: 'Stage 2', exact: true }).click();

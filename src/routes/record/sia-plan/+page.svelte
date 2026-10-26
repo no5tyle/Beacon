@@ -60,12 +60,12 @@
 </script>
 
 <svelte:head>
-	<title>Beacon / SIA plan</title>
+	<title>Beacon / Plan an SIA</title>
 </svelte:head>
 
 <div class="sia-plan has-action-bar">
 	<RecordSwitch />
-	<h2>SIA plan</h2>
+	<h2>Plan an SIA</h2>
 	<StepBar steps={steps.map((s) => stepNames[s])} current={index} />
 
 	{#if !unitId}
