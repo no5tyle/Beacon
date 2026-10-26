@@ -9,7 +9,7 @@ test('Record moves between OAS, Activity and SIA plan, staying the current tab',
 	await logIn(page);
 	await navigate(page, 'oas/sign-off/');
 	const record = page.getByRole('navigation', { name: 'Record' });
-	await expect(record.getByRole('link')).toHaveText(['OAS', 'Activity', 'SIA plan']);
+	await expect(record.getByRole('link')).toHaveText(['OAS', 'Activity', 'SIA']);
 	await record.getByRole('link', { name: 'Activity' }).click();
 	await expect(page.locator('h2')).toHaveText('Log an Activity');
 	await expect(record.getByRole('link', { name: 'Activity' })).toHaveAttribute(
@@ -20,7 +20,7 @@ test('Record moves between OAS, Activity and SIA plan, staying the current tab',
 		? page.locator('.tab-bar .tab.active')
 		: page.locator('.side-link.active');
 	await expect(current).toHaveText('Record');
-	await record.getByRole('link', { name: 'SIA plan' }).click();
+	await record.getByRole('link', { name: 'SIA', exact: true }).click();
 	await expect(page.locator('h2')).toHaveText('Plan an SIA');
 	await expect(current).toHaveText('Record');
 });

@@ -6,7 +6,7 @@
 	const choices = [
 		{ href: 'oas/sign-off/', label: 'OAS' },
 		{ href: 'record/activity/', label: 'Activity' },
-		{ href: 'record/sia-plan/', label: 'SIA plan' }
+		{ href: 'record/sia-plan/', label: 'SIA' }
 	];
 	const current = $derived(page.url.pathname);
 </script>
