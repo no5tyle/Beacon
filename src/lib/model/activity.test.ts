@@ -70,6 +70,14 @@ describe('logging an activity', () => {
 			achievement_meta: { stream: 'bushwalking', branch: 'bushwalking' },
 			categories: ['walking_hike']
 		});
+		// An overnight hike's nights count towards camping too, which needs the camping category
+		const overnight = { ...hike, endDate: '2026-10-25' };
+		expect(nightsOf(overnight)).toBe(1);
+		expect(logbookData(overnight)).toMatchObject({
+			achievement_meta: { stream: 'bushwalking', branch: 'bushwalking' },
+			categories: ['camping', 'walking_hike']
+		});
+		expect(nightsOf(hike)).toBe(0);
 		// Walking that doesn't count towards Walkabout
 		expect(logbookData({ ...hike, walkabout: false })).toMatchObject({
 			distance_travelled: 12500,
