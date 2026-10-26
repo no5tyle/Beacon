@@ -424,10 +424,10 @@ export class Terrain {
 
 	/**
 	 * Saves a change to an activity, sent as the leader with the whole activity, as Terrain's planner does,
-	 * e.g. concluding it with its review. Any 2xx counts as done
+	 * e.g. concluding it with its review (PATCH, answered with 204)
 	 */
 	updateEvent(eventId: string, body: object): Promise<TerrainWriteResult> {
-		return this.write('PATCH', `${EVENTS_ADDRESS}events/${pathPart(eventId)}`, body);
+		return this.write('PATCH', `${EVENTS_ADDRESS}events/${pathPart(eventId)}`, body, 204);
 	}
 
 	/** Starts a youth's record for a stage they haven't started (POST, answered with 200) */

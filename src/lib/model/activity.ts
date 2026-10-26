@@ -1,7 +1,7 @@
 // A unit programme activity as Record's Log activity builds it: what it was, who came and in what role,
 // and what goes in their logbooks, and for one that's over, how it went. Saved to Terrain as its activity
-// planner saves one: planned, then concluded with its review once it's over. The logbook figures and
-// review tags aren't sent yet, as how Terrain records them hasn't been captured.
+// planner saves one: planned, then concluded with its review once it's over. The logbook figures aren't
+// sent yet, as how Terrain records them hasn't been captured.
 
 import { addDays, daysBetween, today, type CalendarDate } from './dates.js';
 
@@ -23,6 +23,14 @@ export const RATINGS = [
 	{ id: 'boring', name: 'Boring' }
 ] as const;
 export type Rating = (typeof RATINGS)[number]['id'];
+
+/** Words that describe an activity, as Terrain's review tags it */
+export const TAGS = [
+	{ id: 'fun', name: 'Fun' },
+	{ id: 'challenging', name: 'Challenging' },
+	{ id: 'inclusive', name: 'Inclusive' },
+	{ id: 'adventurous', name: 'Adventurous' }
+] as const;
 
 /** The elements of the Scout method an activity used, as Terrain names them */
 export const SCOUT_METHOD = [
@@ -48,6 +56,8 @@ export const SPICES = [
 
 export interface ActivityReview {
 	rating: Rating | '';
+	/** Tag ids, if any */
+	tags: string[];
 	/** Scout method element ids */
 	method: string[];
 	/** SPICES ids */
@@ -87,7 +97,7 @@ export function newActivity(type: ActivityType = 'Unit night', on = today()): Ac
 		nights: 0,
 		kilometres: 0,
 		logbookFor: {},
-		review: { rating: '', method: [], spices: [] }
+		review: { rating: '', tags: [], method: [], spices: [] }
 	};
 	return withType(draft, type);
 }
@@ -190,7 +200,7 @@ const terrainChallengeArea = (area: ChallengeArea | '') => area.toLowerCase().re
 /**
  * The activity as Terrain's planner sends it: planned, to units/{unit}/events, with who came in each role
  * and everyone who came as attendees; or concluded, to events/{id}, with its review as well. Logbook
- * figures and review tags are sent empty for now
+ * figures are sent empty for now
  */
 export function eventBody(
 	draft: ActivityDraft,
@@ -231,7 +241,7 @@ export function eventBody(
 		review:
 			status === 'concluded'
 				? {
-						general_tags: [],
+						general_tags: inOrder(TAGS, draft.review.tags),
 						scout_method_elements: inOrder(SCOUT_METHOD, draft.review.method),
 						scout_spices_elements: inOrder(SPICES, draft.review.spices),
 						general_rating: draft.review.rating

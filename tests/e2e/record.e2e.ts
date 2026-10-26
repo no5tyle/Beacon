@@ -68,6 +68,8 @@ test('logs a camp that’s over: details, who came, logbook, how it went, then s
 	// It's over, so Terrain concludes it with a review
 	await expect(next).toBeDisabled();
 	await page.getByRole('button', { name: 'Great' }).click();
+	await page.getByRole('button', { name: 'Challenging' }).click();
+	await page.getByRole('button', { name: 'Fun' }).click();
 	await page.getByLabel('Nature and outdoors').check();
 	await page.getByLabel('Learning by doing').check();
 	await page.getByLabel('Physical').check();
@@ -111,7 +113,7 @@ test('logs a camp that’s over: details, who came, logbook, how it went, then s
 	expect(terrain.writes[1].body).toMatchObject({
 		status: 'concluded',
 		review: {
-			general_tags: [],
+			general_tags: ['fun', 'challenging'],
 			scout_method_elements: ['learn_by_doing', 'nature_and_outdoors'],
 			scout_spices_elements: ['physical'],
 			general_rating: 'great'
