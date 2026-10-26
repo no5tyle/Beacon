@@ -178,20 +178,27 @@ test('the tabs shrink while scrolling down and come back on a tap', async ({ pag
 	await navigate(page, 'oas/sign-off/');
 	await page.getByRole('button', { name: 'Camping', exact: true }).click();
 	await page.getByRole('button', { name: 'Stage 2', exact: true }).click();
+	await expect(page.getByLabel('I can help plan a menu for a camping activity.')).toBeVisible();
+	// Room to scroll whatever the screen and fonts, so the bottom of the page is never in the way
+	await page.evaluate(() =>
+		document
+			.querySelector('main')!
+			.insertAdjacentHTML('beforeend', '<div style="height:2000px"></div>')
+	);
 	const tabs = page.locator('.tab-bar');
 	const scrollTo = (y: number) => page.evaluate((y) => window.scrollTo(0, y), y);
 	await scrollTo(0);
 	await expect(tabs).not.toHaveClass(/minimized/);
-	await scrollTo(400);
+	await scrollTo(300);
 	await expect(tabs).toHaveClass(/minimized/);
 	// A little way back up, as a page settling or bouncing does, leaves them shrunk
-	await scrollTo(370);
+	await scrollTo(270);
 	await page.waitForTimeout(100);
 	await expect(tabs).toHaveClass(/minimized/);
 	// Further up brings them back
-	await scrollTo(300);
+	await scrollTo(200);
 	await expect(tabs).not.toHaveClass(/minimized/);
-	await scrollTo(500);
+	await scrollTo(350);
 	await expect(tabs).toHaveClass(/minimized/);
 	await tabs.locator('.tab.current').click();
 	await expect(tabs).not.toHaveClass(/minimized/);
