@@ -8,12 +8,9 @@
 	import ChooseUnit from '#lib/components/ChooseUnit.svelte';
 	import RecordSwitch from '#lib/components/RecordSwitch.svelte';
 	import {
-		ACTIVITY_TYPES,
 		activityProblems,
 		attendanceSummary,
 		CHALLENGE_AREAS,
-		hasLogbook,
-		finishedBy,
 		NOT_OVER,
 		newActivity,
 		nightsOf,
@@ -22,8 +19,7 @@
 		SCOUT_METHOD,
 		SPICES,
 		TAGS,
-		withType,
-		type ActivityType
+		withMultiDay
 	} from '#lib/model/activity.js';
 	import { today } from '#lib/model/dates.js';
 	import { pagePath } from '#lib/paths.js';
@@ -43,13 +39,7 @@
 	let saveError = $state('');
 
 	const unitId = $derived(app.unitId);
-	const steps = $derived<Step[]>([
-		'details',
-		'attendance',
-		...(hasLogbook(draft.type) ? (['logbook'] as const) : []),
-		'review',
-		'save'
-	]);
+	const steps = $derived<Step[]>(['details', 'attendance', 'logbook', 'review', 'save']);
 	const stepNames: Record<Step, string> = {
 		details: 'Activity',
 		attendance: 'Who came',
@@ -82,9 +72,13 @@
 			.finally(() => (loadingYouth = false));
 	});
 
-	function chooseType(type: ActivityType) {
-		// Moved back if need be, so a camp chosen today still ends before now
-		draft = finishedBy(withType(draft, type));
+	function setMultiDay(multiDay: boolean) {
+		draft = withMultiDay(draft, multiDay);
+	}
+
+	// One day ends the day it starts
+	function changeStartDate() {
+		if (!draft.multiDay) draft.endDate = draft.startDate;
 	}
 
 	function toggle(member: MemberSummary, checked: boolean) {
@@ -153,8 +147,8 @@
 	// e.g. "2 nights towards camping, 6 km walked, towards Walkabout"
 	const logbookSummary = $derived(
 		[
-			draft.type === 'Camp' || nightsOf(draft) > 0
-				? `${nightsOf(draft)} ${nightsOf(draft) === 1 ? 'night' : 'nights'} towards camping`
+			nightsOf(draft) > 0
+				? `${nightsOf(draft)} ${nightsOf(draft) === 1 ? 'night' : 'nights'} away${draft.camped ? ', towards camping' : ''}`
 				: '',
 			draft.kilometres > 0
 				? `${draft.kilometres} km walked${draft.walkabout ? ', towards Walkabout' : ''}`
@@ -193,56 +187,55 @@
 		<button type="button" class="btn btn-primary" onclick={logAnother}>Log another activity</button>
 	{:else if step === 'details'}
 		<div class="field">
-			<span class="form-label">Type</span>
-			<div class="chip-group" role="group" aria-label="Type">
-				{#each ACTIVITY_TYPES as type (type)}
-					<button
-						type="button"
-						class="btn chip {draft.type === type ? 'btn-primary' : 'btn-outline-primary'}"
-						aria-pressed={draft.type === type}
-						onclick={() => chooseType(type)}>{type}</button
-					>
-				{/each}
-			</div>
-		</div>
-		<div class="field">
 			<label class="form-label" for="title">Title</label>
 			<input
 				id="title"
 				class="form-control"
-				placeholder={draft.type === 'Camp' ? 'e.g. Spring camp' : 'e.g. Knots and lashings'}
+				placeholder={draft.multiDay ? 'e.g. Spring camp' : 'e.g. Knots and lashings'}
 				bind:value={draft.title}
 			/>
 		</div>
+		<label class="pick-row multi-day">
+			<input
+				type="checkbox"
+				class="form-check-input"
+				checked={draft.multiDay}
+				onchange={(e) => setMultiDay(e.currentTarget.checked)}
+			/>
+			<span>Runs over more than one day, e.g. a camp</span>
+		</label>
 		<div class="field-row">
 			<div class="field">
-				<label class="form-label" for="startDate">Starts</label>
+				<label class="form-label" for="startDate">{draft.multiDay ? 'Starts on' : 'Date'}</label>
 				<input
 					id="startDate"
 					type="date"
 					max={today()}
 					class="form-control"
 					bind:value={draft.startDate}
+					onchange={changeStartDate}
 				/>
 			</div>
 			<div class="field">
-				<label class="form-label visually-hidden" for="startTime">Start time</label>
+				<label class="form-label" for="startTime">From</label>
 				<input id="startTime" type="time" class="form-control" bind:value={draft.startTime} />
 			</div>
 		</div>
 		<div class="field-row">
-			<div class="field">
-				<label class="form-label" for="endDate">Ends</label>
-				<input
-					id="endDate"
-					type="date"
-					max={today()}
-					class="form-control"
-					bind:value={draft.endDate}
-				/>
-			</div>
-			<div class="field">
-				<label class="form-label visually-hidden" for="endTime">End time</label>
+			{#if draft.multiDay}
+				<div class="field">
+					<label class="form-label" for="endDate">Ends on</label>
+					<input
+						id="endDate"
+						type="date"
+						max={today()}
+						class="form-control"
+						bind:value={draft.endDate}
+					/>
+				</div>
+			{/if}
+			<div class="field" class:end-time={!draft.multiDay}>
+				<label class="form-label" for="endTime">To</label>
 				<input id="endTime" type="time" class="form-control" bind:value={draft.endTime} />
 			</div>
 		</div>
@@ -256,7 +249,7 @@
 			<input
 				id="location"
 				class="form-control"
-				placeholder={draft.type === 'Camp' ? 'e.g. Woodhouse' : 'e.g. the hall'}
+				placeholder={draft.multiDay ? 'e.g. Woodhouse' : 'e.g. the hall'}
 				bind:value={draft.location}
 			/>
 		</div>
@@ -275,7 +268,7 @@
 			<div class="small muted">Milestones count each youth's activities in this area.</div>
 		</div>
 	{:else if step === 'attendance'}
-		<div class="small muted subtitle">{draft.title} · {draft.type}</div>
+		<div class="small muted subtitle">{draft.title} · {when}</div>
 		{#if loadingYouth}
 			<p class="muted">Loading the unit's youth...</p>
 		{:else if youthError}
@@ -319,22 +312,24 @@
 	{:else if step === 'logbook'}
 		<div class="small muted subtitle">{draft.title} · {attendanceSummary(draft.attendance)}</div>
 		<p class="small muted">These go in the logbook of everyone who came.</p>
-		{#if draft.type === 'Camp' || nightsOf(draft) > 0}
+		{#if nightsOf(draft) > 0}
 			<div class="nights">
-				<strong>{nightsOf(draft)} {nightsOf(draft) === 1 ? 'night' : 'nights'} camped</strong>
-				<div class="small muted">
-					From the dates, and they count towards camping. Change the dates to change it.
-				</div>
+				<strong>{nightsOf(draft)} {nightsOf(draft) === 1 ? 'night' : 'nights'} away</strong>
+				<div class="small muted">From the dates. Change the dates to change it.</div>
 			</div>
+			<label class="pick-row camped">
+				<input type="checkbox" class="form-check-input" bind:checked={draft.camped} />
+				<span>They camped, so the nights count towards camping</span>
+			</label>
 		{:else}
 			<p class="small muted">
-				An overnight hike's nights count towards camping too: set it to end on a later day.
+				No nights away. For a camp or overnight hike, tick "Runs over more than one day" on the
+				first step.
 			</p>
 		{/if}
 		<div class="field">
 			<label class="form-label" for="kilometres"
-				>Kilometres walked{#if draft.type === 'Camp'}
-					<span class="muted">&nbsp;(if they went walking)</span>{/if}</label
+				>Kilometres walked <span class="muted">(if they went walking)</span></label
 			>
 			<input
 				id="kilometres"
@@ -429,8 +424,6 @@
 		<div class="review">
 			<h3>{draft.title}</h3>
 			<dl>
-				<dt>Type</dt>
-				<dd>{draft.type}</dd>
 				<dt>When</dt>
 				<dd>{when}</dd>
 				<dt>Where</dt>
@@ -441,10 +434,8 @@
 				<dd>{attendanceSummary(draft.attendance)}</dd>
 				<dt>How it went</dt>
 				<dd>{RATINGS.find((r) => r.id === draft.review.rating)?.name ?? ''}</dd>
-				{#if hasLogbook(draft.type)}
-					<dt>Logbook</dt>
-					<dd>{logbookSummary}</dd>
-				{/if}
+				<dt>Logbook</dt>
+				<dd>{logbookSummary}</dd>
 			</dl>
 			<ul class="small attendee-list">
 				{#each came as member (member.id)}
@@ -466,7 +457,7 @@
 					>Back</button
 				>
 			{:else}
-				<span class="small muted">{draft.type}</span>
+				<span class="small muted">{draft.multiDay ? 'Over more than one day' : 'One day'}</span>
 			{/if}
 			{#if step === 'save'}
 				<button
@@ -506,6 +497,18 @@
 		display: grid;
 		grid-template-columns: 1fr 1fr;
 		column-gap: 1rem;
+	}
+
+	.multi-day {
+		margin-bottom: 0.75rem;
+	}
+
+	.end-time {
+		grid-column: 2;
+	}
+
+	.camped {
+		margin-bottom: 0.75rem;
 	}
 
 	.nights {

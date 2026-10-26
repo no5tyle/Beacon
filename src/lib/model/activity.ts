@@ -4,9 +4,6 @@
 
 import { addDays, daysBetween, today, type CalendarDate } from './dates.js';
 
-export const ACTIVITY_TYPES = ['Unit night', 'Outing', 'Camp', 'Hike'] as const;
-export type ActivityType = (typeof ACTIVITY_TYPES)[number];
-
 /** The four challenge areas milestones count activities in */
 export const CHALLENGE_AREAS = ['Community', 'Outdoors', 'Creative', 'Personal growth'] as const;
 export type ChallengeArea = (typeof CHALLENGE_AREAS)[number];
@@ -67,8 +64,9 @@ export interface ActivityReview {
 }
 
 export interface ActivityDraft {
-	type: ActivityType;
 	title: string;
+	/** Over more than one day, e.g. a camp, rather than an evening or a day out */
+	multiDay: boolean;
 	startDate: CalendarDate;
 	startTime: string;
 	endDate: CalendarDate;
@@ -78,10 +76,12 @@ export interface ActivityDraft {
 	/** Each youth who came, by member id, and their role */
 	attendance: Record<string, Role>;
 	/**
-	 * Kilometres walked, for everyone who came: Terrain logs an activity's figures for all of them. A camp's
-	 * nights come from its dates
+	 * Kilometres walked, for everyone who came: Terrain logs an activity's figures for all of them. Nights
+	 * away come from its dates
 	 */
 	kilometres: number;
+	/** Whether they camped on the nights away, which counts towards camping */
+	camped: boolean;
 	/** Whether the walking counts towards the Walkabout award */
 	walkabout: boolean;
 	/** How it went, for one that's over: Terrain needs it to conclude the activity */
@@ -89,18 +89,14 @@ export interface ActivityDraft {
 }
 
 /**
- * A new activity of a type, on a given day, or by default the most recent one that's over: tonight's unit
- * night once it's finished, otherwise last night's
+ * A new activity on a given day, or by default the most recent evening that's over: tonight once it's
+ * finished, otherwise last night
  */
-export function newActivity(
-	type: ActivityType = 'Unit night',
-	on?: CalendarDate,
-	now = new Date()
-): ActivityDraft {
+export function newActivity(on?: CalendarDate, now = new Date()): ActivityDraft {
 	const day = on ?? today(now);
 	const draft: ActivityDraft = {
-		type,
 		title: '',
+		multiDay: false,
 		startDate: day,
 		startTime: '19:00',
 		endDate: day,
@@ -109,11 +105,11 @@ export function newActivity(
 		challengeArea: '',
 		attendance: {},
 		kilometres: 0,
+		camped: true,
 		walkabout: true,
 		review: { rating: '', tags: [], method: [], spices: [] }
 	};
-	const typed = withType(draft, type);
-	return on ? typed : finishedBy(typed, now);
+	return on ? draft : finishedBy(draft, now);
 }
 
 /** Moves the activity back a day at a time, keeping its length, until it's over by now */
@@ -129,38 +125,32 @@ export function finishedBy(draft: ActivityDraft, now = new Date()): ActivityDraf
 }
 
 /**
- * Changes the type, with times and logbook figures to suit: a camp runs over a night from Friday evening,
- * a hike or outing is a day out, a unit night an evening at the hall
+ * Over more than one day or not. More than one day starts with the next day as its last, if it ended
+ * the day it started; one day ends the day it starts. Moved back if need be, so it's still over
  */
-export function withType(draft: ActivityDraft, type: ActivityType): ActivityDraft {
-	const times: Record<ActivityType, [string, string, number]> = {
-		'Unit night': ['19:00', '21:00', 0],
-		Outing: ['09:00', '15:00', 0],
-		Camp: ['18:00', '12:00', 2],
-		Hike: ['08:00', '16:00', 0]
-	};
-	const [startTime, endTime, days] = times[type];
-	const endDate = addDays(draft.startDate, days);
-	return {
-		...draft,
-		type,
-		startTime,
-		endTime,
-		endDate,
-		kilometres: hasLogbook(type) ? draft.kilometres : 0
-	};
+export function withMultiDay(
+	draft: ActivityDraft,
+	multiDay: boolean,
+	now = new Date()
+): ActivityDraft {
+	const endDate = multiDay
+		? draft.endDate > draft.startDate
+			? draft.endDate
+			: addDays(draft.startDate, 1)
+		: draft.startDate;
+	return finishedBy({ ...draft, multiDay, endDate }, now);
 }
 
 /** Nights away for an activity from one day to another, e.g. Friday to Sunday is 2 */
 export const nightsBetween = (start: CalendarDate, end: CalendarDate) =>
 	Math.max(0, daysBetween(start, end));
 
-/** Whether the activity goes in logbooks: a camp's or overnight hike's nights, and walking */
-export const hasLogbook = (type: ActivityType) => type === 'Camp' || type === 'Hike';
-
-/** Nights away on a camp or hike, from its dates, as Terrain counts them */
+/** Nights away, from its dates, as Terrain counts them */
 export const nightsOf = (draft: ActivityDraft) =>
-	hasLogbook(draft.type) ? nightsBetween(draft.startDate, draft.endDate) : 0;
+	draft.multiDay ? nightsBetween(draft.startDate, draft.endDate) : 0;
+
+/** Nights camped: nights away, if they camped */
+export const nightsCamped = (draft: ActivityDraft) => (draft.camped ? nightsOf(draft) : 0);
 
 /**
  * Whether the activity is over. Log activity takes only those, as Terrain concludes only activities whose
@@ -221,22 +211,20 @@ export const terrainDateTime = (date: CalendarDate, time: string) =>
 
 /**
  * The logbook part of Terrain's activity: metres walked (all of it counting towards Walkabout, or none),
- * the OAS stream it's logged against, and its categories. A camp is logged against Camping and a hike
- * against Bushwalking. Terrain counts nights towards camping only with the camping category, so a camp
- * has it, and so does a hike that went overnight; walking_hike is for a hike, or a camp where they walked.
- * Terrain counts the nights from the dates. Anything else goes in no logbook
+ * the OAS stream it's logged against, and its categories. Terrain counts nights towards camping only with
+ * the camping category, and counts them from the dates; walking_hike is for walking. Nights camped log it
+ * against Camping, walking alone against Bushwalking, and neither goes in no logbook
  */
 export function logbookData(draft: ActivityDraft) {
-	const metres = hasLogbook(draft.type) ? Math.round(Math.max(0, draft.kilometres) * 1000) : 0;
-	const stream = draft.type === 'Camp' ? 'camping' : draft.type === 'Hike' ? 'bushwalking' : '';
-	const camping = draft.type === 'Camp' || nightsOf(draft) > 0;
-	const walking = draft.type === 'Hike' || (draft.type === 'Camp' && metres > 0);
-	const categories = [...(camping ? ['camping'] : []), ...(walking ? ['walking_hike'] : [])];
+	const metres = Math.round(Math.max(0, draft.kilometres) * 1000);
+	const camping = nightsCamped(draft) > 0;
+	const walking = metres > 0;
+	const stream = camping ? 'camping' : walking ? 'bushwalking' : '';
 	return {
 		distance_travelled: metres,
 		distance_walkabout: draft.walkabout ? metres : 0,
 		achievement_meta: { stream, branch: stream },
-		categories
+		categories: [...(camping ? ['camping'] : []), ...(walking ? ['walking_hike'] : [])]
 	};
 }
 

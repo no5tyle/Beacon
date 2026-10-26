@@ -5,7 +5,10 @@ import { EVENTS_ADDRESS } from '#lib/terrain/client.js';
 import { leaderProfiles, signedInTerrain } from './fakeTerrain.js';
 
 const camp = () => ({
-	...newActivity('Camp', '2026-10-23'),
+	...newActivity('2026-10-23'),
+	multiDay: true,
+	endDate: '2026-10-25',
+	endTime: '12:00',
 	title: 'Spring camp',
 	location: 'Woodhouse',
 	challengeArea: 'Outdoors' as const,

@@ -4,41 +4,48 @@ import {
 	attendanceSummary,
 	eventBody,
 	finishedBy,
-	hasLogbook,
 	isOver,
 	logbookData,
 	NOT_OVER,
 	newActivity,
 	nightsBetween,
+	nightsCamped,
 	nightsOf,
 	reviewProblems,
 	terrainDateTime,
-	withType
+	withMultiDay
 } from './activity.js';
 import { addDays } from './dates.js';
 import { newSIAPlan, siaAreaName, siaPlanProblems } from './siaPlan.js';
 
 describe('logging an activity', () => {
-	it('suits the times and logbook to the type', () => {
-		const night = newActivity('Unit night', '2026-10-23');
-		expect([night.startTime, night.endTime, night.endDate, nightsOf(night)]).toEqual([
-			'19:00',
-			'21:00',
-			'2026-10-23',
-			0
-		]);
-		const camp = withType(night, 'Camp');
-		expect([camp.endDate, nightsOf(camp)]).toEqual(['2026-10-25', 2]);
-		expect(withType({ ...camp, kilometres: 4 }, 'Hike')).toMatchObject({
-			endDate: '2026-10-23',
-			kilometres: 4
+	it('is one evening by default, or over more than one day', () => {
+		const night = newActivity('2026-10-23');
+		expect([
+			night.multiDay,
+			night.startTime,
+			night.endTime,
+			night.endDate,
+			nightsOf(night)
+		]).toEqual([false, '19:00', '21:00', '2026-10-23', 0]);
+		const after = new Date(2026, 9, 30);
+		// Over more than one day: the next day is its last, unless it already ends later
+		const camp = withMultiDay(night, true, after);
+		expect([camp.endDate, nightsOf(camp)]).toEqual(['2026-10-24', 1]);
+		expect(withMultiDay({ ...camp, endDate: '2026-10-25' }, true, after).endDate).toBe(
+			'2026-10-25'
+		);
+		// Back to one day, it ends the day it starts
+		expect(withMultiDay({ ...camp, endDate: '2026-10-25' }, false, after)).toMatchObject({
+			multiDay: false,
+			endDate: '2026-10-23'
 		});
-		// Only camps and hikes go in logbooks
-		expect(withType({ ...camp, kilometres: 4 }, 'Outing').kilometres).toBe(0);
-		expect(hasLogbook('Unit night')).toBe(false);
-		expect(hasLogbook('Outing')).toBe(false);
-		expect(hasLogbook('Camp')).toBe(true);
-		expect(hasLogbook('Hike')).toBe(true);
+		// Moved back if that would end it after now
+		const evening = new Date(2026, 9, 23, 22, 0);
+		expect(withMultiDay(night, true, evening)).toMatchObject({
+			startDate: '2026-10-22',
+			endDate: '2026-10-23'
+		});
 	});
 
 	it('counts nights away, never below none', () => {
@@ -48,43 +55,51 @@ describe('logging an activity', () => {
 		expect(addDays('2028-02-28', 1)).toBe('2028-02-29');
 	});
 
-	it('logs walking in metres against the stream and categories Terrain uses', () => {
-		const camp = { ...newActivity('Camp', '2026-10-24'), kilometres: 1 };
+	const multi = (from: string, to: string) => ({
+		...newActivity(from),
+		multiDay: true,
+		endDate: to,
+		endTime: '12:00'
+	});
+
+	it('logs nights and walking against the stream and categories Terrain uses', () => {
+		const camp = { ...multi('2026-10-24', '2026-10-25'), kilometres: 1 };
 		// As Terrain logs a camp that included walking towards Walkabout
+		expect(nightsCamped(camp)).toBe(1);
 		expect(logbookData(camp)).toEqual({
 			distance_travelled: 1000,
 			distance_walkabout: 1000,
 			achievement_meta: { stream: 'camping', branch: 'camping' },
 			categories: ['camping', 'walking_hike']
 		});
-		// A camp with no walking is camping alone, its nights from its dates
+		// Camping and no walking
 		expect(logbookData({ ...camp, kilometres: 0 })).toMatchObject({
 			distance_travelled: 0,
 			categories: ['camping']
 		});
 		// As Terrain logs a day hike towards Walkabout
-		const hike = { ...newActivity('Hike', '2026-10-24'), kilometres: 12.5 };
+		const hike = { ...newActivity('2026-10-24'), kilometres: 12.5 };
 		expect(logbookData(hike)).toEqual({
 			distance_travelled: 12500,
 			distance_walkabout: 12500,
 			achievement_meta: { stream: 'bushwalking', branch: 'bushwalking' },
 			categories: ['walking_hike']
 		});
-		// An overnight hike's nights count towards camping too, which needs the camping category
-		const overnight = { ...hike, endDate: '2026-10-25' };
-		expect(nightsOf(overnight)).toBe(1);
-		expect(logbookData(overnight)).toMatchObject({
+		// Nights away without camping don't count towards camping
+		const away = { ...camp, camped: false };
+		expect(nightsOf(away)).toBe(1);
+		expect(nightsCamped(away)).toBe(0);
+		expect(logbookData(away)).toMatchObject({
 			achievement_meta: { stream: 'bushwalking', branch: 'bushwalking' },
-			categories: ['camping', 'walking_hike']
+			categories: ['walking_hike']
 		});
-		expect(nightsOf(hike)).toBe(0);
 		// Walking that doesn't count towards Walkabout
 		expect(logbookData({ ...hike, walkabout: false })).toMatchObject({
 			distance_travelled: 12500,
 			distance_walkabout: 0
 		});
-		// A unit night goes in no logbook
-		expect(logbookData(newActivity('Unit night', '2026-10-24'))).toEqual({
+		// An evening at the hall goes in no logbook
+		expect(logbookData(newActivity('2026-10-24'))).toEqual({
 			distance_travelled: 0,
 			distance_walkabout: 0,
 			achievement_meta: { stream: '', branch: '' },
@@ -93,7 +108,7 @@ describe('logging an activity', () => {
 	});
 
 	it('says what’s missing, in the order the form asks', () => {
-		const draft = newActivity('Unit night', '2026-10-23');
+		const draft = newActivity('2026-10-23');
 		const after = new Date(2026, 9, 24);
 		expect(activityProblems(draft, after)).toEqual([
 			'Give the activity a title.',
@@ -123,24 +138,20 @@ describe('logging an activity', () => {
 	it('starts on the most recent one that’s over', () => {
 		const evening = new Date(2026, 9, 26, 22, 0);
 		const morning = new Date(2026, 9, 26, 9, 0);
-		expect(newActivity('Unit night', undefined, evening)).toMatchObject({
+		expect(newActivity(undefined, evening)).toMatchObject({
 			startDate: '2026-10-26',
 			endDate: '2026-10-26'
 		});
-		expect(newActivity('Unit night', undefined, morning)).toMatchObject({
+		expect(newActivity(undefined, morning)).toMatchObject({
 			startDate: '2026-10-25',
 			endDate: '2026-10-25'
 		});
-		// A camp ends two days after it starts, by midday
-		const camp = newActivity('Camp', undefined, morning);
-		expect(camp).toMatchObject({ startDate: '2026-10-23', endDate: '2026-10-25' });
-		expect(nightsOf(camp)).toBe(2);
-		expect(isOver(finishedBy(newActivity('Hike', '2026-10-26'), morning), morning)).toBe(true);
+		expect(isOver(finishedBy(newActivity('2026-10-26'), morning), morning)).toBe(true);
 	});
 
 	it('needs a review once it’s over, as Terrain concludes it', () => {
 		const draft = {
-			...newActivity('Unit night', '2026-10-23'),
+			...newActivity('2026-10-23'),
 			title: 'Knots night',
 			location: 'The hall',
 			challengeArea: 'Outdoors' as const,
@@ -199,7 +210,7 @@ describe('the activity Terrain is sent', () => {
 		timeZone: 'Australia/Adelaide'
 	};
 	const draft = () => ({
-		...newActivity('Unit night', '2026-10-26'),
+		...newActivity('2026-10-26'),
 		title: ' Test Activity ',
 		startTime: '18:00',
 		endTime: '19:30',
