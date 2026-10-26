@@ -254,19 +254,25 @@
 		}
 	}
 
-	/* Phone tab bar */
+	/* Phone tab bar: a glass pill floating above the bottom of the screen */
 	.tab-bar {
 		position: fixed;
-		left: 0;
-		right: 0;
-		bottom: 0;
+		left: max(env(safe-area-inset-left), 0.75rem);
+		right: max(env(safe-area-inset-right), 0.75rem);
+		bottom: var(--tab-bar-bottom);
 		z-index: 20;
 		display: flex;
-		height: var(--tab-bar-height);
-		padding: 0 max(env(safe-area-inset-right), 0.75rem) var(--tab-bar-bottom)
-			max(env(safe-area-inset-left), 0.75rem);
-		background: var(--tab-bar-bg);
-		box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.15);
+		gap: 0.15rem;
+		height: var(--tab-bar-pill);
+		padding: 0.3rem;
+		border: 1px solid var(--glass-edge);
+		border-radius: 999px;
+		background: var(--glass-bg);
+		box-shadow:
+			var(--glass-shadow),
+			inset 0 1px 0 var(--glass-highlight);
+		-webkit-backdrop-filter: blur(28px) saturate(180%);
+		backdrop-filter: blur(28px) saturate(180%);
 	}
 
 	.tab {
@@ -279,8 +285,9 @@
 		min-width: 0;
 		padding: 0;
 		border: 0;
+		border-radius: 999px;
 		background: none;
-		color: var(--tab-bar-text);
+		color: var(--glass-text);
 		font: inherit;
 		font-size: 0.7rem;
 		text-decoration: none;
@@ -292,9 +299,11 @@
 		font-size: 1.25rem;
 	}
 
+	/* The current tab sits in its own pill */
 	.tab.active {
-		color: #fff;
-		box-shadow: inset 0 3px 0 var(--accent);
+		background: var(--glass-active-bg);
+		color: var(--glass-active-text);
+		font-weight: 600;
 	}
 
 	/* The More tab's count sits on the corner of its icon */
@@ -308,7 +317,7 @@
 		top: -0.45rem;
 		left: 0.85rem;
 		font-size: 0.65rem;
-		box-shadow: 0 0 0 2px var(--tab-bar-bg);
+		box-shadow: 0 0 0 2px var(--surface);
 	}
 
 	/* A count beside a page's name in the sidebar and the More menu, pushed to the right */
@@ -341,14 +350,20 @@
 
 	.more-menu {
 		position: fixed;
-		right: 0.5rem;
+		right: max(env(safe-area-inset-right), 0.75rem);
 		bottom: calc(var(--tab-bar-height) + 0.5rem);
 		z-index: 22;
 		min-width: 13rem;
 		padding: 0.35rem 0;
-		border-radius: 0.6rem;
-		background: var(--surface);
-		box-shadow: var(--shadow);
+		overflow: hidden;
+		border: 1px solid var(--glass-edge);
+		border-radius: var(--radius-lg);
+		background: var(--glass-bg);
+		box-shadow:
+			var(--glass-shadow),
+			inset 0 1px 0 var(--glass-highlight);
+		-webkit-backdrop-filter: blur(28px) saturate(180%);
+		backdrop-filter: blur(28px) saturate(180%);
 	}
 
 	.more-item {

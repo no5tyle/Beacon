@@ -389,7 +389,7 @@
 	.stat-tile {
 		padding: 0.6rem 0.8rem;
 		border: 1px solid var(--border);
-		border-radius: 0.5rem;
+		border-radius: var(--radius-lg);
 		background: var(--surface);
 	}
 
@@ -427,7 +427,7 @@
 		gap: 0.6rem;
 		padding: 0.65rem 0.75rem;
 		border: 1px solid var(--border);
-		border-radius: 0.5rem;
+		border-radius: var(--radius-lg);
 		background: var(--surface);
 	}
 
