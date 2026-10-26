@@ -175,12 +175,25 @@ test.describe('desktop', () => {
 test('the tabs shrink while scrolling down and come back on a tap', async ({ page }, testInfo) => {
 	test.skip(testInfo.project.name !== 'phone', 'The tab bar is only on phones');
 	await logIn(page);
-	await navigate(page, 'oas-reference/');
+	await navigate(page, 'oas/sign-off/');
+	await page.getByRole('button', { name: 'Camping', exact: true }).click();
+	await page.getByRole('button', { name: 'Stage 2', exact: true }).click();
 	const tabs = page.locator('.tab-bar');
+	const scrollTo = (y: number) => page.evaluate((y) => window.scrollTo(0, y), y);
+	await scrollTo(0);
 	await expect(tabs).not.toHaveClass(/minimized/);
-	await page.evaluate(() => window.scrollTo(0, 600));
+	await scrollTo(400);
+	await expect(tabs).toHaveClass(/minimized/);
+	// A little way back up, as a page settling or bouncing does, leaves them shrunk
+	await scrollTo(370);
+	await page.waitForTimeout(100);
+	await expect(tabs).toHaveClass(/minimized/);
+	// Further up brings them back
+	await scrollTo(300);
+	await expect(tabs).not.toHaveClass(/minimized/);
+	await scrollTo(500);
 	await expect(tabs).toHaveClass(/minimized/);
 	await tabs.locator('.tab.current').click();
 	await expect(tabs).not.toHaveClass(/minimized/);
-	await expect(page).toHaveURL(/oas-reference/);
+	await expect(page).toHaveURL(/oas\/sign-off/);
 });

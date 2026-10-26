@@ -49,17 +49,29 @@
 		beside them while they're shrunk, so it's marked on the page too.
 	*/
 	let minimized = $state(false);
-	let lastY = 0;
 	const MINIMIZE_AFTER = 60;
+	// How far a scroll has to go in one direction before the tabs change: a short way down to shrink, and
+	// further up to come back, so small movements and a finger resting on the page leave them be
+	const SHRINK_RUN = 24;
+	const EXPAND_RUN = 64;
+	let lastY = 0;
+	// Where the current run in one direction started
+	let runFrom = 0;
 
 	function onScroll() {
-		const y = window.scrollY;
-		const delta = y - lastY;
-		if (Math.abs(delta) < 8) return;
+		const max = document.documentElement.scrollHeight - window.innerHeight;
+		// The page bouncing past its top or bottom isn't the leader scrolling, so it counts as staying put
+		const y = Math.min(Math.max(window.scrollY, 0), max);
+		if (moreOpen || y < MINIMIZE_AFTER) {
+			if (y < MINIMIZE_AFTER) minimized = false;
+			lastY = runFrom = y;
+			return;
+		}
+		if ((y - lastY) * (lastY - runFrom) < 0) runFrom = lastY;
 		lastY = y;
-		if (moreOpen) return;
-		if (y < MINIMIZE_AFTER || delta < 0) minimized = false;
-		else minimized = true;
+		const run = y - runFrom;
+		if (run > SHRINK_RUN) minimized = true;
+		else if (run < -EXPAND_RUN) minimized = false;
 	}
 
 	// A tap on the shrunk bar only brings it back. Returns whether the tap should go on to act
@@ -311,8 +323,8 @@
 		padding: 0.25rem;
 		border-radius: 999px;
 		transition:
-			right 0.35s cubic-bezier(0.32, 0.72, 0, 1),
-			width 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+			right var(--glass-motion),
+			width var(--glass-motion);
 	}
 
 	/* Scrolled down: the bar shrinks to a circle holding only the current tab, out of the content's way,
@@ -322,14 +334,17 @@
 		right: calc(100% - max(env(safe-area-inset-left), 0.75rem) - var(--tab-bar-pill));
 	}
 
+	/* Clipped only while folding away: otherwise the More tab's count sits over its edge */
 	.tab-bar.minimized .tab:not(.current) {
+		overflow: hidden;
 		flex: 0 0 0;
 		opacity: 0;
 		pointer-events: none;
 	}
 
 	.tab-bar.minimized .tab-label {
-		display: none;
+		max-height: 0;
+		opacity: 0;
 	}
 
 	.tab {
@@ -341,7 +356,6 @@
 		gap: 0.1rem;
 		min-width: 0;
 		padding: 0;
-		overflow: hidden;
 		border: 0;
 		border-radius: 999px;
 		background: none;
@@ -352,8 +366,8 @@
 		letter-spacing: 0.01em;
 		text-decoration: none;
 		transition:
-			flex-grow 0.35s cubic-bezier(0.32, 0.72, 0, 1),
-			flex-basis 0.35s cubic-bezier(0.32, 0.72, 0, 1),
+			flex-grow var(--glass-motion),
+			flex-basis var(--glass-motion),
 			opacity 0.2s ease,
 			background-color 0.2s ease;
 		cursor: pointer;
@@ -394,6 +408,10 @@
 	}
 
 	.tab-label {
+		max-height: 1rem;
+		transition:
+			max-height var(--glass-motion),
+			opacity 0.2s ease;
 		max-width: 100%;
 		overflow: hidden;
 		text-overflow: ellipsis;

@@ -414,17 +414,13 @@ small {
 
 /*
 	Liquid Glass, for controls that float above the content: the tab bar, the More menu, the action bar
-	and round buttons. Translucent, what's behind blurred and brightened, a sheen across the top, a bright
-	rim and a soft shadow.
+	and round buttons. Nearly clear, what's behind blurred and made more vivid, with bevelled edges, a
+	glow inside, a gloss across the top left and a soft shadow.
 */
 .glass {
 	border: 0;
-	background: linear-gradient(180deg, var(--glass-sheen), transparent 55%), var(--glass-bg);
-	box-shadow:
-		var(--glass-shadow),
-		0 0 0 0.5px var(--glass-edge),
-		inset 0 0 0 1px var(--glass-rim),
-		inset 0 1.5px 1px -0.5px var(--glass-rim);
+	background: var(--glass-sheen), var(--glass-bg);
+	box-shadow: var(--glass-shadow);
 	-webkit-backdrop-filter: var(--glass-filter);
 	backdrop-filter: var(--glass-filter);
 }
@@ -620,18 +616,14 @@ html:has(.tab-bar) {
 		padding: 0.4rem 0.4rem 0.4rem 1.1rem;
 		border: 0;
 		border-radius: 999px;
-		background: linear-gradient(180deg, var(--glass-sheen), transparent 55%), var(--glass-bg);
-		box-shadow:
-			var(--glass-shadow),
-			0 0 0 0.5px var(--glass-edge),
-			inset 0 0 0 1px var(--glass-rim),
-			inset 0 1.5px 1px -0.5px var(--glass-rim);
+		background: var(--glass-sheen), var(--glass-bg);
+		box-shadow: var(--glass-shadow);
 		-webkit-backdrop-filter: var(--glass-filter);
 		backdrop-filter: var(--glass-filter);
 		transition:
-			left 0.35s cubic-bezier(0.32, 0.72, 0, 1),
-			bottom 0.35s cubic-bezier(0.32, 0.72, 0, 1),
-			min-height 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+			left var(--glass-motion),
+			bottom var(--glass-motion),
+			min-height var(--glass-motion);
 	}
 
 	/* With the tabs shrunk to a circle, the action bar sits inline beside them, as iOS does with its
