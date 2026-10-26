@@ -1,7 +1,6 @@
 // A unit programme activity as Record's Log activity builds it: what it was, who came and in what role,
 // what goes in their logbooks, and how it went. Only activities that are over: saved to Terrain as its
-// activity planner saves one, planned and then straight away concluded with its review. The logbook
-// figures aren't sent yet, as how Terrain records them hasn't been captured.
+// activity planner saves one, planned and then straight away concluded with its review.
 
 import { addDays, daysBetween, today, type CalendarDate } from './dates.js';
 
@@ -75,10 +74,13 @@ export interface ActivityDraft {
 	challengeArea: ChallengeArea | '';
 	/** Each youth who came, by member id, and their role */
 	attendance: Record<string, Role>;
-	/** Logbook figures for everyone who came, and any youth whose differ */
-	nights: number;
+	/**
+	 * Kilometres walked, for everyone who came: Terrain logs an activity's figures for all of them. A camp's
+	 * nights come from its dates
+	 */
 	kilometres: number;
-	logbookFor: Record<string, { nights: number; kilometres: number }>;
+	/** Whether the walking counts towards the Walkabout award */
+	walkabout: boolean;
 	/** How it went, for one that's over: Terrain needs it to conclude the activity */
 	review: ActivityReview;
 }
@@ -103,9 +105,8 @@ export function newActivity(
 		location: '',
 		challengeArea: '',
 		attendance: {},
-		nights: 0,
 		kilometres: 0,
-		logbookFor: {},
+		walkabout: true,
 		review: { rating: '', tags: [], method: [], spices: [] }
 	};
 	const typed = withType(draft, type);
@@ -143,8 +144,7 @@ export function withType(draft: ActivityDraft, type: ActivityType): ActivityDraf
 		startTime,
 		endTime,
 		endDate,
-		nights: type === 'Camp' ? nightsBetween(draft.startDate, endDate) : 0,
-		kilometres: type === 'Hike' ? draft.kilometres : 0
+		kilometres: hasLogbook(type) ? draft.kilometres : 0
 	};
 }
 
@@ -152,12 +152,12 @@ export function withType(draft: ActivityDraft, type: ActivityType): ActivityDraf
 export const nightsBetween = (start: CalendarDate, end: CalendarDate) =>
 	Math.max(0, daysBetween(start, end));
 
-/** Whether the activity can have logbook figures: anything but a unit night at the hall */
-export const hasLogbook = (type: ActivityType) => type !== 'Unit night';
+/** Whether the activity goes in logbooks: a camp's nights and walking, or a hike's walking */
+export const hasLogbook = (type: ActivityType) => type === 'Camp' || type === 'Hike';
 
-/** A youth's logbook figures: their own where they differ, otherwise everyone's */
-export const logbookOf = (draft: ActivityDraft, memberId: string) =>
-	draft.logbookFor[memberId] ?? { nights: draft.nights, kilometres: draft.kilometres };
+/** A camp's nights, from its dates, as Terrain counts them */
+export const nightsOf = (draft: ActivityDraft) =>
+	draft.type === 'Camp' ? nightsBetween(draft.startDate, draft.endDate) : 0;
 
 /**
  * Whether the activity is over. Log activity takes only those, as Terrain concludes only activities whose
@@ -187,7 +187,7 @@ export function activityProblems(draft: ActivityDraft, now = new Date()): string
 		problems.push('It needs to end after it starts.');
 	else if (!isOver(draft, now)) problems.push(NOT_OVER);
 	if (Object.keys(draft.attendance).length === 0) problems.push('Tick who came.');
-	if (draft.nights < 0 || draft.kilometres < 0) problems.push("Logbook figures can't be negative.");
+	if (draft.kilometres < 0) problems.push("Kilometres can't be negative.");
 	problems.push(...reviewProblems(draft.review));
 	return problems;
 }
@@ -216,6 +216,29 @@ export interface ActivityContext {
 export const terrainDateTime = (date: CalendarDate, time: string) =>
 	new Date(`${date}T${time}`).toISOString().replace('Z', '+00:00');
 
+/**
+ * The logbook part of Terrain's activity: metres walked (all of it counting towards Walkabout, or none),
+ * the OAS stream it's logged against, and its categories. A camp is logged against Camping, its nights
+ * counted from its dates, with walking_hike too if they walked; a hike against Bushwalking. Anything else
+ * goes in no logbook
+ */
+export function logbookData(draft: ActivityDraft) {
+	const metres = hasLogbook(draft.type) ? Math.round(Math.max(0, draft.kilometres) * 1000) : 0;
+	const stream = draft.type === 'Camp' ? 'camping' : draft.type === 'Hike' ? 'bushwalking' : '';
+	const categories =
+		draft.type === 'Camp'
+			? ['camping', ...(metres > 0 ? ['walking_hike'] : [])]
+			: draft.type === 'Hike'
+				? ['walking_hike']
+				: [];
+	return {
+		distance_travelled: metres,
+		distance_walkabout: draft.walkabout ? metres : 0,
+		achievement_meta: { stream, branch: stream },
+		categories
+	};
+}
+
 /** The ids picked, in the order Terrain lists them, whatever order they were ticked in */
 const inOrder = (all: readonly { id: string }[], picked: string[]) =>
 	all.map((option) => option.id).filter((id) => picked.includes(id));
@@ -225,8 +248,8 @@ const terrainChallengeArea = (area: ChallengeArea | '') => area.toLowerCase().re
 
 /**
  * The activity as Terrain's planner sends it: planned, to units/{unit}/events, with who came in each role
- * and everyone who came as attendees; or concluded, to events/{id}, with its review as well. Logbook
- * figures are sent empty for now
+ * and everyone who came as attendees, and its logbook figures; or concluded, to events/{id}, with its
+ * review as well
  */
 export function eventBody(
 	draft: ActivityDraft,
@@ -256,10 +279,7 @@ export function eventBody(
 		schedule_items: [],
 		achievement_pathway_oas_data: { award_rule: 'individual', verifier, groups: [] },
 		achievement_pathway_logbook_data: {
-			distance_travelled: 0,
-			distance_walkabout: 0,
-			achievement_meta: { stream: '', branch: '' },
-			categories: [],
+			...logbookData(draft),
 			details: { activity_time_length: '', activity_grade: '' },
 			...(status === 'concluded' ? { title: '' } : {}),
 			verifier

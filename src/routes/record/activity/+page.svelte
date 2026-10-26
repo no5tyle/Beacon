@@ -1,8 +1,7 @@
 <!--
 	Log activity: a unit programme activity (a unit night, outing, camp or hike), who came and in what role,
-	the nights camped and kilometres hiked for their logbooks, and how it went. Only activities that are
-	over: saved to the unit's programme in Terrain and concluded with their review in one go; the logbook
-	figures aren't sent yet.
+	a camp's nights and the kilometres walked for their logbooks, and how it went. Only activities that are
+	over: saved to the unit's programme in Terrain and concluded with their review in one go.
 -->
 <script lang="ts">
 	import { goto } from '$app/navigation';
@@ -16,9 +15,8 @@
 		hasLogbook,
 		finishedBy,
 		NOT_OVER,
-		logbookOf,
 		newActivity,
-		nightsBetween,
+		nightsOf,
 		RATINGS,
 		reviewProblems,
 		ROLES,
@@ -80,7 +78,6 @@
 		const id = unitId;
 		youth = [];
 		draft.attendance = {};
-		draft.logbookFor = {};
 		if (!id) return;
 		loadingYouth = true;
 		youthError = '';
@@ -98,16 +95,9 @@
 		draft = finishedBy(withType(draft, type));
 	}
 
-	function changeDates() {
-		if (draft.type === 'Camp') draft.nights = nightsBetween(draft.startDate, draft.endDate);
-	}
-
 	function toggle(member: MemberSummary, checked: boolean) {
 		if (checked) draft.attendance[member.id] = 'Participant';
-		else {
-			delete draft.attendance[member.id];
-			delete draft.logbookFor[member.id];
-		}
+		else delete draft.attendance[member.id];
 	}
 
 	function selectAll() {
@@ -115,19 +105,10 @@
 		draft.attendance = all
 			? {}
 			: Object.fromEntries(youth.map((y) => [y.id, draft.attendance[y.id] ?? 'Participant']));
-		if (all) draft.logbookFor = {};
 	}
 
 	function setRole(member: MemberSummary, role: Role) {
 		draft.attendance[member.id] = role;
-	}
-
-	/** One youth's nights or kilometres, kept only where they differ from everyone's */
-	function setOwn(member: MemberSummary, field: 'nights' | 'kilometres', value: number) {
-		const own = { ...logbookOf(draft, member.id), [field]: value };
-		if (own.nights === draft.nights && own.kilometres === draft.kilometres)
-			delete draft.logbookFor[member.id];
-		else draft.logbookFor[member.id] = own;
 	}
 
 	async function save() {
@@ -175,10 +156,24 @@
 			: step === 'attendance'
 				? came.length > 0
 				: step === 'logbook'
-					? draft.nights >= 0 && draft.kilometres >= 0
+					? draft.kilometres >= 0
 					: step === 'review'
 						? reviewProblems(draft.review).length === 0
 						: false
+	);
+
+	// e.g. "2 nights, 6 km walked, towards Walkabout"
+	const logbookSummary = $derived(
+		[
+			draft.type === 'Camp'
+				? `${nightsOf(draft)} ${nightsOf(draft) === 1 ? 'night' : 'nights'}`
+				: '',
+			draft.kilometres > 0
+				? `${draft.kilometres} km walked${draft.walkabout ? ', towards Walkabout' : ''}`
+				: ''
+		]
+			.filter(Boolean)
+			.join(', ') || 'Nothing'
 	);
 
 	const when = $derived(
@@ -247,7 +242,6 @@
 					max={today()}
 					class="form-control"
 					bind:value={draft.startDate}
-					onchange={changeDates}
 				/>
 			</div>
 			<div class="field">
@@ -264,7 +258,6 @@
 					max={today()}
 					class="form-control"
 					bind:value={draft.endDate}
-					onchange={changeDates}
 				/>
 			</div>
 			<div class="field">
@@ -341,72 +334,34 @@
 		{/if}
 	{:else if step === 'logbook'}
 		<div class="small muted subtitle">{draft.title} · {attendanceSummary(draft.attendance)}</div>
-		<p class="small muted">
-			These go in the logbook of everyone who came. Change anyone who left early or joined late
-			below.
-		</p>
-		<div class="field-row">
-			<div class="field">
-				<label class="form-label" for="nights">Nights camped</label>
-				<input
-					id="nights"
-					type="number"
-					min="0"
-					inputmode="numeric"
-					class="form-control"
-					bind:value={draft.nights}
-				/>
+		<p class="small muted">These go in the logbook of everyone who came.</p>
+		{#if draft.type === 'Camp'}
+			<div class="nights">
+				<strong>{nightsOf(draft)} {nightsOf(draft) === 1 ? 'night' : 'nights'} camped</strong>
+				<div class="small muted">From the dates. Change the dates to change it.</div>
 			</div>
-			<div class="field">
-				<label class="form-label" for="kilometres">Kilometres hiked</label>
-				<input
-					id="kilometres"
-					type="number"
-					min="0"
-					step="0.1"
-					inputmode="decimal"
-					class="form-control"
-					bind:value={draft.kilometres}
-				/>
-			</div>
+		{/if}
+		<div class="field">
+			<label class="form-label" for="kilometres"
+				>Kilometres walked{#if draft.type === 'Camp'}
+					<span class="muted">&nbsp;(if they went walking)</span>{/if}</label
+			>
+			<input
+				id="kilometres"
+				type="number"
+				min="0"
+				step="0.1"
+				inputmode="decimal"
+				class="form-control kilometres"
+				bind:value={draft.kilometres}
+			/>
 		</div>
-		<details class="own-logbook">
-			<summary>Different for some youth</summary>
-			<table class="logbook-table">
-				<thead>
-					<tr><th>Youth</th><th>Nights</th><th>Km</th></tr>
-				</thead>
-				<tbody>
-					{#each came as member (member.id)}
-						{@const own = logbookOf(draft, member.id)}
-						<tr class:differs={!!draft.logbookFor[member.id]}>
-							<td>{name(member)}</td>
-							<td
-								><input
-									type="number"
-									min="0"
-									class="form-control form-control-sm"
-									aria-label="{name(member)}'s nights"
-									value={own.nights}
-									onchange={(e) => setOwn(member, 'nights', Number(e.currentTarget.value))}
-								/></td
-							>
-							<td
-								><input
-									type="number"
-									min="0"
-									step="0.1"
-									class="form-control form-control-sm"
-									aria-label="{name(member)}'s kilometres"
-									value={own.kilometres}
-									onchange={(e) => setOwn(member, 'kilometres', Number(e.currentTarget.value))}
-								/></td
-							>
-						</tr>
-					{/each}
-				</tbody>
-			</table>
-		</details>
+		{#if draft.kilometres > 0}
+			<label class="pick-row">
+				<input type="checkbox" class="form-check-input" bind:checked={draft.walkabout} />
+				<span>Counts towards the Walkabout award</span>
+			</label>
+		{/if}
 	{:else if step === 'review'}
 		<div class="small muted subtitle">{draft.title} · {attendanceSummary(draft.attendance)}</div>
 		<p class="small muted">Terrain concludes the activity with this review.</p>
@@ -498,14 +453,7 @@
 				<dd>{RATINGS.find((r) => r.id === draft.review.rating)?.name ?? ''}</dd>
 				{#if hasLogbook(draft.type)}
 					<dt>Logbook</dt>
-					<dd>
-						{draft.nights}
-						{draft.nights === 1 ? 'night' : 'nights'}, {draft.kilometres} km each{Object.keys(
-							draft.logbookFor
-						).length > 0
-							? `, different for ${Object.keys(draft.logbookFor).length}`
-							: ''}
-					</dd>
+					<dd>{logbookSummary}</dd>
 				{/if}
 			</dl>
 			<ul class="small attendee-list">
@@ -518,12 +466,6 @@
 				{/each}
 			</ul>
 		</div>
-		{#if hasLogbook(draft.type) && (draft.nights > 0 || draft.kilometres > 0)}
-			<div class="alert alert-info small">
-				The nights and kilometres aren't sent to Terrain yet: Beacon doesn't know how Terrain
-				records them. The activity, who came and their roles are.
-			</div>
-		{/if}
 		{#if saveError}
 			<div class="alert alert-danger" role="alert">{saveError}</div>
 		{/if}
@@ -578,6 +520,14 @@
 		column-gap: 1rem;
 	}
 
+	.nights {
+		margin-bottom: 1rem;
+	}
+
+	.kilometres {
+		max-width: 10rem;
+	}
+
 	.field-row {
 		display: grid;
 		grid-template-columns: 1fr 1fr;
@@ -597,29 +547,6 @@
 		display: flex;
 		gap: 0.4rem;
 		padding: 0 0 0.6rem 2.2rem;
-	}
-
-	.own-logbook summary {
-		margin: 0.5rem 0;
-		color: var(--link);
-		cursor: pointer;
-	}
-
-	.logbook-table {
-		width: 100%;
-	}
-
-	.logbook-table th,
-	.logbook-table td {
-		padding: 0.25rem;
-	}
-
-	.logbook-table td:not(:first-child) {
-		width: 5.5rem;
-	}
-
-	.logbook-table tr.differs td:first-child {
-		font-weight: 600;
 	}
 
 	.review dl {
