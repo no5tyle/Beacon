@@ -120,7 +120,11 @@ export function fakeTerrain(unit: FakeUnit) {
 		}
 		if (call.method !== 'GET') {
 			writes.push(call);
-			return respond(/(submit-on-behalf|assessments)$/.test(call.url) ? 204 : 200, {});
+			// As Terrain answers: no content for these, and for a change to an activity
+			const noContent =
+				/(submit-on-behalf|assessments)$/.test(call.url) ||
+				(call.method === 'PATCH' && /\/events\/[^/]+$/.test(path));
+			return respond(noContent ? 204 : 200, {});
 		}
 		return respond(404, 'not found');
 	}) as typeof globalThis.fetch;

@@ -83,7 +83,12 @@ describe('logging an activity', () => {
 		]);
 		const reviewed = {
 			...draft,
-			review: { rating: 'great' as const, method: ['learn_by_doing'], spices: ['social'] }
+			review: {
+				rating: 'great' as const,
+				tags: [],
+				method: ['learn_by_doing'],
+				spices: ['social']
+			}
 		};
 		expect(reviewProblems(reviewed.review)).toEqual([]);
 		expect(activityProblems(reviewed, after)).toEqual([]);
@@ -181,6 +186,7 @@ describe('the activity Terrain is sent', () => {
 			...draft(),
 			review: {
 				rating: 'great' as const,
+				tags: ['adventurous', 'fun'],
 				method: ['community_involvement'],
 				spices: ['social', 'physical']
 			}
@@ -189,7 +195,7 @@ describe('the activity Terrain is sent', () => {
 		expect(body).toMatchObject({
 			status: 'concluded',
 			review: {
-				general_tags: [],
+				general_tags: ['fun', 'adventurous'],
 				scout_method_elements: ['community_involvement'],
 				scout_spices_elements: ['social', 'physical'],
 				general_rating: 'great'

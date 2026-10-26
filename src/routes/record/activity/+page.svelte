@@ -23,6 +23,7 @@
 		ROLES,
 		SCOUT_METHOD,
 		SPICES,
+		TAGS,
 		withType,
 		type ActivityType,
 		type Role
@@ -409,6 +410,21 @@
 							: 'btn-outline-primary'}"
 						aria-pressed={draft.review.rating === rating.id}
 						onclick={() => (draft.review.rating = rating.id)}>{rating.name}</button
+					>
+				{/each}
+			</div>
+		</div>
+		<div class="field">
+			<span class="form-label">What was it like? <span class="muted">(optional)</span></span>
+			<div class="chip-group" role="group" aria-label="What was it like?">
+				{#each TAGS as tag (tag.id)}
+					{@const on = draft.review.tags.includes(tag.id)}
+					<button
+						type="button"
+						class="btn chip {on ? 'btn-primary' : 'btn-outline-primary'}"
+						aria-pressed={on}
+						onclick={() => (draft.review.tags = toggleIn(draft.review.tags, tag.id, !on))}
+						>{tag.name}</button
 					>
 				{/each}
 			</div>

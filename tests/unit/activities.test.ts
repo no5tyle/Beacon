@@ -15,7 +15,12 @@ const before = new Date(2026, 9, 1);
 const after = new Date(2026, 9, 30);
 const reviewed = () => ({
 	...camp(),
-	review: { rating: 'great' as const, method: ['nature_and_outdoors'], spices: ['physical'] }
+	review: {
+		rating: 'great' as const,
+		tags: ['fun'],
+		method: ['nature_and_outdoors'],
+		spices: ['physical']
+	}
 });
 
 describe('saving an activity', () => {
@@ -105,6 +110,7 @@ describe('saving an activity', () => {
 			review: {
 				scout_method_elements: ['nature_and_outdoors'],
 				scout_spices_elements: ['physical'],
+				general_tags: ['fun'],
 				general_rating: 'great'
 			}
 		});
