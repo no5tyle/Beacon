@@ -1,17 +1,17 @@
-<!-- Shown by pages that work on one unit when none is chosen yet -->
+<!-- Shown by pages that work on one unit when none is chosen yet, with the picker right there -->
 <script lang="ts">
 	import Icon from './Icon.svelte';
-	import { pagePath } from '#lib/paths.js';
+	import UnitPicker from './UnitPicker.svelte';
 </script>
 
 <div class="choose-unit">
 	<Icon name="people" />
-	<div>
+	<div class="choose-body">
 		<strong>Choose a unit first</strong>
 		<div class="small">
-			You have more than one unit. Pick the one to work with on <a href={pagePath('')}>Home</a>;
-			every page then uses it.
+			Every page then uses it. Change it any time under More, or in the sidebar on a computer.
 		</div>
+		<UnitPicker idPrefix="page-" />
 	</div>
 </div>
 
@@ -22,9 +22,15 @@
 		gap: 0.75rem;
 		margin-bottom: 1rem;
 		padding: 0.75rem 0.9rem;
-		border: 1px solid var(--border);
 		border-radius: var(--radius-lg);
-		background: var(--surface-2);
+		background: var(--surface);
+	}
+
+	.choose-body {
+		display: grid;
+		flex: 1;
+		gap: 0.5rem;
+		max-width: 26rem;
 	}
 
 	.choose-unit :global(.icon) {

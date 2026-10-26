@@ -7,7 +7,7 @@ Note anything that differs from the current app, with the phone and browser, in 
 ## Before the night (at home, about 15 minutes)
 
 1. **Log in on your phone** with the password manager's autofill. It should log in by itself once the fields are filled, on iOS and on Android if you have one. Tap the version line at the bottom if it doesn't, and copy what it shows into the issue.
-2. **Install it**: follow the install hint on Home (Share, then Add to Home Screen on iPhone). Open it from the Home Screen and check nothing sits under the notch, the rounded corners or the home indicator.
+2. **Install it**: follow the install hint on Insights (Share, then Add to Home Screen on iPhone). Open it from the Home Screen and check nothing sits under the notch, the rounded corners or the home indicator.
 3. **Insights**: check the tiles, the OAS gaps and the priority youth look the same as in the current app for the same unit. Pull down from the top to refresh.
 4. **Progress**: open two or three youth and compare their details with the current app, including a youth who came up from Joeys or Cubs. Pull down on the list to refresh.
 5. **Beacon Reference**: on the Reference page, tap "Open as the Beacon Reference app", add it to the Home Screen, open it, then use "Save everything for offline" in its menu. Turn on flight mode and check it still opens and searches. Share a statement and open the link on another phone.

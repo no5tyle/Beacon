@@ -6,6 +6,7 @@
 	import { asset } from '$app/paths';
 	import { page } from '$app/state';
 	import Icon from './Icon.svelte';
+	import UnitPicker from './UnitPicker.svelte';
 	import {
 		isActive,
 		LOGGING_HREF,
@@ -107,6 +108,9 @@
 		<img src={asset('beacon-64.png')} width="22" height="22" alt="" />
 		Beacon
 	</a>
+	{#if options.signedIn}
+		<div class="side-picker"><UnitPicker idPrefix="side-" dark /></div>
+	{/if}
 	<nav aria-label="Main">
 		{#each sidebar as item (item.href)}
 			<a class="side-link" class:active={isActive(item, path)} href={href(item)}>
@@ -146,9 +150,10 @@
 
 {#if moreOpen}
 	<button class="more-backdrop" aria-label="Close menu" onclick={() => (moreOpen = false)}></button>
-	<div class="more-menu glass" role="menu">
+	<div class="more-menu glass">
+		<UnitPicker idPrefix="menu-" />
 		{#each more as item (item.href)}
-			<a class="more-item" class:active={isActive(item, path)} role="menuitem" href={href(item)}>
+			<a class="more-item" class:active={isActive(item, path)} href={href(item)}>
 				<Icon name={item.icon} />
 				{item.title}
 				{@render badge(item)}
@@ -157,7 +162,6 @@
 		<a
 			class="more-version"
 			class:active={onLogging}
-			role="menuitem"
 			href={pagePath(LOGGING_HREF)}
 			title="Logging, to help solve a problem">Beacon version {version}{versionText}</a
 		>
@@ -187,7 +191,7 @@
 			class="tab"
 			class:active={moreOpen || onMorePage}
 			class:current={onMorePage || !main.some((item) => isActive(item, path))}
-			aria-haspopup="menu"
+			aria-haspopup="true"
 			aria-expanded={moreOpen}
 			aria-label={moreCount > 0 ? `More, ${moreCount} waiting` : undefined}
 			onclick={(e) => {
@@ -447,7 +451,7 @@
 		right: max(env(safe-area-inset-right), 0.75rem);
 		bottom: calc(var(--tab-bar-height) + 0.5rem);
 		z-index: 22;
-		min-width: 13rem;
+		width: min(17rem, calc(100vw - 1.5rem));
 		padding: 0.4rem;
 		overflow: hidden;
 		border-radius: 1.75rem;
@@ -469,6 +473,17 @@
 			transition: none;
 			animation: none;
 		}
+	}
+
+	/* The group and unit, above the pages, when there's a choice to make */
+	.more-menu :global(.unit-picker) {
+		margin-bottom: 0.4rem;
+		padding: 0.5rem 0.6rem 0.75rem;
+		border-bottom: 0.5px solid var(--border);
+	}
+
+	.side-picker :global(.unit-picker) {
+		padding: 1rem 1rem 0;
 	}
 
 	.more-item {

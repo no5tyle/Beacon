@@ -5,6 +5,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import AppNav from '#lib/components/AppNav.svelte';
+	import InstallHint from '#lib/components/InstallHint.svelte';
 	import { pagePath } from '#lib/paths.js';
 	import { app, approvalsBadge, preload } from '#lib/services/index.js';
 	import { unitsKey } from '#lib/stores/approvals.svelte.js';
@@ -25,6 +26,8 @@
 	// Pages that work signed out: the login, the Reference (and its installable app) and the style guide
 	const PUBLIC = ['/login/', '/oas-reference/', '/reference/', '/styles/'];
 	const isPublic = $derived(PUBLIC.some((p) => path.startsWith(p)));
+	// The page Beacon opens at, which also suggests adding it to the Home Screen
+	const onLanding = $derived(app.isYouth ? path.startsWith('/progress/') : path === '/insights/');
 
 	// Beacon Reference installs as its own app from /reference/, with its own name and icon
 	const isReferenceApp = $derived(path.startsWith('/reference/'));
@@ -70,6 +73,7 @@
 		<AppNav options={navOptions} version={VERSION} />
 		<main>
 			{#if app.isSignedIn || isPublic}
+				{#if app.isSignedIn && onLanding}<InstallHint />{/if}
 				{@render children()}
 			{/if}
 		</main>

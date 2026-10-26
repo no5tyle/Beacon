@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { fakeTerrain, logIn, navigate } from './terrain.js';
 
 const twoUnits = [
@@ -6,45 +6,85 @@ const twoUnits = [
 	{ id: 'unit-2', name: 'Mt Example Cubs', section: 'cub' }
 ];
 
-test('a leader with one unit has it chosen straight away, and no unit picker', async ({ page }) => {
+/** The unit picker kept with the navigation: under More on phones, in the sidebar on desktop */
+async function navUnit(page: Page, isMobile: boolean) {
+	if (!isMobile) return page.locator('#side-unit');
+	await page.locator('.tab-bar button', { hasText: 'More' }).click();
+	return page.locator('#menu-unit');
+}
+
+test('a leader opens at Insights, with one unit chosen straight away and no picker', async ({
+	page
+}) => {
 	const terrain = await fakeTerrain(page);
 	await logIn(page);
-	await expect(page.locator('#group')).toHaveValue('group-1');
-	await expect(page.locator('#chosenUnit')).toHaveCount(0);
+	await expect(page).toHaveURL(/\/insights\/$/);
+	await expect(page.locator('.unit-picker')).toHaveCount(0);
 	// The unit's progress starts loading in the background
 	await expect
 		.poll(() => terrain.requests.filter((r) => r.includes('type=milestone')).length)
 		.toBe(4);
 });
 
-test('a leader with more than one unit picks one, and it is remembered', async ({ page }) => {
+test('a leader with more than one unit picks one on the page, and it is remembered', async ({
+	page,
+	isMobile
+}) => {
 	const terrain = await fakeTerrain(page, { units: twoUnits });
 	await logIn(page);
-	await expect(page.locator('#chosenUnit')).toHaveValue('');
-	await expect(page.locator('.hint')).toHaveText(
-		'Choose the unit to work with. Every page uses it.'
-	);
+	await expect(page).toHaveURL(/\/insights\/$/);
+	await expect(page.locator('.choose-unit')).toContainText('Choose a unit first');
+	await expect(page.locator('#page-unit')).toHaveValue('');
 	expect(
 		terrain.requests.some((r) => r.includes('/members')),
 		'nothing loads until a unit is chosen'
 	).toBe(false);
 
-	await page.selectOption('#chosenUnit', 'unit-2');
+	await page.selectOption('#page-unit', 'unit-2');
 	await expect
 		.poll(() => terrain.requests.some((r) => r.includes('units/unit-2/members')))
 		.toBe(true);
+	await expect(page.locator('.choose-unit')).toHaveCount(0);
+	await expect(await navUnit(page, isMobile)).toHaveValue('unit-2');
 
 	await navigate(page, 'logout/');
 	await expect(page).toHaveURL(/\/login\/$/);
 	await logIn(page);
-	await expect(page.locator('#chosenUnit')).toHaveValue('unit-2');
+	await expect(page).toHaveURL(/\/insights\/$/);
+	await expect(page.locator('.choose-unit')).toHaveCount(0);
+	await expect(await navUnit(page, isMobile)).toHaveValue('unit-2');
 });
 
-test('a youth member sees only their own pages', async ({ page, isMobile }) => {
+test('the unit can be changed from the navigation on any page', async ({ page, isMobile }) => {
+	const terrain = await fakeTerrain(page, { units: twoUnits });
+	await logIn(page);
+	await page.selectOption('#page-unit', 'unit-1');
+	await navigate(page, 'progress/');
+	await (await navUnit(page, isMobile)).selectOption('unit-2');
+	await expect
+		.poll(() => terrain.requests.some((r) => r.includes('units/unit-2/members')))
+		.toBe(true);
+	await expect(page.locator('main h2')).toHaveText('Progress (Mt Example Cubs)');
+});
+
+test('Info says who is signed in and what each page is for', async ({ page }) => {
+	await fakeTerrain(page);
+	await logIn(page);
+	await navigate(page, 'info/');
+	await expect(page.locator('h2')).toHaveText('Welcome Sam Leader');
+	await expect(page.locator('main')).toContainText('Use Insights to see');
+});
+
+test('a youth member opens at their Progress and sees only their own pages', async ({
+	page,
+	isMobile
+}) => {
 	await fakeTerrain(page, { youth: true });
 	await logIn(page);
-	await expect(page.locator('h2')).toHaveText('Welcome Ava Nguyen');
+	await expect(page).toHaveURL(/\/progress\//);
 	const links = isMobile ? page.locator('.tab-bar .tab') : page.locator('.side-link');
 	await expect(links.filter({ hasText: 'Insights' })).toHaveCount(0);
 	await expect(links.filter({ hasText: /^Record/ })).toHaveCount(0);
+	await navigate(page, 'info/');
+	await expect(page.locator('h2')).toHaveText('Welcome Ava Nguyen');
 });

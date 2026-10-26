@@ -29,9 +29,7 @@ export interface NavOptions {
 
 /** The main pages: the top of the sidebar on desktop, and on phones the tabs along the bottom (see phoneTabs) */
 export function mainPages({ isYouth }: NavOptions): NavPage[] {
-	const pages: NavPage[] = [
-		{ href: '', icon: 'home', title: 'Home', shortTitle: 'Home', exact: true }
-	];
+	const pages: NavPage[] = [];
 	if (!isYouth) {
 		pages.push(
 			{ href: 'insights/', icon: 'graph', title: 'Insights', shortTitle: 'Insights' },
@@ -53,7 +51,7 @@ export function mainPages({ isYouth }: NavOptions): NavPage[] {
 
 /** Less used pages: the bottom of the sidebar on desktop, and under More on phones (see phoneTabs) */
 export function morePages({ isYouth, approvalsWaiting = 0 }: NavOptions): NavPage[] {
-	const pages: NavPage[] = [];
+	const pages: NavPage[] = [{ href: 'info/', icon: 'info', title: 'Info', shortTitle: 'Info' }];
 	if (!isYouth)
 		pages.push({
 			href: 'approvals/',
@@ -69,7 +67,7 @@ export function morePages({ isYouth, approvalsWaiting = 0 }: NavOptions): NavPag
 }
 
 /** Pages that may stand in for Reference on the phone's tab bar while they're open */
-const SWAPPABLE = ['progress/', 'approvals/'];
+const SWAPPABLE = ['progress/', 'approvals/', 'info/'];
 
 /**
 	The phone's tab bar and its More menu. Fewer tabs than the sidebar so they aren't cramped: for leaders

@@ -11,7 +11,7 @@ test('signed out, Beacon opens at the login', async ({ page }) => {
 test('logs in and remembers the branch, but nothing else', async ({ page }) => {
 	await fakeTerrain(page);
 	await logIn(page, 'nsw');
-	await expect(page.locator('h2')).toHaveText('Welcome Sam Leader');
+	await expect(page).toHaveURL(/\/insights\/$/);
 
 	const stored = await page.evaluate(() => ({ ...localStorage }));
 	expect(stored.LoginBranch).toBe('nsw');
@@ -78,7 +78,7 @@ test.describe('password manager fills', () => {
 			await page.goto('login/');
 			await page.selectOption('#branch', 'sa');
 			await fill(page);
-			await expect(page.locator('h2')).toHaveText('Welcome Sam Leader');
+			await expect(page).toHaveURL(/\/insights\/$/);
 		});
 	}
 
