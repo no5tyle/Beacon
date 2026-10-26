@@ -4,9 +4,11 @@ import {
 	attendanceSummary,
 	eventBody,
 	hasLogbook,
+	isOver,
 	logbookOf,
 	newActivity,
 	nightsBetween,
+	reviewProblems,
 	terrainDateTime,
 	withType
 } from './activity.js';
@@ -45,7 +47,8 @@ describe('logging an activity', () => {
 
 	it('says what’s missing, in the order the form asks', () => {
 		const draft = newActivity('Unit night', '2026-10-23');
-		expect(activityProblems(draft)).toEqual([
+		const before = new Date(2026, 9, 1);
+		expect(activityProblems(draft, before)).toEqual([
 			'Give the activity a title.',
 			'Choose a challenge area.',
 			'Tick who came.'
@@ -56,10 +59,34 @@ describe('logging an activity', () => {
 			challengeArea: 'Outdoors' as const,
 			attendance: { m1: 'Participant' as const }
 		};
-		expect(activityProblems(done)).toEqual([]);
-		expect(activityProblems({ ...done, endTime: '18:00' })).toEqual([
+		expect(activityProblems(done, before)).toEqual([]);
+		expect(activityProblems({ ...done, endTime: '18:00' }, before)).toEqual([
 			'It needs to end after it starts.'
 		]);
+	});
+
+	it('needs a review once it’s over, as Terrain concludes it', () => {
+		const draft = {
+			...newActivity('Unit night', '2026-10-23'),
+			title: 'Knots night',
+			challengeArea: 'Outdoors' as const,
+			attendance: { m1: 'Participant' as const }
+		};
+		const during = new Date(2026, 9, 23, 20, 0);
+		const after = new Date(2026, 9, 23, 21, 0);
+		expect(isOver(draft, during)).toBe(false);
+		expect(isOver(draft, after)).toBe(true);
+		expect(activityProblems(draft, after)).toEqual([
+			'Say how it went.',
+			'Tick the Scout method it used.',
+			'Tick the SPICES it developed.'
+		]);
+		const reviewed = {
+			...draft,
+			review: { rating: 'great' as const, method: ['learn_by_doing'], spices: ['social'] }
+		};
+		expect(reviewProblems(reviewed.review)).toEqual([]);
+		expect(activityProblems(reviewed, after)).toEqual([]);
 	});
 
 	it('sums up who came in each role', () => {
@@ -147,6 +174,36 @@ describe('the activity Terrain is sent', () => {
 		expect(eventBody({ ...draft(), challengeArea: 'Personal growth' }, context)).toMatchObject({
 			challenge_area: 'personal_growth'
 		});
+	});
+
+	it('concludes it with its review, as Terrain’s planner does', () => {
+		const reviewed = {
+			...draft(),
+			review: {
+				rating: 'great' as const,
+				method: ['community_involvement'],
+				spices: ['social', 'physical']
+			}
+		};
+		const body = eventBody(reviewed, context, 'concluded');
+		expect(body).toMatchObject({
+			status: 'concluded',
+			review: {
+				general_tags: [],
+				scout_method_elements: ['community_involvement'],
+				scout_spices_elements: ['social', 'physical'],
+				general_rating: 'great'
+			},
+			achievement_pathway_logbook_data: { title: '' }
+		});
+		// Planned, it has no review yet
+		expect(eventBody(reviewed, context)).toMatchObject({
+			status: 'planned',
+			review: { scout_method_elements: [], scout_spices_elements: [] }
+		});
+		expect(eventBody(reviewed, context).achievement_pathway_logbook_data).not.toHaveProperty(
+			'title'
+		);
 	});
 
 	it('sends times in UTC, as Terrain does', () => {
