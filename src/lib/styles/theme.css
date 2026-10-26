@@ -84,8 +84,8 @@
 	--glass-active-text: var(--tint);
 
 	--font:
-		'Inter', -apple-system, system-ui, BlinkMacSystemFont, 'Helvetica Neue', 'Segoe UI', Roboto,
-		Arial, sans-serif;
+		-apple-system, system-ui, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', 'Segoe UI',
+		Roboto, Arial, sans-serif;
 
 	/* Space below the floating tabs: the home indicator area where the phone reports one, and at least a
 	   little everywhere else so they stay clear of rounded screen corners. The height is all the room the
