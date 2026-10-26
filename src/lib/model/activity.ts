@@ -245,8 +245,9 @@ const inOrder = (all: readonly { id: string }[], picked: string[]) =>
 const terrainChallengeArea = (area: ChallengeArea | '') => area.toLowerCase().replaceAll(' ', '_');
 
 /**
- * The activity as Terrain's planner sends it to units/{unit}/events, already concluded: who came in each
- * role and everyone who came as attendees, its logbook figures, and its review
+ * The activity as Terrain's planner sends it to units/{unit}/events, already concluded: everyone who
+ * came as attendees and participants, those who assisted or led as well, its logbook figures, and its
+ * review
  */
 export function eventBody(draft: ActivityDraft, context: ActivityContext): Record<string, unknown> {
 	const inRole = (role: Role) =>
@@ -266,8 +267,9 @@ export function eventBody(draft: ActivityDraft, context: ActivityContext): Recor
 		attendance: {
 			leader_member_ids: inRole('Leader'),
 			assistant_member_ids: inRole('Assistant'),
+			// Everyone who came took part; assisting or leading is as well as that
 			attendee_member_ids: Object.keys(draft.attendance),
-			participant_member_ids: inRole('Participant')
+			participant_member_ids: Object.keys(draft.attendance)
 		},
 		schedule_items: [],
 		achievement_pathway_oas_data: { award_rule: 'individual', verifier, groups: [] },
