@@ -1,5 +1,4 @@
 <script lang="ts">
-	import '#lib/styles/fonts.css';
 	import '#lib/styles/theme.css';
 	import '#lib/styles/base.css';
 	import { asset } from '$app/paths';
