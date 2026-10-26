@@ -35,13 +35,15 @@ Beacon can see and change only what Terrain allows your account to. A youth memb
 
 ## What Beacon changes in Terrain
 
-Beacon changes something in Terrain only when you choose to record OAS statements, submit a stage for review, or approve or award a submission. When you record or submit:
+Beacon changes something in Terrain only when you choose to record OAS statements, submit a stage for review, approve or award a submission, or add an activity to a unit's programme. When you record or submit:
 
 - Terrain accepts these changes only from the youth member's own profile. Beacon asks Terrain to let you act as that youth for the change, as leaders do in Terrain, and switches back straight afterwards.
 - The statements you ticked are added to the youth's OAS record, with the verifier's name, email or phone, and the date. The verifier details start as your own name and the email address on your Terrain account, and you can change them before saving. They become part of the youth's record in Terrain, where the youth, their leaders and Scouts Australia can see them, just as when statements are verified in Terrain itself.
 - When you submit a stage for review, Terrain records you as the leader who submitted it.
 
-When you approve a submission on the Approvals page, Beacon sends your approval to Terrain as yourself, as a Unit Council member, exactly as Terrain's own Approvals tab does. Terrain records your name against the submission, where other Unit Council members and the unit's leaders can see it. When your approval sends a youth's special interest area plan through, Beacon can also move the project on to its review for them, as the youth would in Terrain. You choose this with a box in the confirm, ticked unless you untick it. Like recording, this is done as the youth: Beacon re-saves the plan exactly as it stands, changing none of its answers.
+When you approve a submission on the Approvals page, Beacon sends your approval to Terrain as yourself, as a Unit Council member, exactly as Terrain's own Approvals tab does. Terrain records your name against the submission, where other Unit Council members and the unit's leaders can see it. When you save an activity from Log activity, Beacon adds it to the unit's programme in Terrain as a planned activity, as yourself, exactly as Terrain's own activity planner does: its title, dates, place and challenge area, and the youth you marked as attending with their roles. Terrain records you as its organiser and verifier, where the unit's leaders and those youth can see it.
+
+When your approval sends a youth's special interest area plan through, Beacon can also move the project on to its review for them, as the youth would in Terrain. You choose this with a box in the confirm, ticked unless you untick it. Like recording, this is done as the youth: Beacon re-saves the plan exactly as it stands, changing none of its answers.
 
 When a submission the Unit Council has approved is ready to award, Beacon can award it the same way, as yourself, with the date you choose. Terrain records your name and that date against the youth's achievement. Beacon only offers approving and awarding where Terrain says you may, and asks you to confirm first.
 

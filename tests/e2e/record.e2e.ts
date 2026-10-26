@@ -25,7 +25,7 @@ test('Record moves between OAS, Activity and SIA plan, staying the current tab',
 	await expect(current).toHaveText('Record');
 });
 
-test('logs a camp: details, who came and their roles, logbook, then a review that sends nothing', async ({
+test('logs a camp: details, who came and their roles, logbook, review, then saves it as planned', async ({
 	page
 }) => {
 	const terrain = await fakeTerrain(page);
@@ -65,8 +65,37 @@ test('logs a camp: details, who came and their roles, logbook, then a review tha
 	await expect(review).toContainText('2 participants, 1 leader');
 	await expect(review).toContainText('2 nights, 6 km each, different for 1');
 	await expect(review.locator('li')).toHaveText(['Ava Nguyen (Leader)', 'Liam Smith', 'Mia Brown']);
-	await expect(page.getByRole('button', { name: 'Save to Terrain' })).toBeDisabled();
+	// The logbook isn't sent yet, and says so
+	await expect(page.locator('.alert-info')).toContainText("nights and kilometres aren't sent");
 	expect(terrain.writes).toEqual([]);
+
+	// Saved to the unit's programme as planned, as the leader, with who came in each role
+	const before = terrain.requests.length;
+	await page.getByRole('button', { name: 'Save to Terrain' }).click();
+	await expect(page.locator('.alert-success')).toHaveText(
+		"Saved Spring camp to the unit's programme in Terrain as a planned activity."
+	);
+	expect(terrain.writes.map((w) => w.request)).toEqual(['POST events/units/unit-1/events']);
+	const body = terrain.writes[0].body as Record<string, unknown>;
+	expect(body).toMatchObject({
+		title: 'Spring camp',
+		organisers: ['leader-1'],
+		challenge_area: 'outdoors',
+		event_type: { type: 'unit', id: 'unit-1' },
+		attendance: {
+			leader_member_ids: ['unit-1-m0'],
+			assistant_member_ids: [],
+			attendee_member_ids: ['unit-1-m0', 'unit-1-m1', 'unit-1-m2'],
+			participant_member_ids: ['unit-1-m1', 'unit-1-m2']
+		},
+		status: 'planned'
+	});
+	expect(String(body.start_datetime)).toMatch(/^2026-10-2[23]T\d{2}:\d{2}:00\.000\+00:00$/);
+	// Saved as the leader: no switch to a youth's profile while saving
+	expect(terrain.requests.slice(before).some((r) => r.includes('assume-profiles'))).toBe(false);
+
+	await page.getByRole('button', { name: 'Log another activity' }).click();
+	await expect(page.getByLabel('Title')).toHaveValue('');
 });
 
 test('a unit night has no logbook step', async ({ page }) => {
@@ -81,6 +110,32 @@ test('a unit night has no logbook step', async ({ page }) => {
 	await page.getByRole('button', { name: /^Next/ }).click();
 	await expect(page.locator('.review')).toContainText('1 participant');
 	await expect(page.locator('.review')).not.toContainText('Logbook');
+	await expect(page.locator('.alert-info')).toHaveCount(0);
+});
+
+test('says when Terrain won’t take the activity, and keeps it to try again', async ({ page }) => {
+	await fakeTerrain(page);
+	await page.route(/events\.terrain\.scouts\.com\.au\/units\/[^/]+\/events$/, (route) =>
+		route.request().method() === 'POST'
+			? route.fulfill({
+					status: 400,
+					headers: { 'access-control-allow-origin': '*' },
+					body: '{}'
+				})
+			: route.fallback()
+	);
+	await logIn(page);
+	await navigate(page, 'record/activity/');
+	await page.getByLabel('Title').fill('Knots night');
+	await page.getByRole('button', { name: 'Community' }).click();
+	await page.getByRole('button', { name: /^Next/ }).click();
+	await page.locator('.attendee', { hasText: 'Mia Brown' }).getByRole('checkbox').check();
+	await page.getByRole('button', { name: /^Next/ }).click();
+	await page.getByRole('button', { name: 'Save to Terrain' }).click();
+	await expect(page.locator('.alert-danger')).toContainText(
+		"Terrain didn't accept the activity (response 400)"
+	);
+	await expect(page.getByRole('button', { name: 'Save to Terrain' })).toBeEnabled();
 });
 
 test('enters an SIA plan: youth, area and project, then a review that sends nothing', async ({

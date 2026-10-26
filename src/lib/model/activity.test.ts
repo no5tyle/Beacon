@@ -2,10 +2,12 @@ import { describe, expect, it } from 'vitest';
 import {
 	activityProblems,
 	attendanceSummary,
+	eventBody,
 	hasLogbook,
 	logbookOf,
 	newActivity,
 	nightsBetween,
+	terrainDateTime,
 	withType
 } from './activity.js';
 import { addDays } from './dates.js';
@@ -79,5 +81,80 @@ describe('an SIA plan', () => {
 			siaPlanProblems({ memberId: 'm1', area: 'sia_art_literature', projectName: 'Puppets' })
 		).toEqual([]);
 		expect(siaAreaName('sia_better_world')).toBe('Creating a Better World');
+	});
+});
+
+describe('the activity Terrain is sent', () => {
+	const context = {
+		unitId: 'unit-1',
+		organiserId: 'leader-1',
+		verifierName: 'Sam Leader',
+		timeZone: 'Australia/Adelaide'
+	};
+	const draft = () => ({
+		...newActivity('Unit night', '2026-10-26'),
+		title: ' Test Activity ',
+		startTime: '18:00',
+		endTime: '19:30',
+		challengeArea: 'Community' as const,
+		location: 'Strath',
+		attendance: { y1: 'Leader' as const, y2: 'Participant' as const, y3: 'Assistant' as const }
+	});
+
+	it('has the same shape as Terrain’s own activity planner sends', () => {
+		const body = eventBody(draft(), context);
+		expect(Object.keys(body)).toEqual([
+			'title',
+			'description',
+			'justification',
+			'organisers',
+			'challenge_area',
+			'start_datetime',
+			'end_datetime',
+			'event_type',
+			'attendance',
+			'schedule_items',
+			'achievement_pathway_oas_data',
+			'achievement_pathway_logbook_data',
+			'review',
+			'uploads',
+			'equipment_notes',
+			'additional_notes',
+			'location',
+			'iana_timezone',
+			'status'
+		]);
+		expect(body).toMatchObject({
+			title: 'Test Activity',
+			organisers: ['leader-1'],
+			challenge_area: 'community',
+			event_type: { type: 'unit', id: 'unit-1' },
+			attendance: {
+				leader_member_ids: ['y1'],
+				assistant_member_ids: ['y3'],
+				attendee_member_ids: ['y1', 'y2', 'y3'],
+				participant_member_ids: ['y2']
+			},
+			achievement_pathway_oas_data: {
+				award_rule: 'individual',
+				verifier: { name: 'Sam Leader', contact: '', type: 'member' },
+				groups: []
+			},
+			location: 'Strath',
+			iana_timezone: 'Australia/Adelaide',
+			status: 'planned'
+		});
+		expect(eventBody({ ...draft(), challengeArea: 'Personal growth' }, context)).toMatchObject({
+			challenge_area: 'personal_growth'
+		});
+	});
+
+	it('sends times in UTC, as Terrain does', () => {
+		expect(terrainDateTime('2026-10-26', '18:00')).toBe(
+			new Date(2026, 9, 26, 18, 0).toISOString().replace('Z', '+00:00')
+		);
+		expect(terrainDateTime('2026-10-26', '18:00')).toMatch(
+			/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:00\.000\+00:00$/
+		);
 	});
 });

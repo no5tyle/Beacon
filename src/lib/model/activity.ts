@@ -1,6 +1,6 @@
 // A unit programme activity as Record's Log activity builds it: what it was, who came and in what role,
-// and what goes in their logbooks. Not sent to Terrain yet: its requests for activities haven't been
-// captured.
+// and what goes in their logbooks. Saved to Terrain as a planned activity, as its activity planner saves
+// one; the logbook figures aren't sent yet, as how Terrain records them hasn't been captured.
 
 import { addDays, daysBetween, today, type CalendarDate } from './dates.js';
 
@@ -104,4 +104,67 @@ export function attendanceSummary(attendance: Record<string, Role>): string {
 		.filter(([, n]) => n > 0)
 		.map(([role, n]) => `${n} ${role.toLowerCase()}${n === 1 ? '' : 's'}`)
 		.join(', ');
+}
+
+/** Who is saving the activity, and where, for Terrain's activity */
+export interface ActivityContext {
+	unitId: string;
+	/** The leader's member id, as the activity's organiser */
+	organiserId: string;
+	/** The leader's name, as the verifier Terrain records */
+	verifierName: string;
+	/** e.g. "Australia/Adelaide" */
+	timeZone: string;
+}
+
+/** A local date and time as Terrain sends it, in UTC, e.g. "2026-10-26T07:30:00.000+00:00" */
+export const terrainDateTime = (date: CalendarDate, time: string) =>
+	new Date(`${date}T${time}`).toISOString().replace('Z', '+00:00');
+
+/** e.g. "Personal growth" to "personal_growth" */
+const terrainChallengeArea = (area: ChallengeArea | '') => area.toLowerCase().replaceAll(' ', '_');
+
+/**
+ * The activity as Terrain's planner sends it to units/{unit}/events: a planned unit activity, with who
+ * came in each role and everyone who came as attendees. Logbook figures are sent empty for now
+ */
+export function eventBody(draft: ActivityDraft, context: ActivityContext): Record<string, unknown> {
+	const inRole = (role: Role) =>
+		Object.entries(draft.attendance)
+			.filter(([, r]) => r === role)
+			.map(([id]) => id);
+	const verifier = { name: context.verifierName, contact: '', type: 'member' };
+	return {
+		title: draft.title.trim(),
+		description: '',
+		justification: '',
+		organisers: [context.organiserId],
+		challenge_area: terrainChallengeArea(draft.challengeArea),
+		start_datetime: terrainDateTime(draft.startDate, draft.startTime),
+		end_datetime: terrainDateTime(draft.endDate, draft.endTime),
+		event_type: { type: 'unit', id: context.unitId },
+		attendance: {
+			leader_member_ids: inRole('Leader'),
+			assistant_member_ids: inRole('Assistant'),
+			attendee_member_ids: Object.keys(draft.attendance),
+			participant_member_ids: inRole('Participant')
+		},
+		schedule_items: [],
+		achievement_pathway_oas_data: { award_rule: 'individual', verifier, groups: [] },
+		achievement_pathway_logbook_data: {
+			distance_travelled: 0,
+			distance_walkabout: 0,
+			achievement_meta: { stream: '', branch: '' },
+			categories: [],
+			details: { activity_time_length: '', activity_grade: '' },
+			verifier
+		},
+		review: { general_tags: [], scout_method_elements: [], scout_spices_elements: [] },
+		uploads: [],
+		equipment_notes: '',
+		additional_notes: '',
+		location: draft.location.trim(),
+		iana_timezone: context.timeZone,
+		status: 'planned'
+	};
 }

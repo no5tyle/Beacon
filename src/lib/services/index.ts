@@ -2,6 +2,7 @@
 
 import { ApprovalsBadge } from '#lib/stores/approvals.svelte.js';
 import { AppState } from '#lib/stores/app.svelte.js';
+import { ActivitiesService } from './activities.js';
 import { ApprovalsService } from './approvals.js';
 import { InsightsService } from './insights.js';
 import { MembersService } from './members.js';
@@ -23,6 +24,7 @@ export const reference = new ReferenceService(() => app.terrain);
 export const preload = new PreloadService(app, unitProgress, oas);
 export const approvals = new ApprovalsService(app);
 export const approvalsBadge = new ApprovalsBadge(approvals);
+export const activities = new ActivitiesService(app);
 
 // A different leader, or none, mustn't see the last one's youth
 app.onReset(() => {

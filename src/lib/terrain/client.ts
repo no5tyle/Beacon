@@ -25,6 +25,7 @@ export const COGNITO_ADDRESS = 'https://cognito-idp.ap-southeast-2.amazonaws.com
 export const MEMBERS_ADDRESS = 'https://members.terrain.scouts.com.au/';
 export const TEMPLATES_ADDRESS = 'https://templates.terrain.scouts.com.au/';
 export const ACHIEVEMENTS_ADDRESS = 'https://achievements.terrain.scouts.com.au/';
+export const EVENTS_ADDRESS = 'https://events.terrain.scouts.com.au/';
 
 /** Terrain's login app ids. Members belong to one of them, so login tries each in turn */
 export const CLIENT_IDS = [
@@ -411,6 +412,14 @@ export class Terrain {
 			`${ACHIEVEMENTS_ADDRESS}submissions/${pathPart(submissionId)}/assessments`,
 			{ outcome: 'awarded', date_awarded: dateAwarded }
 		);
+	}
+
+	/**
+	 * Adds an activity to a unit's programme, sent as the leader, as Terrain's own activity planner sends
+	 * it. Any 2xx counts as done: Terrain's answer to it hasn't been captured
+	 */
+	createEvent(unitId: string, body: object): Promise<TerrainWriteResult> {
+		return this.write('POST', `${EVENTS_ADDRESS}units/${pathPart(unitId)}/events`, body);
 	}
 
 	/** Starts a youth's record for a stage they haven't started (POST, answered with 200) */
