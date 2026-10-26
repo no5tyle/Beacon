@@ -422,14 +422,6 @@ export class Terrain {
 		return this.write('POST', `${EVENTS_ADDRESS}units/${pathPart(unitId)}/events`, body);
 	}
 
-	/**
-	 * Saves a change to an activity, sent as the leader with the whole activity, as Terrain's planner does,
-	 * e.g. concluding it with its review (PATCH, answered with 204)
-	 */
-	updateEvent(eventId: string, body: object): Promise<TerrainWriteResult> {
-		return this.write('PATCH', `${EVENTS_ADDRESS}events/${pathPart(eventId)}`, body, 204);
-	}
-
 	/** Starts a youth's record for a stage they haven't started (POST, answered with 200) */
 	createAchievement(memberId: string, body: object): Promise<TerrainWriteResult> {
 		return this.write(

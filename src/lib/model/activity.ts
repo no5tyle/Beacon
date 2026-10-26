@@ -1,6 +1,6 @@
 // A unit programme activity as Record's Log activity builds it: what it was, who came and in what role,
-// what goes in their logbooks, and how it went. Only activities that are over: saved to Terrain as its
-// activity planner saves one, planned and then straight away concluded with its review.
+// what goes in their logbooks, and how it went. Only activities that are over: saved to Terrain already
+// concluded, with its review, as its activity planner concludes one.
 
 import { addDays, daysBetween, today, type CalendarDate } from './dates.js';
 
@@ -245,15 +245,10 @@ const inOrder = (all: readonly { id: string }[], picked: string[]) =>
 const terrainChallengeArea = (area: ChallengeArea | '') => area.toLowerCase().replaceAll(' ', '_');
 
 /**
- * The activity as Terrain's planner sends it: planned, to units/{unit}/events, with who came in each role
- * and everyone who came as attendees, and its logbook figures; or concluded, to events/{id}, with its
- * review as well
+ * The activity as Terrain's planner sends it to units/{unit}/events, already concluded: who came in each
+ * role and everyone who came as attendees, its logbook figures, and its review
  */
-export function eventBody(
-	draft: ActivityDraft,
-	context: ActivityContext,
-	status: 'planned' | 'concluded' = 'planned'
-): Record<string, unknown> {
+export function eventBody(draft: ActivityDraft, context: ActivityContext): Record<string, unknown> {
 	const inRole = (role: Role) =>
 		Object.entries(draft.attendance)
 			.filter(([, r]) => r === role)
@@ -279,23 +274,20 @@ export function eventBody(
 		achievement_pathway_logbook_data: {
 			...logbookData(draft),
 			details: { activity_time_length: '', activity_grade: '' },
-			...(status === 'concluded' ? { title: '' } : {}),
+			title: '',
 			verifier
 		},
-		review:
-			status === 'concluded'
-				? {
-						general_tags: inOrder(TAGS, draft.review.tags),
-						scout_method_elements: inOrder(SCOUT_METHOD, draft.review.method),
-						scout_spices_elements: inOrder(SPICES, draft.review.spices),
-						general_rating: draft.review.rating
-					}
-				: { general_tags: [], scout_method_elements: [], scout_spices_elements: [] },
+		review: {
+			general_tags: inOrder(TAGS, draft.review.tags),
+			scout_method_elements: inOrder(SCOUT_METHOD, draft.review.method),
+			scout_spices_elements: inOrder(SPICES, draft.review.spices),
+			general_rating: draft.review.rating
+		},
 		uploads: [],
 		equipment_notes: '',
 		additional_notes: '',
 		location: draft.location.trim(),
 		iana_timezone: context.timeZone,
-		status
+		status: 'concluded'
 	};
 }

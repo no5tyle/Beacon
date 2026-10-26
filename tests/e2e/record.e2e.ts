@@ -83,16 +83,13 @@ test('logs a camp that’s over: details, who came, logbook, how it went, then s
 	await expect(review.locator('li')).toHaveText(['Ava Nguyen (Leader)', 'Liam Smith', 'Mia Brown']);
 	expect(terrain.writes).toEqual([]);
 
-	// Saved to the unit's programme as planned, as the leader, with who came in each role
+	// Saved to the unit's programme already concluded, as the leader, with who came in each role
 	const before = terrain.requests.length;
 	await page.getByRole('button', { name: 'Save to Terrain' }).click();
 	await expect(page.locator('.alert-success')).toHaveText(
-		"Saved Spring camp to the unit's programme in Terrain and concluded it, so those who came get credit for it."
+		"Saved Spring camp to the unit's programme in Terrain, concluded, so those who came get credit for it."
 	);
-	expect(terrain.writes.map((w) => w.request)).toEqual([
-		'POST events/units/unit-1/events',
-		'PATCH events/events/event-1'
-	]);
+	expect(terrain.writes.map((w) => w.request)).toEqual(['POST events/units/unit-1/events']);
 	const body = terrain.writes[0].body as Record<string, unknown>;
 	expect(body).toMatchObject({
 		title: 'Spring camp',
@@ -111,14 +108,7 @@ test('logs a camp that’s over: details, who came, logbook, how it went, then s
 			achievement_meta: { stream: 'camping', branch: 'camping' },
 			categories: ['camping', 'walking_hike']
 		},
-		status: 'planned'
-	});
-	expect(terrain.writes[1].body).toMatchObject({
 		status: 'concluded',
-		achievement_pathway_logbook_data: {
-			distance_travelled: 6000,
-			categories: ['camping', 'walking_hike']
-		},
 		review: {
 			general_tags: ['fun', 'challenging'],
 			scout_method_elements: ['learn_by_doing', 'nature_and_outdoors'],
@@ -160,11 +150,8 @@ test('a unit night has no logbook step, and is concluded with its review', async
 	await expect(page.locator('.review')).not.toContainText('Logbook');
 	await expect(page.locator('.alert-info')).toHaveCount(0);
 	await page.getByRole('button', { name: 'Save to Terrain' }).click();
-	await expect(page.locator('.alert-success')).toContainText('and concluded it');
-	expect(terrain.writes.map((w) => w.request)).toEqual([
-		'POST events/units/unit-1/events',
-		'PATCH events/events/event-1'
-	]);
+	await expect(page.locator('.alert-success')).toContainText(', concluded,');
+	expect(terrain.writes.map((w) => w.request)).toEqual(['POST events/units/unit-1/events']);
 });
 
 test('an overnight hike counts its nights towards camping', async ({ page }) => {
@@ -196,8 +183,8 @@ test('an overnight hike counts its nights towards camping', async ({ page }) => 
 	await page.getByRole('button', { name: /^Next/ }).click();
 	await expect(page.locator('.review')).toContainText('1 night towards camping, 18 km walked');
 	await page.getByRole('button', { name: 'Save to Terrain' }).click();
-	await expect(page.locator('.alert-success')).toContainText('and concluded it');
-	expect(terrain.writes[1].body).toMatchObject({
+	await expect(page.locator('.alert-success')).toContainText(', concluded,');
+	expect(terrain.writes[0].body).toMatchObject({
 		achievement_pathway_logbook_data: {
 			distance_travelled: 18000,
 			distance_walkabout: 18000,
@@ -288,35 +275,4 @@ test('youth members can’t log activities or plans', async ({ page }) => {
 		await navigate(page, path);
 		await expect(page).not.toHaveURL(/\/record\//);
 	}
-});
-
-test('says why it couldn’t conclude, when Terrain’s answer has no id', async ({ page }) => {
-	const terrain = await fakeTerrain(page);
-	await page.route(/events\.terrain\.scouts\.com\.au\/units\/[^/]+\/events$/, (route) =>
-		route.request().method() === 'POST'
-			? route.fulfill({
-					status: 200,
-					headers: { 'access-control-allow-origin': '*' },
-					body: '{}'
-				})
-			: route.fallback()
-	);
-	await logIn(page);
-	await navigate(page, 'record/activity/');
-	await page.getByLabel('Starts').fill('2026-10-20');
-	await page.getByLabel('Ends').fill('2026-10-20');
-	await page.getByLabel('Title').fill('Knots night');
-	await page.getByRole('button', { name: 'Outdoors' }).click();
-	await page.getByRole('button', { name: /^Next/ }).click();
-	await page.locator('.attendee', { hasText: 'Mia Brown' }).getByRole('checkbox').check();
-	await page.getByRole('button', { name: /^Next/ }).click();
-	await page.getByRole('button', { name: 'Great' }).click();
-	await page.getByLabel('Learning by doing').check();
-	await page.getByLabel('Social').check();
-	await page.getByRole('button', { name: /^Next/ }).click();
-	await page.getByRole('button', { name: 'Save to Terrain' }).click();
-	await expect(page.locator('.alert-warning')).toContainText(
-		"couldn't conclude it (Terrain didn't say its id.)"
-	);
-	expect(terrain.writes.some((w) => w.request.startsWith('PATCH'))).toBe(false);
 });

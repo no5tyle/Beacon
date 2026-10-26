@@ -1,7 +1,7 @@
 <!--
 	Log activity: a unit programme activity (a unit night, outing, camp or hike), who came and in what role,
 	a camp's nights and the kilometres walked for their logbooks, and how it went. Only activities that are
-	over: saved to the unit's programme in Terrain and concluded with their review in one go.
+	over: saved to the unit's programme in Terrain already concluded, with their review.
 -->
 <script lang="ts">
 	import { goto } from '$app/navigation';
@@ -40,14 +40,8 @@
 	let loadingYouth = $state(false);
 	let youthError = $state('');
 	let saving = $state(false);
-	// What was saved: its title, and whether it was concluded or left planned
-	let saved = $state<{
-		title: string;
-		concluded: boolean;
-		concludeFailed: boolean;
-		/** Why concluding didn't work, e.g. "Terrain answered 400" */
-		why: string;
-	} | null>(null);
+	// The title of what was saved, once it's in Terrain
+	let saved = $state('');
 	let saveError = $state('');
 
 	const unitId = $derived(app.unitId);
@@ -117,13 +111,7 @@
 		saveError = '';
 		const result = await activities.save($state.snapshot(draft), unitId);
 		saving = false;
-		if (result.success)
-			saved = {
-				title: draft.title.trim(),
-				concluded: result.concluded,
-				concludeFailed: result.concludeFailed,
-				why: result.status > 0 ? `Terrain answered ${result.status}.` : result.body
-			};
+		if (result.success) saved = draft.title.trim();
 		else
 			saveError =
 				result.status > 0
@@ -138,7 +126,7 @@
 	function logAnother() {
 		draft = newActivity();
 		step = 'details';
-		saved = null;
+		saved = '';
 		saveError = '';
 	}
 
@@ -199,15 +187,8 @@
 	{#if !unitId}
 		<ChooseUnit />
 	{:else if saved}
-		<div class="alert {saved.concludeFailed ? 'alert-warning' : 'alert-success'}" role="status">
-			{#if saved.concluded}
-				Saved {saved.title} to the unit's programme in Terrain and concluded it, so those who came get
-				credit for it.
-			{:else if saved.concludeFailed}
-				Saved {saved.title} to the unit's programme in Terrain as planned, but couldn't conclude it{saved.why
-					? ` (${saved.why})`
-					: ''}. Conclude it in Terrain so those who came get credit.
-			{/if}
+		<div class="alert alert-success" role="status">
+			Saved {saved} to the unit's programme in Terrain, concluded, so those who came get credit for it.
 		</div>
 		<button type="button" class="btn btn-primary" onclick={logAnother}>Log another activity</button>
 	{:else if step === 'details'}
