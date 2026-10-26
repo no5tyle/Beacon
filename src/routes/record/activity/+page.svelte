@@ -1,7 +1,7 @@
 <!--
 	Log activity: a unit programme activity (a unit night, outing, camp or hike), who came and in what role,
-	and the nights camped and kilometres hiked for their logbooks. Saving to Terrain waits on its requests
-	for activities being captured, so the last step shows what would be saved.
+	and the nights camped and kilometres hiked for their logbooks. Saved to the unit's programme in Terrain
+	as a planned activity; the logbook figures aren't sent yet.
 -->
 <script lang="ts">
 	import { goto } from '$app/navigation';
@@ -22,7 +22,7 @@
 		type Role
 	} from '#lib/model/activity.js';
 	import { pagePath } from '#lib/paths.js';
-	import { app, members } from '#lib/services/index.js';
+	import { activities, app, members } from '#lib/services/index.js';
 	import type { MemberSummary } from '#lib/services/members.js';
 
 	type Step = 'details' | 'attendance' | 'logbook' | 'review';
@@ -32,6 +32,9 @@
 	let youth = $state<MemberSummary[]>([]);
 	let loadingYouth = $state(false);
 	let youthError = $state('');
+	let saving = $state(false);
+	let saved = $state('');
+	let saveError = $state('');
 
 	const unitId = $derived(app.unitId);
 	const steps = $derived<Step[]>(
@@ -107,6 +110,27 @@
 		else draft.logbookFor[member.id] = own;
 	}
 
+	async function save() {
+		if (saving || problems.length > 0) return;
+		saving = true;
+		saveError = '';
+		const result = await activities.save($state.snapshot(draft), unitId);
+		saving = false;
+		if (result.success) saved = draft.title.trim();
+		else
+			saveError =
+				result.status > 0
+					? `Terrain didn't accept the activity (response ${result.status}). Check Terrain's programme before trying again.`
+					: result.body || "Couldn't save the activity. Try again in a moment.";
+	}
+
+	function logAnother() {
+		draft = newActivity();
+		step = 'details';
+		saved = '';
+		saveError = '';
+	}
+
 	const index = $derived(steps.indexOf(step));
 	const next = () => (step = steps[Math.min(index + 1, steps.length - 1)]);
 	const back = () => (step = steps[Math.max(index - 1, 0)]);
@@ -146,6 +170,15 @@
 
 	{#if !unitId}
 		<ChooseUnit />
+	{:else if saved}
+		<div class="alert alert-success" role="status">
+			Saved {saved} to the unit's programme in Terrain as a planned activity.
+		</div>
+		<p class="small muted">
+			Terrain gives milestone credit once an activity is concluded there. Beacon can't do that part
+			yet.
+		</p>
+		<button type="button" class="btn btn-primary" onclick={logAnother}>Log another activity</button>
 	{:else if step === 'details'}
 		<div class="field">
 			<span class="form-label">Type</span>
@@ -370,22 +403,32 @@
 				{/each}
 			</ul>
 		</div>
-		<div class="alert alert-info small">
-			Saving to Terrain is coming. Beacon needs Terrain's requests for creating an activity and
-			recording attendance and logbooks first, so nothing is sent yet.
-		</div>
+		{#if hasLogbook(draft.type) && (draft.nights > 0 || draft.kilometres > 0)}
+			<div class="alert alert-info small">
+				The nights and kilometres aren't sent to Terrain yet: Beacon doesn't know how Terrain
+				records them. The activity, who came and their roles are.
+			</div>
+		{/if}
+		{#if saveError}
+			<div class="alert alert-danger" role="alert">{saveError}</div>
+		{/if}
 	{/if}
 
-	{#if unitId}
+	{#if unitId && !saved}
 		<div class="action-bar">
 			{#if index > 0}
-				<button type="button" class="btn btn-outline-secondary" onclick={back}>Back</button>
+				<button type="button" class="btn btn-outline-secondary" disabled={saving} onclick={back}
+					>Back</button
+				>
 			{:else}
 				<span class="small muted">{draft.type}</span>
 			{/if}
 			{#if step === 'review'}
-				<button type="button" class="btn btn-primary" disabled title="Not connected to Terrain yet"
-					>Save to Terrain</button
+				<button
+					type="button"
+					class="btn btn-primary"
+					disabled={saving || problems.length > 0}
+					onclick={save}>{saving ? 'Saving...' : 'Save to Terrain'}</button
 				>
 			{:else}
 				<button type="button" class="btn btn-primary" disabled={!canContinue} onclick={next}
