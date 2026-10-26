@@ -168,10 +168,11 @@ describe('logging an activity', () => {
 		expect(activityProblems(reviewed, after)).toEqual([]);
 	});
 
-	it('sums up who came in each role', () => {
+	it('sums up who came and how many led', () => {
 		expect(
-			attendanceSummary({ a: 'Participant', b: 'Participant', c: 'Assistant', d: 'Leader' })
-		).toBe('2 participants, 1 assistant, 1 leader');
+			attendanceSummary({ a: 'Participant', b: 'Leader', c: 'Leader', d: 'Participant' })
+		).toBe('4 came, 2 led');
+		expect(attendanceSummary({ a: 'Participant' })).toBe('1 came');
 		expect(attendanceSummary({})).toBe('');
 	});
 });
@@ -204,7 +205,7 @@ describe('the activity Terrain is sent', () => {
 		endTime: '19:30',
 		challengeArea: 'Community' as const,
 		location: 'Strath',
-		attendance: { y1: 'Leader' as const, y2: 'Participant' as const, y3: 'Assistant' as const }
+		attendance: { y1: 'Leader' as const, y2: 'Participant' as const, y3: 'Leader' as const }
 	});
 
 	it('has the same shape as Terrain’s own activity planner sends', () => {
@@ -236,8 +237,9 @@ describe('the activity Terrain is sent', () => {
 			challenge_area: 'community',
 			event_type: { type: 'unit', id: 'unit-1' },
 			attendance: {
-				leader_member_ids: ['y1'],
-				assistant_member_ids: ['y3'],
+				// Any number can lead; assisting isn't used
+				leader_member_ids: ['y1', 'y3'],
+				assistant_member_ids: [],
 				attendee_member_ids: ['y1', 'y2', 'y3'],
 				participant_member_ids: ['y1', 'y2', 'y3']
 			},

@@ -19,13 +19,11 @@
 		nightsOf,
 		RATINGS,
 		reviewProblems,
-		ROLES,
 		SCOUT_METHOD,
 		SPICES,
 		TAGS,
 		withType,
-		type ActivityType,
-		type Role
+		type ActivityType
 	} from '#lib/model/activity.js';
 	import { today } from '#lib/model/dates.js';
 	import { pagePath } from '#lib/paths.js';
@@ -101,8 +99,9 @@
 			: Object.fromEntries(youth.map((y) => [y.id, draft.attendance[y.id] ?? 'Participant']));
 	}
 
-	function setRole(member: MemberSummary, role: Role) {
-		draft.attendance[member.id] = role;
+	function toggleLed(member: MemberSummary) {
+		draft.attendance[member.id] =
+			draft.attendance[member.id] === 'Leader' ? 'Participant' : 'Leader';
 	}
 
 	async function save() {
@@ -289,8 +288,8 @@
 				>
 			</div>
 			<p class="small muted">
-				Tick who came: everyone ticked is recorded as participating. Set who also assisted or led,
-				as milestones count those too.
+				Tick who came: everyone ticked is recorded as participating. Mark any who led it too, as
+				milestones count that as well.
 			</p>
 			{#each youth as member (member.id)}
 				{@const role = draft.attendance[member.id]}
@@ -306,16 +305,13 @@
 						{#if member.patrolName}<span class="small muted">{member.patrolName}</span>{/if}
 					</label>
 					{#if role}
-						<div class="roles" role="group" aria-label="{name(member)}'s role">
-							{#each ROLES as option (option)}
-								<button
-									type="button"
-									class="btn btn-sm {role === option ? 'btn-primary' : 'btn-outline-secondary'}"
-									aria-pressed={role === option}
-									onclick={() => setRole(member, option)}>{option}</button
-								>
-							{/each}
-						</div>
+						<button
+							type="button"
+							class="btn btn-sm led {role === 'Leader' ? 'btn-primary' : 'btn-outline-secondary'}"
+							aria-pressed={role === 'Leader'}
+							aria-label="{name(member)} led it"
+							onclick={() => toggleLed(member)}>Led</button
+						>
 					{/if}
 				</div>
 			{/each}
@@ -453,9 +449,7 @@
 			<ul class="small attendee-list">
 				{#each came as member (member.id)}
 					<li>
-						{name(member)}{draft.attendance[member.id] !== 'Participant'
-							? ` (${draft.attendance[member.id]})`
-							: ''}
+						{name(member)}{draft.attendance[member.id] === 'Leader' ? ' (led)' : ''}
 					</li>
 				{/each}
 			</ul>
@@ -537,10 +531,8 @@
 		border-bottom: 0;
 	}
 
-	.roles {
-		display: flex;
-		gap: 0.4rem;
-		padding: 0 0 0.6rem 2.2rem;
+	.led {
+		margin: 0 0 0.6rem 2.2rem;
 	}
 
 	.review dl {

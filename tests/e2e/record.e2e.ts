@@ -54,7 +54,10 @@ test('logs a camp that’s over: details, who came, logbook, how it went, then s
 	await page.getByRole('button', { name: 'Everyone' }).click();
 	await expect(page.locator('.attendee.came')).toHaveCount(4);
 	const ava = page.locator('.attendee', { hasText: 'Ava Nguyen' });
-	await ava.getByRole('button', { name: 'Leader' }).click();
+	await ava.getByRole('button', { name: 'Ava Nguyen led it' }).click();
+	await page.getByRole('button', { name: 'Mia Brown led it' }).click();
+	// More than one can lead, and there's no assisting
+	await expect(page.getByRole('button', { name: /Assist/ })).toHaveCount(0);
 	await page.locator('.attendee', { hasText: 'Noah Jones' }).getByRole('checkbox').uncheck();
 	await next.click();
 
@@ -79,9 +82,13 @@ test('logs a camp that’s over: details, who came, logbook, how it went, then s
 	await expect(review.locator('h3')).toHaveText('Spring camp');
 	await expect(review).toContainText('2026-10-23 18:00 to 2026-10-25 12:00');
 	await expect(review).toContainText('Outdoors');
-	await expect(review).toContainText('2 participants, 1 leader');
+	await expect(review).toContainText('3 came, 2 led');
 	await expect(review).toContainText('2 nights towards camping, 6 km walked, towards Walkabout');
-	await expect(review.locator('li')).toHaveText(['Ava Nguyen (Leader)', 'Liam Smith', 'Mia Brown']);
+	await expect(review.locator('li')).toHaveText([
+		'Ava Nguyen (led)',
+		'Liam Smith',
+		'Mia Brown (led)'
+	]);
 	expect(terrain.writes).toEqual([]);
 
 	// Saved to the unit's programme already concluded, as the leader, with who came in each role
@@ -99,7 +106,7 @@ test('logs a camp that’s over: details, who came, logbook, how it went, then s
 		challenge_area: 'outdoors',
 		event_type: { type: 'unit', id: 'unit-1' },
 		attendance: {
-			leader_member_ids: ['unit-1-m0'],
+			leader_member_ids: ['unit-1-m0', 'unit-1-m2'],
 			assistant_member_ids: [],
 			attendee_member_ids: ['unit-1-m0', 'unit-1-m1', 'unit-1-m2'],
 			participant_member_ids: ['unit-1-m0', 'unit-1-m1', 'unit-1-m2']
@@ -148,7 +155,7 @@ test('a unit night has no logbook step, and is concluded with its review', async
 	await page.getByLabel('Patrol system').check();
 	await page.getByLabel('Social').check();
 	await page.getByRole('button', { name: /^Next/ }).click();
-	await expect(page.locator('.review')).toContainText('1 participant');
+	await expect(page.locator('.review')).toContainText('1 came');
 	await expect(page.locator('.review')).toContainText('Okay');
 	await expect(page.locator('.review')).not.toContainText('Logbook');
 	await expect(page.locator('.alert-info')).toHaveCount(0);
