@@ -7,6 +7,7 @@
 	import { page } from '$app/state';
 	import ChooseUnit from '#lib/components/ChooseUnit.svelte';
 	import Icon from '#lib/components/Icon.svelte';
+	import RecordSwitch from '#lib/components/RecordSwitch.svelte';
 	import { isCoreStream } from '#lib/model/insights/insightsCalculator.js';
 	import {
 		MAX_LEADER_VERIFIABLE_STAGE,
@@ -310,6 +311,7 @@
 {/snippet}
 
 <div class="sign-off has-action-bar">
+	<RecordSwitch />
 	<h2>Record OAS</h2>
 	<ol class="steps">
 		<li class={step === 'statements' ? 'current' : 'done'}>Statements</li>
