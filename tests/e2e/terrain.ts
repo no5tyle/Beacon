@@ -505,6 +505,9 @@ export async function fakeTerrain(page: Page, options: FakeOptions = {}): Promis
 			// An activity added to the unit's programme
 			if (url.hostname.startsWith('events') && /^\/units\/[^/]+\/events$/.test(url.pathname))
 				return json(route, { id: 'event-1', ...body });
+			// Concluding it
+			if (url.hostname.startsWith('events') && /^\/events\/[^/]+$/.test(url.pathname))
+				return json(route, { ...body });
 			const existing = url.pathname.match(
 				/^\/members\/[^/]+\/achievements\/([^/]+)(\/submit-on-behalf)?$/
 			);

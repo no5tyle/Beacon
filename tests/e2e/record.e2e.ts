@@ -25,7 +25,7 @@ test('Record moves between OAS, Activity and SIA plan, staying the current tab',
 	await expect(current).toHaveText('Record');
 });
 
-test('logs a camp: details, who came and their roles, logbook, review, then saves it as planned', async ({
+test('logs a camp that’s over: details, who came, logbook, how it went, then saves and concludes it', async ({
 	page
 }) => {
 	const terrain = await fakeTerrain(page);
@@ -34,11 +34,18 @@ test('logs a camp: details, who came and their roles, logbook, review, then save
 	const next = page.getByRole('button', { name: /^Next/ });
 
 	await page.getByRole('button', { name: 'Camp', exact: true }).click();
-	await expect(page.locator('.steps li')).toHaveText(['Activity', 'Who came', 'Logbook', 'Review']);
 	await expect(next).toBeDisabled();
 	await page.getByLabel('Title').fill('Spring camp');
 	await page.getByLabel('Starts').fill('2026-10-23');
 	await page.getByLabel('Ends').fill('2026-10-25');
+	// Over, so it has a review step
+	await expect(page.locator('.steps li')).toHaveText([
+		'Activity',
+		'Who came',
+		'Logbook',
+		'How it went',
+		'Save'
+	]);
 	await page.getByRole('button', { name: 'Outdoors' }).click();
 	await next.click();
 
@@ -58,6 +65,14 @@ test('logs a camp: details, who came and their roles, logbook, review, then save
 	await page.getByLabel("Liam Smith's nights").blur();
 	await next.click();
 
+	// It's over, so Terrain concludes it with a review
+	await expect(next).toBeDisabled();
+	await page.getByRole('button', { name: 'Great' }).click();
+	await page.getByLabel('Nature and outdoors').check();
+	await page.getByLabel('Learning by doing').check();
+	await page.getByLabel('Physical').check();
+	await next.click();
+
 	const review = page.locator('.review');
 	await expect(review.locator('h3')).toHaveText('Spring camp');
 	await expect(review).toContainText('2026-10-23 18:00 to 2026-10-25 12:00');
@@ -73,9 +88,12 @@ test('logs a camp: details, who came and their roles, logbook, review, then save
 	const before = terrain.requests.length;
 	await page.getByRole('button', { name: 'Save to Terrain' }).click();
 	await expect(page.locator('.alert-success')).toHaveText(
-		"Saved Spring camp to the unit's programme in Terrain as a planned activity."
+		"Saved Spring camp to the unit's programme in Terrain and concluded it, so those who came get credit for it."
 	);
-	expect(terrain.writes.map((w) => w.request)).toEqual(['POST events/units/unit-1/events']);
+	expect(terrain.writes.map((w) => w.request)).toEqual([
+		'POST events/units/unit-1/events',
+		'PATCH events/events/event-1'
+	]);
 	const body = terrain.writes[0].body as Record<string, unknown>;
 	expect(body).toMatchObject({
 		title: 'Spring camp',
@@ -90,6 +108,15 @@ test('logs a camp: details, who came and their roles, logbook, review, then save
 		},
 		status: 'planned'
 	});
+	expect(terrain.writes[1].body).toMatchObject({
+		status: 'concluded',
+		review: {
+			general_tags: [],
+			scout_method_elements: ['learn_by_doing', 'nature_and_outdoors'],
+			scout_spices_elements: ['physical'],
+			general_rating: 'great'
+		}
+	});
 	expect(String(body.start_datetime)).toMatch(/^2026-10-2[23]T\d{2}:\d{2}:00\.000\+00:00$/);
 	// Saved as the leader: no switch to a youth's profile while saving
 	expect(terrain.requests.slice(before).some((r) => r.includes('assume-profiles'))).toBe(false);
@@ -102,7 +129,10 @@ test('a unit night has no logbook step', async ({ page }) => {
 	await fakeTerrain(page);
 	await logIn(page);
 	await navigate(page, 'record/activity/');
-	await expect(page.locator('.steps li')).toHaveText(['Activity', 'Who came', 'Review']);
+	// Still to come: saved as planned, with no review
+	await page.getByLabel('Starts').fill('2030-03-07');
+	await page.getByLabel('Ends').fill('2030-03-07');
+	await expect(page.locator('.steps li')).toHaveText(['Activity', 'Who came', 'Save']);
 	await page.getByLabel('Title').fill('Knots night');
 	await page.getByRole('button', { name: 'Creative' }).click();
 	await page.getByRole('button', { name: /^Next/ }).click();
@@ -111,6 +141,10 @@ test('a unit night has no logbook step', async ({ page }) => {
 	await expect(page.locator('.review')).toContainText('1 participant');
 	await expect(page.locator('.review')).not.toContainText('Logbook');
 	await expect(page.locator('.alert-info')).toHaveCount(0);
+	await page.getByRole('button', { name: 'Save to Terrain' }).click();
+	await expect(page.locator('.alert-success')).toContainText(
+		"as a planned activity. Conclude it in Terrain once it's over"
+	);
 });
 
 test('says when Terrain won’t take the activity, and keeps it to try again', async ({ page }) => {
@@ -126,6 +160,8 @@ test('says when Terrain won’t take the activity, and keeps it to try again', a
 	);
 	await logIn(page);
 	await navigate(page, 'record/activity/');
+	await page.getByLabel('Starts').fill('2030-03-07');
+	await page.getByLabel('Ends').fill('2030-03-07');
 	await page.getByLabel('Title').fill('Knots night');
 	await page.getByRole('button', { name: 'Community' }).click();
 	await page.getByRole('button', { name: /^Next/ }).click();

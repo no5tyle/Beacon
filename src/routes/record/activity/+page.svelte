@@ -1,7 +1,8 @@
 <!--
 	Log activity: a unit programme activity (a unit night, outing, camp or hike), who came and in what role,
-	and the nights camped and kilometres hiked for their logbooks. Saved to the unit's programme in Terrain
-	as a planned activity; the logbook figures aren't sent yet.
+	the nights camped and kilometres hiked for their logbooks, and for one that's over, how it went. Saved
+	to the unit's programme in Terrain, and concluded with its review once it's over; the logbook figures
+	aren't sent yet.
 -->
 <script lang="ts">
 	import { goto } from '$app/navigation';
@@ -13,10 +14,15 @@
 		attendanceSummary,
 		CHALLENGE_AREAS,
 		hasLogbook,
+		isOver,
 		logbookOf,
 		newActivity,
 		nightsBetween,
+		RATINGS,
+		reviewProblems,
 		ROLES,
+		SCOUT_METHOD,
+		SPICES,
 		withType,
 		type ActivityType,
 		type Role
@@ -25,7 +31,7 @@
 	import { activities, app, members } from '#lib/services/index.js';
 	import type { MemberSummary } from '#lib/services/members.js';
 
-	type Step = 'details' | 'attendance' | 'logbook' | 'review';
+	type Step = 'details' | 'attendance' | 'logbook' | 'review' | 'save';
 
 	let draft = $state(newActivity());
 	let step = $state<Step>('details');
@@ -33,20 +39,26 @@
 	let loadingYouth = $state(false);
 	let youthError = $state('');
 	let saving = $state(false);
-	let saved = $state('');
+	// What was saved: its title, and whether it was concluded or left planned
+	let saved = $state<{ title: string; concluded: boolean; concludeFailed: boolean } | null>(null);
 	let saveError = $state('');
 
 	const unitId = $derived(app.unitId);
-	const steps = $derived<Step[]>(
-		hasLogbook(draft.type)
-			? ['details', 'attendance', 'logbook', 'review']
-			: ['details', 'attendance', 'review']
-	);
+	// An activity that's over is concluded, which needs its review
+	const over = $derived(isOver(draft));
+	const steps = $derived<Step[]>([
+		'details',
+		'attendance',
+		...(hasLogbook(draft.type) ? (['logbook'] as const) : []),
+		...(over ? (['review'] as const) : []),
+		'save'
+	]);
 	const stepNames: Record<Step, string> = {
 		details: 'Activity',
 		attendance: 'Who came',
 		logbook: 'Logbook',
-		review: 'Review'
+		review: 'How it went',
+		save: 'Save'
 	};
 	const problems = $derived(activityProblems(draft));
 	const came = $derived(youth.filter((y) => draft.attendance[y.id]));
@@ -116,7 +128,12 @@
 		saveError = '';
 		const result = await activities.save($state.snapshot(draft), unitId);
 		saving = false;
-		if (result.success) saved = draft.title.trim();
+		if (result.success)
+			saved = {
+				title: draft.title.trim(),
+				concluded: result.concluded,
+				concludeFailed: result.concludeFailed
+			};
 		else
 			saveError =
 				result.status > 0
@@ -124,10 +141,14 @@
 					: result.body || "Couldn't save the activity. Try again in a moment.";
 	}
 
+	function toggleIn(list: string[], id: string, on: boolean): string[] {
+		return on ? [...list.filter((x) => x !== id), id] : list.filter((x) => x !== id);
+	}
+
 	function logAnother() {
 		draft = newActivity();
 		step = 'details';
-		saved = '';
+		saved = null;
 		saveError = '';
 	}
 
@@ -145,7 +166,9 @@
 				? came.length > 0
 				: step === 'logbook'
 					? draft.nights >= 0 && draft.kilometres >= 0
-					: false
+					: step === 'review'
+						? reviewProblems(draft.review).length === 0
+						: false
 	);
 
 	const when = $derived(
@@ -171,13 +194,18 @@
 	{#if !unitId}
 		<ChooseUnit />
 	{:else if saved}
-		<div class="alert alert-success" role="status">
-			Saved {saved} to the unit's programme in Terrain as a planned activity.
+		<div class="alert {saved.concludeFailed ? 'alert-warning' : 'alert-success'}" role="status">
+			{#if saved.concluded}
+				Saved {saved.title} to the unit's programme in Terrain and concluded it, so those who came get
+				credit for it.
+			{:else if saved.concludeFailed}
+				Saved {saved.title} to the unit's programme in Terrain as planned, but couldn't conclude it. Conclude
+				it in Terrain so those who came get credit.
+			{:else}
+				Saved {saved.title} to the unit's programme in Terrain as a planned activity. Conclude it in Terrain
+				once it's over, so those who came get credit.
+			{/if}
 		</div>
-		<p class="small muted">
-			Terrain gives milestone credit once an activity is concluded there. Beacon can't do that part
-			yet.
-		</p>
 		<button type="button" class="btn btn-primary" onclick={logAnother}>Log another activity</button>
 	{:else if step === 'details'}
 		<div class="field">
@@ -367,6 +395,64 @@
 				</tbody>
 			</table>
 		</details>
+	{:else if step === 'review'}
+		<div class="small muted subtitle">{draft.title} · {attendanceSummary(draft.attendance)}</div>
+		<p class="small muted">It's over, so Terrain concludes it with this review.</p>
+		<div class="field">
+			<span class="form-label">How did it go?</span>
+			<div class="chip-group" role="group" aria-label="How did it go?">
+				{#each RATINGS as rating (rating.id)}
+					<button
+						type="button"
+						class="btn chip {draft.review.rating === rating.id
+							? 'btn-primary'
+							: 'btn-outline-primary'}"
+						aria-pressed={draft.review.rating === rating.id}
+						onclick={() => (draft.review.rating = rating.id)}>{rating.name}</button
+					>
+				{/each}
+			</div>
+		</div>
+		<fieldset class="field">
+			<legend class="form-label">Scout method it used</legend>
+			{#each SCOUT_METHOD as element (element.id)}
+				<label class="pick-row">
+					<input
+						type="checkbox"
+						class="form-check-input"
+						checked={draft.review.method.includes(element.id)}
+						onchange={(e) =>
+							(draft.review.method = toggleIn(
+								draft.review.method,
+								element.id,
+								e.currentTarget.checked
+							))}
+					/>
+					<span>{element.name}</span>
+				</label>
+			{/each}
+		</fieldset>
+		<fieldset class="field">
+			<legend class="form-label">SPICES it developed</legend>
+			<div class="spices">
+				{#each SPICES as area (area.id)}
+					<label class="pick-row">
+						<input
+							type="checkbox"
+							class="form-check-input"
+							checked={draft.review.spices.includes(area.id)}
+							onchange={(e) =>
+								(draft.review.spices = toggleIn(
+									draft.review.spices,
+									area.id,
+									e.currentTarget.checked
+								))}
+						/>
+						<span>{area.name}</span>
+					</label>
+				{/each}
+			</div>
+		</fieldset>
 	{:else}
 		<div class="review">
 			<h3>{draft.title}</h3>
@@ -381,6 +467,10 @@
 				<dd>{draft.challengeArea}</dd>
 				<dt>Who came</dt>
 				<dd>{attendanceSummary(draft.attendance)}</dd>
+				{#if over}
+					<dt>How it went</dt>
+					<dd>{RATINGS.find((r) => r.id === draft.review.rating)?.name ?? ''}</dd>
+				{/if}
 				{#if hasLogbook(draft.type)}
 					<dt>Logbook</dt>
 					<dd>
@@ -423,7 +513,7 @@
 			{:else}
 				<span class="small muted">{draft.type}</span>
 			{/if}
-			{#if step === 'review'}
+			{#if step === 'save'}
 				<button
 					type="button"
 					class="btn btn-primary"
@@ -449,6 +539,18 @@
 
 	.subtitle {
 		margin-bottom: 0.5rem;
+	}
+
+	fieldset.field {
+		margin: 0 0 1rem;
+		padding: 0;
+		border: 0;
+	}
+
+	.spices {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		column-gap: 1rem;
 	}
 
 	.field-row {

@@ -1,6 +1,7 @@
 // A unit programme activity as Record's Log activity builds it: what it was, who came and in what role,
-// and what goes in their logbooks. Saved to Terrain as a planned activity, as its activity planner saves
-// one; the logbook figures aren't sent yet, as how Terrain records them hasn't been captured.
+// and what goes in their logbooks, and for one that's over, how it went. Saved to Terrain as its activity
+// planner saves one: planned, then concluded with its review once it's over. The logbook figures and
+// review tags aren't sent yet, as how Terrain records them hasn't been captured.
 
 import { addDays, daysBetween, today, type CalendarDate } from './dates.js';
 
@@ -14,6 +15,44 @@ export type ChallengeArea = (typeof CHALLENGE_AREAS)[number];
 /** How a youth took part, which is how milestones count it */
 export const ROLES = ['Participant', 'Assistant', 'Leader'] as const;
 export type Role = (typeof ROLES)[number];
+
+/** How it went, as Terrain's review rates an activity */
+export const RATINGS = [
+	{ id: 'great', name: 'Great' },
+	{ id: 'okay', name: 'Okay' },
+	{ id: 'boring', name: 'Boring' }
+] as const;
+export type Rating = (typeof RATINGS)[number]['id'];
+
+/** The elements of the Scout method an activity used, as Terrain names them */
+export const SCOUT_METHOD = [
+	{ id: 'community_involvement', name: 'Community involvement' },
+	{ id: 'personal_progression', name: 'Personal progression' },
+	{ id: 'promise_and_law', name: 'Promise and Law' },
+	{ id: 'learn_by_doing', name: 'Learning by doing' },
+	{ id: 'nature_and_outdoors', name: 'Nature and outdoors' },
+	{ id: 'symbolic_framework', name: 'Symbolic framework' },
+	{ id: 'patrol_system', name: 'Patrol system' },
+	{ id: 'youth_leading_adult_supporting', name: 'Youth leading, adults supporting' }
+] as const;
+
+/** The SPICES areas of personal growth an activity developed, as Terrain names them */
+export const SPICES = [
+	{ id: 'social', name: 'Social' },
+	{ id: 'physical', name: 'Physical' },
+	{ id: 'intellectual', name: 'Intellectual' },
+	{ id: 'character', name: 'Character' },
+	{ id: 'emotional', name: 'Emotional' },
+	{ id: 'spiritual', name: 'Spiritual' }
+] as const;
+
+export interface ActivityReview {
+	rating: Rating | '';
+	/** Scout method element ids */
+	method: string[];
+	/** SPICES ids */
+	spices: string[];
+}
 
 export interface ActivityDraft {
 	type: ActivityType;
@@ -30,6 +69,8 @@ export interface ActivityDraft {
 	nights: number;
 	kilometres: number;
 	logbookFor: Record<string, { nights: number; kilometres: number }>;
+	/** How it went, for one that's over: Terrain needs it to conclude the activity */
+	review: ActivityReview;
 }
 
 export function newActivity(type: ActivityType = 'Unit night', on = today()): ActivityDraft {
@@ -45,7 +86,8 @@ export function newActivity(type: ActivityType = 'Unit night', on = today()): Ac
 		attendance: {},
 		nights: 0,
 		kilometres: 0,
-		logbookFor: {}
+		logbookFor: {},
+		review: { rating: '', method: [], spices: [] }
 	};
 	return withType(draft, type);
 }
@@ -85,8 +127,24 @@ export const hasLogbook = (type: ActivityType) => type !== 'Unit night';
 export const logbookOf = (draft: ActivityDraft, memberId: string) =>
 	draft.logbookFor[memberId] ?? { nights: draft.nights, kilometres: draft.kilometres };
 
+/**
+ * Whether the activity is over, so it can be concluded: Terrain concludes only activities whose end has
+ * passed, giving those who came credit for it
+ */
+export const isOver = (draft: ActivityDraft, now = new Date()) =>
+	new Date(`${draft.endDate}T${draft.endTime}`).getTime() <= now.getTime();
+
+/** What the review still needs before Terrain will conclude the activity */
+export function reviewProblems(review: ActivityReview): string[] {
+	const problems: string[] = [];
+	if (!review.rating) problems.push('Say how it went.');
+	if (review.method.length === 0) problems.push('Tick the Scout method it used.');
+	if (review.spices.length === 0) problems.push('Tick the SPICES it developed.');
+	return problems;
+}
+
 /** What's missing before the activity could be saved, in the order the form asks for it */
-export function activityProblems(draft: ActivityDraft): string[] {
+export function activityProblems(draft: ActivityDraft, now = new Date()): string[] {
 	const problems: string[] = [];
 	if (!draft.title.trim()) problems.push('Give the activity a title.');
 	if (!draft.challengeArea) problems.push('Choose a challenge area.');
@@ -94,6 +152,7 @@ export function activityProblems(draft: ActivityDraft): string[] {
 		problems.push('It needs to end after it starts.');
 	if (Object.keys(draft.attendance).length === 0) problems.push('Tick who came.');
 	if (draft.nights < 0 || draft.kilometres < 0) problems.push("Logbook figures can't be negative.");
+	if (isOver(draft, now)) problems.push(...reviewProblems(draft.review));
 	return problems;
 }
 
@@ -121,14 +180,23 @@ export interface ActivityContext {
 export const terrainDateTime = (date: CalendarDate, time: string) =>
 	new Date(`${date}T${time}`).toISOString().replace('Z', '+00:00');
 
+/** The ids picked, in the order Terrain lists them, whatever order they were ticked in */
+const inOrder = (all: readonly { id: string }[], picked: string[]) =>
+	all.map((option) => option.id).filter((id) => picked.includes(id));
+
 /** e.g. "Personal growth" to "personal_growth" */
 const terrainChallengeArea = (area: ChallengeArea | '') => area.toLowerCase().replaceAll(' ', '_');
 
 /**
- * The activity as Terrain's planner sends it to units/{unit}/events: a planned unit activity, with who
- * came in each role and everyone who came as attendees. Logbook figures are sent empty for now
+ * The activity as Terrain's planner sends it: planned, to units/{unit}/events, with who came in each role
+ * and everyone who came as attendees; or concluded, to events/{id}, with its review as well. Logbook
+ * figures and review tags are sent empty for now
  */
-export function eventBody(draft: ActivityDraft, context: ActivityContext): Record<string, unknown> {
+export function eventBody(
+	draft: ActivityDraft,
+	context: ActivityContext,
+	status: 'planned' | 'concluded' = 'planned'
+): Record<string, unknown> {
 	const inRole = (role: Role) =>
 		Object.entries(draft.attendance)
 			.filter(([, r]) => r === role)
@@ -157,14 +225,23 @@ export function eventBody(draft: ActivityDraft, context: ActivityContext): Recor
 			achievement_meta: { stream: '', branch: '' },
 			categories: [],
 			details: { activity_time_length: '', activity_grade: '' },
+			...(status === 'concluded' ? { title: '' } : {}),
 			verifier
 		},
-		review: { general_tags: [], scout_method_elements: [], scout_spices_elements: [] },
+		review:
+			status === 'concluded'
+				? {
+						general_tags: [],
+						scout_method_elements: inOrder(SCOUT_METHOD, draft.review.method),
+						scout_spices_elements: inOrder(SPICES, draft.review.spices),
+						general_rating: draft.review.rating
+					}
+				: { general_tags: [], scout_method_elements: [], scout_spices_elements: [] },
 		uploads: [],
 		equipment_notes: '',
 		additional_notes: '',
 		location: draft.location.trim(),
 		iana_timezone: context.timeZone,
-		status: 'planned'
+		status
 	};
 }
