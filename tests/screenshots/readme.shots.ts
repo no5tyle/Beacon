@@ -22,12 +22,13 @@ test.use({ colorScheme: 'light', deviceScaleFactor: 2 });
 test.beforeEach(async ({ page }) => {
 	await fakeTerrain(page, { moreAwards: true });
 	await logIn(page);
+	await page.getByRole('button', { name: "Don't show again" }).click();
 });
 
-test('home', async ({ page }) => {
-	await page.getByRole('button', { name: "Don't show again" }).click();
+test('info', async ({ page }) => {
+	await navigate(page, 'info/');
 	await expect(page.locator('h2').first()).toBeVisible();
-	await shot(page, 'home');
+	await shot(page, 'info');
 });
 
 test('insights', async ({ page }) => {

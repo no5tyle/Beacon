@@ -14,7 +14,6 @@ const youth = { signedIn: true, isYouth: true, logging: false };
 describe('navigation', () => {
 	it('gives leaders every main page, in tab order', () => {
 		expect(mainPages(leader).map((p) => p.shortTitle)).toEqual([
-			'Home',
 			'Insights',
 			'Record',
 			'Progress',
@@ -22,17 +21,18 @@ describe('navigation', () => {
 		]);
 	});
 
-	it('gives youth only Home, Progress and Reference', () => {
-		expect(mainPages(youth).map((p) => p.shortTitle)).toEqual(['Home', 'Progress', 'Reference']);
+	it('gives youth only Progress and Reference', () => {
+		expect(mainPages(youth).map((p) => p.shortTitle)).toEqual(['Progress', 'Reference']);
 	});
 
-	it('puts Approvals (leaders only) and Logout under More, with logging left to the version', () => {
-		expect(morePages(leader).map((p) => p.title)).toEqual(['Approvals', 'Logout']);
+	it('puts Info, Approvals (leaders only) and Logout under More, with logging left to the version', () => {
+		expect(morePages(leader).map((p) => p.title)).toEqual(['Info', 'Approvals', 'Logout']);
 		expect(morePages({ ...leader, logging: true }).map((p) => p.title)).toEqual([
+			'Info',
 			'Approvals',
 			'Logout'
 		]);
-		expect(morePages(youth).map((p) => p.title)).toEqual(['Logout']);
+		expect(morePages(youth).map((p) => p.title)).toEqual(['Info', 'Logout']);
 	});
 
 	it('shows how many approvals wait for the leader on Approvals, and in total on More', () => {
@@ -46,10 +46,10 @@ describe('navigation', () => {
 		expect(signedOutPages().map((p) => p.title)).toEqual(['Login', 'Reference']);
 	});
 
-	it('marks Home active only on the home page', () => {
-		const home = mainPages(leader)[0];
-		expect(isActive(home, '/')).toBe(true);
-		expect(isActive(home, '/insights/')).toBe(false);
+	it('marks a page active only on exactly its address when it says so', () => {
+		const page = { href: '', icon: 'home', title: 'Top', shortTitle: 'Top', exact: true } as const;
+		expect(isActive(page, '/')).toBe(true);
+		expect(isActive(page, '/insights/')).toBe(false);
 	});
 
 	it('marks a page active on its own address and anything under it', () => {
@@ -67,32 +67,35 @@ describe('navigation', () => {
 
 		it('put Progress under More for leaders, to keep the tab bar roomy', () => {
 			expect(titles(phoneTabs(leader, '/insights/'))).toEqual({
-				main: ['Home', 'Insights', 'Record', 'Reference'],
-				more: ['Progress', 'Approvals', 'Logout']
+				main: ['Insights', 'Record', 'Reference'],
+				more: ['Progress', 'Info', 'Approvals', 'Logout']
 			});
 		});
 
 		it('swap the open page from More into the bar, and Reference into More', () => {
 			expect(titles(phoneTabs(leader, '/progress/m1/'))).toEqual({
-				main: ['Home', 'Insights', 'Record', 'Progress'],
-				more: ['Reference', 'Approvals', 'Logout']
+				main: ['Insights', 'Record', 'Progress'],
+				more: ['Reference', 'Info', 'Approvals', 'Logout']
 			});
 			expect(titles(phoneTabs(leader, '/approvals/'))).toEqual({
-				main: ['Home', 'Insights', 'Record', 'Approvals'],
-				more: ['Reference', 'Progress', 'Logout']
+				main: ['Insights', 'Record', 'Approvals'],
+				more: ['Reference', 'Progress', 'Info', 'Logout']
 			});
 		});
 
 		it('keep Progress in the bar for youth, as their main page', () => {
 			expect(titles(phoneTabs(youth, '/progress/'))).toEqual({
-				main: ['Home', 'Progress', 'Reference'],
-				more: ['Logout']
+				main: ['Progress', 'Reference'],
+				more: ['Info', 'Logout']
+			});
+			expect(titles(phoneTabs(youth, '/info/'))).toEqual({
+				main: ['Progress', 'Info'],
+				more: ['Reference', 'Logout']
 			});
 		});
 
 		it('leave the bar as it is on the logging page', () => {
 			expect(titles(phoneTabs(leader, '/logging/')).main).toEqual([
-				'Home',
 				'Insights',
 				'Record',
 				'Reference'
