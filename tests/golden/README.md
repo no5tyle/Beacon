@@ -13,9 +13,4 @@ All youth in them are made up.
 
 ## Regenerating
 
-Only regenerate these from the Blazor app, never from the Svelte port, or the tests would just compare the port with itself. With the .NET 10 SDK and a checkout of [no5tyle/Beacon](https://github.com/no5tyle/Beacon):
-
-```
-cd tests/golden/generator
-dotnet run -p:BlazorRepo=/path/to/Beacon -- /path/to/beacon-next
-```
+Only regenerate these from the Blazor app, never from the Svelte port, or the tests would just compare the port with itself. The small C# program that did this has been removed; it's in the history at commit `50255b1`, under `tests/golden/generator`.
