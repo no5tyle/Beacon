@@ -9,6 +9,8 @@ const pages = [
 	'',
 	'insights/',
 	'oas/sign-off/',
+	'record/activity/',
+	'record/sia-plan/',
 	'insights/stage/?stream=camping&stage=2',
 	'progress/',
 	'progress/unit-1-m0/',
@@ -155,7 +157,7 @@ test.describe('desktop', () => {
 			[
 				'Home',
 				'Insights',
-				'Record OAS',
+				'Record',
 				'Personal Progress',
 				'Reference',
 				'Approvals 3 waiting for you',

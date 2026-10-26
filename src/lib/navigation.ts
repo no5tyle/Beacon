@@ -10,6 +10,8 @@ export interface NavPage {
 	shortTitle: string;
 	/** Only active on exactly this address, rather than anything under it */
 	exact?: boolean;
+	/** Other addresses it's also the current page for, e.g. Record for "record/" */
+	alsoActive?: string[];
 	/** A count to show beside it, e.g. approvals waiting for the leader's vote */
 	badge?: number;
 }
@@ -33,7 +35,13 @@ export function mainPages({ isYouth }: NavOptions): NavPage[] {
 	if (!isYouth) {
 		pages.push(
 			{ href: 'insights/', icon: 'graph', title: 'Insights', shortTitle: 'Insights' },
-			{ href: 'oas/sign-off/', icon: 'check', title: 'Record OAS', shortTitle: 'Record' }
+			{
+				href: 'oas/sign-off/',
+				icon: 'check',
+				title: 'Record',
+				shortTitle: 'Record',
+				alsoActive: ['record/']
+			}
 		);
 	}
 	pages.push(
@@ -74,7 +82,8 @@ export function signedOutPages(): NavPage[] {
 /** Whether a page's link should show as the current one, for an address within the app (no base path) */
 export function isActive(page: NavPage, path: string): boolean {
 	const current = path.replace(/^\//, '').replace(/([^/])$/, '$1/');
-	return page.exact ? current === page.href : current.startsWith(page.href);
+	if (page.exact) return current === page.href;
+	return [page.href, ...(page.alsoActive ?? [])].some((href) => current.startsWith(href));
 }
 
 /** The total to show on More: everything waiting under it */

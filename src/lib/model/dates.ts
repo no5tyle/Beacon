@@ -54,6 +54,13 @@ export function addMonths(date: CalendarDate, months: number): CalendarDate {
 	return fromParts(newYear, newMonth, Math.min(day, daysInMonth(newYear, newMonth)));
 }
 
+/** Adds days, e.g. from a camp's first day to its last */
+export function addDays(date: CalendarDate, days: number): CalendarDate {
+	const [year, month, day] = parts(date);
+	const next = new Date(Date.UTC(year, month - 1, day + days));
+	return fromParts(next.getUTCFullYear(), next.getUTCMonth() + 1, next.getUTCDate());
+}
+
 export function addYears(date: CalendarDate, years: number): CalendarDate {
 	return addMonths(date, years * 12);
 }
