@@ -58,6 +58,7 @@ Beacon keeps these in your browser's storage for its website until you clear you
 | Your branch                                                               | Filled in next time you log in                 |
 | The unit you last chose (Terrain's id for it)                             | Chosen for you next time                       |
 | Focus youth picked on Insights (Terrain's ids for those youth, not names) | So Insights keeps tracking them, for each unit |
+| The start and end times of the last one-day activity you logged           | Filled in for the next one                     |
 | Starred Reference statements                                              | Your starred list                              |
 | When you last saved the Reference for offline use                         | Shown in the Beacon Reference app              |
 | Whether Beacon is installed, and whether you dismissed the install hint   | So the hint isn't shown again                  |

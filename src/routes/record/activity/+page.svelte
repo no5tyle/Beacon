@@ -24,12 +24,13 @@
 	} from '#lib/model/activity.js';
 	import { today } from '#lib/model/dates.js';
 	import { pagePath } from '#lib/paths.js';
+	import { readActivityTimes, writeActivityTimes } from '#lib/stores/storage.js';
 	import { activities, app, members } from '#lib/services/index.js';
 	import type { MemberSummary } from '#lib/services/members.js';
 
 	type Step = 'details' | 'attendance' | 'logbook' | 'review' | 'save';
 
-	let draft = $state(newActivity());
+	let draft = $state(newActivity(undefined, new Date(), readActivityTimes()));
 	let step = $state<Step>('details');
 	let youth = $state<MemberSummary[]>([]);
 	let loadingYouth = $state(false);
@@ -74,7 +75,7 @@
 	});
 
 	function setMultiDay(multiDay: boolean) {
-		draft = withMultiDay(draft, multiDay);
+		draft = withMultiDay(draft, multiDay, new Date(), readActivityTimes());
 	}
 
 	// One day ends the day it starts
@@ -105,8 +106,11 @@
 		saveError = '';
 		const result = await activities.save($state.snapshot(draft), unitId);
 		saving = false;
-		if (result.success) saved = draft.title.trim();
-		else
+		if (result.success) {
+			saved = draft.title.trim();
+			// The next one-day activity starts with these times
+			if (!draft.multiDay) writeActivityTimes({ start: draft.startTime, end: draft.endTime });
+		} else
 			saveError =
 				result.status > 0
 					? `Terrain didn't accept the activity (response ${result.status}). Check Terrain's programme before trying again.`
@@ -118,7 +122,7 @@
 	}
 
 	function logAnother() {
-		draft = newActivity();
+		draft = newActivity(undefined, new Date(), readActivityTimes());
 		step = 'details';
 		saved = '';
 		saveError = '';

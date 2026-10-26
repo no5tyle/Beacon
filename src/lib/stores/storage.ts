@@ -1,6 +1,7 @@
 // Small preferences kept on this device. Storage can be unavailable (e.g. a private window), so every
 // read and write is allowed to fail quietly; Beacon just doesn't remember the choice.
 
+import { DEFAULT_TIMES, isDayTimes, type DayTimes } from '#lib/model/activity.js';
 import { restoreInsightsSettings, type InsightsSettings } from '#lib/model/insights/settings.js';
 
 export const BRANCH_KEY = 'LoginBranch';
@@ -32,6 +33,22 @@ export function writeSetting(key: string, value: string): void {
 	} catch {
 		// Not remembered
 	}
+}
+
+// The times of the last one-day activity logged, so the next one starts with them
+const ACTIVITY_TIMES_KEY = 'beacon-activity-times';
+
+export function readActivityTimes(): DayTimes {
+	try {
+		const saved = JSON.parse(readSetting(ACTIVITY_TIMES_KEY) || 'null') as unknown;
+		return isDayTimes(saved) ? saved : DEFAULT_TIMES;
+	} catch {
+		return DEFAULT_TIMES;
+	}
+}
+
+export function writeActivityTimes(times: DayTimes): void {
+	if (isDayTimes(times)) writeSetting(ACTIVITY_TIMES_KEY, JSON.stringify(times));
 }
 
 // Insights' filters last a browser tab, so Insights, a stage's analysis and youth details agree on who is
