@@ -208,3 +208,34 @@ test('youth members can’t log activities or plans', async ({ page }) => {
 		await expect(page).not.toHaveURL(/\/record\//);
 	}
 });
+
+test('says why it couldn’t conclude, when Terrain’s answer has no id', async ({ page }) => {
+	const terrain = await fakeTerrain(page);
+	await page.route(/events\.terrain\.scouts\.com\.au\/units\/[^/]+\/events$/, (route) =>
+		route.request().method() === 'POST'
+			? route.fulfill({
+					status: 200,
+					headers: { 'access-control-allow-origin': '*' },
+					body: '{}'
+				})
+			: route.fallback()
+	);
+	await logIn(page);
+	await navigate(page, 'record/activity/');
+	await page.getByLabel('Starts').fill('2026-10-20');
+	await page.getByLabel('Ends').fill('2026-10-20');
+	await page.getByLabel('Title').fill('Knots night');
+	await page.getByRole('button', { name: 'Outdoors' }).click();
+	await page.getByRole('button', { name: /^Next/ }).click();
+	await page.locator('.attendee', { hasText: 'Mia Brown' }).getByRole('checkbox').check();
+	await page.getByRole('button', { name: /^Next/ }).click();
+	await page.getByRole('button', { name: 'Great' }).click();
+	await page.getByLabel('Learning by doing').check();
+	await page.getByLabel('Social').check();
+	await page.getByRole('button', { name: /^Next/ }).click();
+	await page.getByRole('button', { name: 'Save to Terrain' }).click();
+	await expect(page.locator('.alert-warning')).toContainText(
+		"couldn't conclude it (Terrain didn't say its id.)"
+	);
+	expect(terrain.writes.some((w) => w.request.startsWith('PATCH'))).toBe(false);
+});
