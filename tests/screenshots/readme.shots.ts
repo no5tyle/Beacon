@@ -49,7 +49,7 @@ test('record OAS', async ({ page }) => {
 	await shot(page, 'record-oas');
 });
 
-test('personal progress', async ({ page }) => {
+test('progress', async ({ page }) => {
 	await navigate(page, 'progress/');
 	await page.locator('.youth').first().click();
 	await expect(page.locator('.stage-detail').first()).toBeVisible();

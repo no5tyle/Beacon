@@ -62,8 +62,8 @@
 		a unit night.
 	</p>
 	<p>
-		Use Personal Progress to see where each youth is up to, record their OAS statements and submit
-		stages for review.
+		Use Progress to see where each youth is up to, record their OAS statements and submit stages for
+		review.
 	</p>
 	<p>Use Reference to look up any OAS statement and its explanation.</p>
 {/if}

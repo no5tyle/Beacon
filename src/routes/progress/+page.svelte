@@ -1,4 +1,4 @@
-<!-- Personal Progress: the unit's youth, each opening their progress details -->
+<!-- Progress: the unit's youth, each opening their progress details -->
 <script lang="ts">
 	import ChooseUnit from '#lib/components/ChooseUnit.svelte';
 	import { pullToRefresh } from '#lib/actions/pullToRefresh.js';
