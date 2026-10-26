@@ -158,7 +158,7 @@ test.describe('desktop', () => {
 				'Home',
 				'Insights',
 				'Record',
-				'Personal Progress',
+				'Progress',
 				'Reference',
 				'Approvals 3 waiting for you',
 				'Logout'

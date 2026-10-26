@@ -45,7 +45,7 @@ export function mainPages({ isYouth }: NavOptions): NavPage[] {
 		);
 	}
 	pages.push(
-		{ href: 'progress/', icon: 'person', title: 'Personal Progress', shortTitle: 'Progress' },
+		{ href: 'progress/', icon: 'person', title: 'Progress', shortTitle: 'Progress' },
 		{ href: 'oas-reference/', icon: 'book', title: 'Reference', shortTitle: 'Reference' }
 	);
 	return pages;
