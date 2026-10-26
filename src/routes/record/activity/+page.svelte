@@ -41,7 +41,13 @@
 	let youthError = $state('');
 	let saving = $state(false);
 	// What was saved: its title, and whether it was concluded or left planned
-	let saved = $state<{ title: string; concluded: boolean; concludeFailed: boolean } | null>(null);
+	let saved = $state<{
+		title: string;
+		concluded: boolean;
+		concludeFailed: boolean;
+		/** Why concluding didn't work, e.g. "Terrain answered 400" */
+		why: string;
+	} | null>(null);
 	let saveError = $state('');
 
 	const unitId = $derived(app.unitId);
@@ -133,7 +139,8 @@
 			saved = {
 				title: draft.title.trim(),
 				concluded: result.concluded,
-				concludeFailed: result.concludeFailed
+				concludeFailed: result.concludeFailed,
+				why: result.status > 0 ? `Terrain answered ${result.status}.` : result.body
 			};
 		else
 			saveError =
@@ -200,8 +207,9 @@
 				Saved {saved.title} to the unit's programme in Terrain and concluded it, so those who came get
 				credit for it.
 			{:else if saved.concludeFailed}
-				Saved {saved.title} to the unit's programme in Terrain as planned, but couldn't conclude it. Conclude
-				it in Terrain so those who came get credit.
+				Saved {saved.title} to the unit's programme in Terrain as planned, but couldn't conclude it{saved.why
+					? ` (${saved.why})`
+					: ''}. Conclude it in Terrain so those who came get credit.
 			{:else}
 				Saved {saved.title} to the unit's programme in Terrain as a planned activity. Conclude it in Terrain
 				once it's over, so those who came get credit.
