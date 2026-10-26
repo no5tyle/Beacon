@@ -245,14 +245,14 @@ describe('the activity Terrain is sent', () => {
 			},
 			location: 'Strath',
 			iana_timezone: 'Australia/Adelaide',
-			status: 'planned'
+			status: 'concluded'
 		});
 		expect(eventBody({ ...draft(), challengeArea: 'Personal growth' }, context)).toMatchObject({
 			challenge_area: 'personal_growth'
 		});
 	});
 
-	it('concludes it with its review, as Terrain’s planner does', () => {
+	it('is sent already concluded, with its review, as Terrain’s planner concludes one', () => {
 		const reviewed = {
 			...draft(),
 			review: {
@@ -262,7 +262,7 @@ describe('the activity Terrain is sent', () => {
 				spices: ['social', 'physical']
 			}
 		};
-		const body = eventBody(reviewed, context, 'concluded');
+		const body = eventBody(reviewed, context);
 		expect(body).toMatchObject({
 			status: 'concluded',
 			review: {
@@ -273,14 +273,6 @@ describe('the activity Terrain is sent', () => {
 			},
 			achievement_pathway_logbook_data: { title: '' }
 		});
-		// Planned, it has no review yet
-		expect(eventBody(reviewed, context)).toMatchObject({
-			status: 'planned',
-			review: { scout_method_elements: [], scout_spices_elements: [] }
-		});
-		expect(eventBody(reviewed, context).achievement_pathway_logbook_data).not.toHaveProperty(
-			'title'
-		);
 	});
 
 	it('sends times in UTC, as Terrain does', () => {
