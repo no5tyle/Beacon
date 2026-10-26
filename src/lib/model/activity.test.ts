@@ -236,7 +236,7 @@ describe('the activity Terrain is sent', () => {
 				leader_member_ids: ['y1'],
 				assistant_member_ids: ['y3'],
 				attendee_member_ids: ['y1', 'y2', 'y3'],
-				participant_member_ids: ['y2']
+				participant_member_ids: ['y1', 'y2', 'y3']
 			},
 			achievement_pathway_oas_data: {
 				award_rule: 'individual',

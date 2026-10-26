@@ -283,7 +283,8 @@
 				>
 			</div>
 			<p class="small muted">
-				Tick who came, and set who assisted or led: milestones count each role.
+				Tick who came: everyone ticked is recorded as participating. Set who also assisted or led,
+				as milestones count those too.
 			</p>
 			{#each youth as member (member.id)}
 				{@const role = draft.attendance[member.id]}

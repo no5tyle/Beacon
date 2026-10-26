@@ -100,7 +100,7 @@ test('logs a camp that’s over: details, who came, logbook, how it went, then s
 			leader_member_ids: ['unit-1-m0'],
 			assistant_member_ids: [],
 			attendee_member_ids: ['unit-1-m0', 'unit-1-m1', 'unit-1-m2'],
-			participant_member_ids: ['unit-1-m1', 'unit-1-m2']
+			participant_member_ids: ['unit-1-m0', 'unit-1-m1', 'unit-1-m2']
 		},
 		achievement_pathway_logbook_data: {
 			distance_travelled: 6000,
