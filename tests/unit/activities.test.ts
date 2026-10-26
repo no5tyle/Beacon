@@ -24,7 +24,7 @@ const reviewed = () => ({
 });
 
 describe('saving an activity', () => {
-	it('adds it to the unit’s programme as the leader', async () => {
+	it('adds it to the unit’s programme as the leader, then tries to conclude it', async () => {
 		const { terrain, writes, calls } = await signedInTerrain({
 			profiles: leaderProfiles(),
 			members: [],
@@ -32,9 +32,9 @@ describe('saving an activity', () => {
 		});
 		const service = new ActivitiesService({ terrain, profiles: leaderProfiles() } as never);
 
-		const result = await service.save(camp(), 'unit-1', 'Australia/Adelaide', before);
+		await service.save(reviewed(), 'unit-1', 'Australia/Adelaide', after);
 
-		expect(result).toMatchObject({ success: true, concluded: false });
+		// This fake gives no id, so it stops there: the conclude is checked below
 		expect(writes.map((w) => [w.method, w.url])).toEqual([
 			['POST', `${EVENTS_ADDRESS}units/unit-1/events`]
 		]);
@@ -56,9 +56,14 @@ describe('saving an activity', () => {
 			records: {}
 		});
 		const service = new ActivitiesService({ terrain, profiles: leaderProfiles() } as never);
-		const result = await service.save({ ...camp(), title: '' }, 'unit-1', undefined, before);
+		const result = await service.save({ ...reviewed(), title: '' }, 'unit-1', undefined, after);
 		expect(result).toMatchObject({ success: false, status: 0, body: 'Give the activity a title.' });
-		expect(await service.save(camp(), '', undefined, before)).toMatchObject({ success: false });
+		expect(await service.save(reviewed(), '', undefined, after)).toMatchObject({ success: false });
+		// Not over yet: Log activity takes only activities that are
+		expect(await service.save(reviewed(), 'unit-1', undefined, before)).toMatchObject({
+			success: false,
+			body: "It hasn't finished yet. Log activities once they're over."
+		});
 		// Over, it needs its review first
 		expect(await service.save(camp(), 'unit-1', undefined, after)).toMatchObject({
 			success: false,
@@ -75,7 +80,7 @@ describe('saving an activity', () => {
 			override: (call) => (call.url.includes('/events') ? { status: 403 } : undefined)
 		});
 		const service = new ActivitiesService({ terrain, profiles: leaderProfiles() } as never);
-		expect(await service.save(camp(), 'unit-1', undefined, before)).toMatchObject({
+		expect(await service.save(reviewed(), 'unit-1', undefined, after)).toMatchObject({
 			success: false,
 			status: 403
 		});

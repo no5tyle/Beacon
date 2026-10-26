@@ -1,6 +1,6 @@
 // Adding activities to a unit's programme, as Terrain's activity planner does.
 
-import { activityProblems, eventBody, isOver, type ActivityDraft } from '#lib/model/activity.js';
+import { activityProblems, eventBody, type ActivityDraft } from '#lib/model/activity.js';
 import type { TerrainWriteResult } from '#lib/terrain/errors.js';
 import type { BeaconContext } from './context.js';
 
@@ -20,8 +20,8 @@ export class ActivitiesService {
 	constructor(private readonly context: BeaconContext) {}
 
 	/**
-	 * Saves the activity to the unit's programme as the leader, its organiser, as Terrain's own planner
-	 * does: planned, then, for one that's over, concluded with its review so those who came get credit
+	 * Saves an activity that's over to the unit's programme as the leader, its organiser, as Terrain's own
+	 * planner does: planned, then straight away concluded with its review so those who came get credit
 	 */
 	async save(
 		draft: ActivityDraft,
@@ -39,7 +39,6 @@ export class ActivitiesService {
 		try {
 			const planned = await terrain.createEvent(unitId, eventBody(draft, context));
 			if (!planned.success) return { ...failure(planned.body), status: planned.status };
-			if (!isOver(draft, now)) return saved(false);
 
 			// Concluding needs the new activity's id, from Terrain's answer
 			const eventId = idFrom(planned);

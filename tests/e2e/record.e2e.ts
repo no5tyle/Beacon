@@ -127,26 +127,56 @@ test('logs a camp that’s over: details, who came, logbook, how it went, then s
 	await expect(page.getByLabel('Title')).toHaveValue('');
 });
 
-test('a unit night has no logbook step', async ({ page }) => {
-	await fakeTerrain(page);
+test('a unit night has no logbook step, and is concluded with its review', async ({ page }) => {
+	const terrain = await fakeTerrain(page);
 	await logIn(page);
 	await navigate(page, 'record/activity/');
-	// Still to come: saved as planned, with no review
-	await page.getByLabel('Starts').fill('2030-03-07');
-	await page.getByLabel('Ends').fill('2030-03-07');
-	await expect(page.locator('.steps li')).toHaveText(['Activity', 'Who came', 'Save']);
+	await page.getByLabel('Starts').fill('2026-10-20');
+	await page.getByLabel('Ends').fill('2026-10-20');
+	await expect(page.locator('.steps li')).toHaveText([
+		'Activity',
+		'Who came',
+		'How it went',
+		'Save'
+	]);
 	await page.getByLabel('Title').fill('Knots night');
 	await page.getByRole('button', { name: 'Creative' }).click();
 	await page.getByRole('button', { name: /^Next/ }).click();
 	await page.locator('.attendee', { hasText: 'Mia Brown' }).getByRole('checkbox').check();
 	await page.getByRole('button', { name: /^Next/ }).click();
+	await page.getByRole('button', { name: 'Okay' }).click();
+	await page.getByLabel('Patrol system').check();
+	await page.getByLabel('Social').check();
+	await page.getByRole('button', { name: /^Next/ }).click();
 	await expect(page.locator('.review')).toContainText('1 participant');
+	await expect(page.locator('.review')).toContainText('Okay');
 	await expect(page.locator('.review')).not.toContainText('Logbook');
 	await expect(page.locator('.alert-info')).toHaveCount(0);
 	await page.getByRole('button', { name: 'Save to Terrain' }).click();
-	await expect(page.locator('.alert-success')).toContainText(
-		"as a planned activity. Conclude it in Terrain once it's over"
+	await expect(page.locator('.alert-success')).toContainText('and concluded it');
+	expect(terrain.writes.map((w) => w.request)).toEqual([
+		'POST events/units/unit-1/events',
+		'PATCH events/events/event-1'
+	]);
+});
+
+test('only takes activities that are over', async ({ page }) => {
+	const terrain = await fakeTerrain(page);
+	await logIn(page);
+	await navigate(page, 'record/activity/');
+	// It starts on one that's already over
+	await expect(page.locator('.text-danger')).toHaveCount(0);
+	await page.getByLabel('Title').fill('Knots night');
+	await page.getByRole('button', { name: 'Creative' }).click();
+	await expect(page.getByRole('button', { name: /^Next/ })).toBeEnabled();
+	// Moved to the future, it can't go on
+	await page.getByLabel('Starts').fill('2030-03-07');
+	await page.getByLabel('Ends').fill('2030-03-07');
+	await expect(page.locator('.text-danger')).toHaveText(
+		"It hasn't finished yet. Log activities once they're over."
 	);
+	await expect(page.getByRole('button', { name: /^Next/ })).toBeDisabled();
+	expect(terrain.writes).toEqual([]);
 });
 
 test('says when Terrain won’t take the activity, and keeps it to try again', async ({ page }) => {
@@ -162,12 +192,16 @@ test('says when Terrain won’t take the activity, and keeps it to try again', a
 	);
 	await logIn(page);
 	await navigate(page, 'record/activity/');
-	await page.getByLabel('Starts').fill('2030-03-07');
-	await page.getByLabel('Ends').fill('2030-03-07');
+	await page.getByLabel('Starts').fill('2026-10-20');
+	await page.getByLabel('Ends').fill('2026-10-20');
 	await page.getByLabel('Title').fill('Knots night');
 	await page.getByRole('button', { name: 'Community' }).click();
 	await page.getByRole('button', { name: /^Next/ }).click();
 	await page.locator('.attendee', { hasText: 'Mia Brown' }).getByRole('checkbox').check();
+	await page.getByRole('button', { name: /^Next/ }).click();
+	await page.getByRole('button', { name: 'Great' }).click();
+	await page.getByLabel('Community involvement').check();
+	await page.getByLabel('Social').check();
 	await page.getByRole('button', { name: /^Next/ }).click();
 	await page.getByRole('button', { name: 'Save to Terrain' }).click();
 	await expect(page.locator('.alert-danger')).toContainText(
