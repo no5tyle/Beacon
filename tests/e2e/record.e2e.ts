@@ -33,13 +33,15 @@ test('logs a camp that’s over: details, who came, logbook, how it went, then s
 	await navigate(page, 'record/activity/');
 	const next = page.getByRole('button', { name: /^Next/ });
 
-	await page.getByRole('button', { name: 'Camp', exact: true }).click();
+	// One activity, with a tick for one over more than one day
+	await expect(page.getByLabel('Ends on')).toHaveCount(0);
+	await page.getByLabel(/Runs over more than one day/).check();
 	await expect(next).toBeDisabled();
 	await page.getByLabel('Title').fill('Spring camp');
 	await page.getByLabel('Where').fill('The hall');
-	await page.getByLabel('Starts').fill('2026-10-23');
-	await page.getByLabel('Ends').fill('2026-10-25');
-	// Over, so it has a review step
+	await page.getByLabel('Starts on').fill('2026-10-23');
+	await page.getByLabel('Ends on').fill('2026-10-25');
+	// Every activity has a logbook and a review step
 	await expect(page.locator('.steps li')).toHaveText([
 		'Activity',
 		'Who came',
@@ -62,7 +64,8 @@ test('logs a camp that’s over: details, who came, logbook, how it went, then s
 	await next.click();
 
 	// Two nights from the dates, and the walking they did, for everyone who came
-	await expect(page.locator('.nights')).toContainText('2 nights camped');
+	await expect(page.locator('.nights')).toContainText('2 nights away');
+	await expect(page.getByLabel(/They camped/)).toBeChecked();
 	await expect(page.getByText('Counts towards the Walkabout award')).toHaveCount(0);
 	await page.getByLabel(/Kilometres walked/).fill('6');
 	await expect(page.getByLabel('Counts towards the Walkabout award')).toBeChecked();
@@ -80,10 +83,12 @@ test('logs a camp that’s over: details, who came, logbook, how it went, then s
 
 	const review = page.locator('.review');
 	await expect(review.locator('h3')).toHaveText('Spring camp');
-	await expect(review).toContainText('2026-10-23 18:00 to 2026-10-25 12:00');
+	await expect(review).toContainText('2026-10-23 19:00 to 2026-10-25 21:00');
 	await expect(review).toContainText('Outdoors');
 	await expect(review).toContainText('3 came, 2 led');
-	await expect(review).toContainText('2 nights towards camping, 6 km walked, towards Walkabout');
+	await expect(review).toContainText(
+		'2 nights away, towards camping, 6 km walked, towards Walkabout'
+	);
 	await expect(review.locator('li')).toHaveText([
 		'Ava Nguyen (led)',
 		'Liam Smith',
@@ -133,15 +138,18 @@ test('logs a camp that’s over: details, who came, logbook, how it went, then s
 	await expect(page.getByLabel('Title')).toHaveValue('');
 });
 
-test('a unit night has no logbook step, and is concluded with its review', async ({ page }) => {
+test('an evening at the hall has an empty logbook, and is concluded with its review', async ({
+	page
+}) => {
 	const terrain = await fakeTerrain(page);
 	await logIn(page);
 	await navigate(page, 'record/activity/');
-	await page.getByLabel('Starts').fill('2026-10-20');
-	await page.getByLabel('Ends').fill('2026-10-20');
+	// One day: the date, and it ends that day
+	await page.getByLabel('Date').fill('2026-10-20');
 	await expect(page.locator('.steps li')).toHaveText([
 		'Activity',
 		'Who came',
+		'Logbook',
 		'How it went',
 		'Save'
 	]);
@@ -151,57 +159,87 @@ test('a unit night has no logbook step, and is concluded with its review', async
 	await page.getByRole('button', { name: /^Next/ }).click();
 	await page.locator('.attendee', { hasText: 'Mia Brown' }).getByRole('checkbox').check();
 	await page.getByRole('button', { name: /^Next/ }).click();
+	// No nights away, and no walking
+	await expect(page.locator('.nights')).toHaveCount(0);
+	await expect(page.getByText('No nights away.')).toBeVisible();
+	await page.getByRole('button', { name: /^Next/ }).click();
 	await page.getByRole('button', { name: 'Okay' }).click();
 	await page.getByLabel('Patrol system').check();
 	await page.getByLabel('Social').check();
 	await page.getByRole('button', { name: /^Next/ }).click();
+	await expect(page.locator('.review')).toContainText('2026-10-20, 19:00 to 21:00');
 	await expect(page.locator('.review')).toContainText('1 came');
 	await expect(page.locator('.review')).toContainText('Okay');
-	await expect(page.locator('.review')).not.toContainText('Logbook');
-	await expect(page.locator('.alert-info')).toHaveCount(0);
+	await expect(page.locator('.review')).toContainText('Logbook');
+	await expect(page.locator('.review')).toContainText('Nothing');
 	await page.getByRole('button', { name: 'Save to Terrain' }).click();
 	await expect(page.locator('.alert-success')).toContainText(', concluded,');
 	expect(terrain.writes.map((w) => w.request)).toEqual(['POST events/units/unit-1/events']);
+	expect(terrain.writes[0].body).toMatchObject({
+		achievement_pathway_logbook_data: { distance_travelled: 0, categories: [] }
+	});
 });
 
-test('an overnight hike counts its nights towards camping', async ({ page }) => {
+test('nights away count towards camping when they camped', async ({ page }) => {
 	const terrain = await fakeTerrain(page);
 	await logIn(page);
 	await navigate(page, 'record/activity/');
-	await page.getByRole('button', { name: 'Hike' }).click();
-	await page.getByLabel('Starts').fill('2026-10-17');
-	await page.getByLabel('Ends').fill('2026-10-17');
+	await page.getByLabel(/Runs over more than one day/).check();
+	await page.getByLabel('Starts on').fill('2026-10-17');
+	await page.getByLabel('Ends on').fill('2026-10-18');
 	await page.getByLabel('Title').fill('Heysen Trail');
-	await page.getByLabel('Where').fill('The hall');
+	await page.getByLabel('Where').fill('Mount Lofty');
 	await page.getByRole('button', { name: 'Outdoors' }).click();
 	await page.getByRole('button', { name: /^Next/ }).click();
 	await page.locator('.attendee', { hasText: 'Mia Brown' }).getByRole('checkbox').check();
 	await page.getByRole('button', { name: /^Next/ }).click();
-	// A day hike: no nights, and a hint for an overnight one
-	await expect(page.locator('.nights')).toHaveCount(0);
-	await expect(page.getByText("An overnight hike's nights count towards camping")).toBeVisible();
-	await page.getByRole('button', { name: 'Back' }).click();
-	await page.getByRole('button', { name: 'Back' }).click();
-	await page.getByLabel('Ends').fill('2026-10-18');
-	await page.getByRole('button', { name: /^Next/ }).click();
-	await page.getByRole('button', { name: /^Next/ }).click();
-	await expect(page.locator('.nights')).toContainText('1 night camped');
+	await expect(page.locator('.nights')).toContainText('1 night away');
 	await page.getByLabel(/Kilometres walked/).fill('18');
 	await page.getByRole('button', { name: /^Next/ }).click();
 	await page.getByRole('button', { name: 'Great' }).click();
 	await page.getByLabel('Nature and outdoors').check();
 	await page.getByLabel('Physical').check();
 	await page.getByRole('button', { name: /^Next/ }).click();
-	await expect(page.locator('.review')).toContainText('1 night towards camping, 18 km walked');
+	await expect(page.locator('.review')).toContainText(
+		'1 night away, towards camping, 18 km walked'
+	);
 	await page.getByRole('button', { name: 'Save to Terrain' }).click();
 	await expect(page.locator('.alert-success')).toContainText(', concluded,');
 	expect(terrain.writes[0].body).toMatchObject({
 		achievement_pathway_logbook_data: {
 			distance_travelled: 18000,
 			distance_walkabout: 18000,
-			achievement_meta: { stream: 'bushwalking', branch: 'bushwalking' },
+			achievement_meta: { stream: 'camping', branch: 'camping' },
 			categories: ['camping', 'walking_hike']
 		}
+	});
+});
+
+test('nights away without camping don’t count towards camping', async ({ page }) => {
+	const terrain = await fakeTerrain(page);
+	await logIn(page);
+	await navigate(page, 'record/activity/');
+	await page.getByLabel(/Runs over more than one day/).check();
+	await page.getByLabel('Starts on').fill('2026-10-17');
+	await page.getByLabel('Ends on').fill('2026-10-18');
+	await page.getByLabel('Title').fill('Jamboree day trip');
+	await page.getByLabel('Where').fill('Woodhouse');
+	await page.getByRole('button', { name: 'Community' }).click();
+	await page.getByRole('button', { name: /^Next/ }).click();
+	await page.locator('.attendee', { hasText: 'Mia Brown' }).getByRole('checkbox').check();
+	await page.getByRole('button', { name: /^Next/ }).click();
+	await page.getByLabel(/They camped/).uncheck();
+	await page.getByRole('button', { name: /^Next/ }).click();
+	await page.getByRole('button', { name: 'Great' }).click();
+	await page.getByLabel('Community involvement').check();
+	await page.getByLabel('Social').check();
+	await page.getByRole('button', { name: /^Next/ }).click();
+	await expect(page.locator('.review')).toContainText('1 night away');
+	await expect(page.locator('.review')).not.toContainText('towards camping');
+	await page.getByRole('button', { name: 'Save to Terrain' }).click();
+	await expect(page.locator('.alert-success')).toContainText(', concluded,');
+	expect(terrain.writes[0].body).toMatchObject({
+		achievement_pathway_logbook_data: { categories: [] }
 	});
 });
 
@@ -220,8 +258,7 @@ test('only takes activities that are over', async ({ page }) => {
 	await expect(page.getByRole('button', { name: /^Next/ })).toBeDisabled();
 	await page.getByLabel('Where').fill('The hall');
 	// Moved to the future, it can't go on
-	await page.getByLabel('Starts').fill('2030-03-07');
-	await page.getByLabel('Ends').fill('2030-03-07');
+	await page.getByLabel('Date').fill('2030-03-07');
 	await expect(page.locator('.text-danger')).toHaveText(
 		"It hasn't finished yet. Log activities once they're over."
 	);
@@ -242,13 +279,13 @@ test('says when Terrain won’t take the activity, and keeps it to try again', a
 	);
 	await logIn(page);
 	await navigate(page, 'record/activity/');
-	await page.getByLabel('Starts').fill('2026-10-20');
-	await page.getByLabel('Ends').fill('2026-10-20');
+	await page.getByLabel('Date').fill('2026-10-20');
 	await page.getByLabel('Title').fill('Knots night');
 	await page.getByLabel('Where').fill('The hall');
 	await page.getByRole('button', { name: 'Community' }).click();
 	await page.getByRole('button', { name: /^Next/ }).click();
 	await page.locator('.attendee', { hasText: 'Mia Brown' }).getByRole('checkbox').check();
+	await page.getByRole('button', { name: /^Next/ }).click();
 	await page.getByRole('button', { name: /^Next/ }).click();
 	await page.getByRole('button', { name: 'Great' }).click();
 	await page.getByLabel('Community involvement').check();
