@@ -297,7 +297,7 @@
 </script>
 
 <svelte:head>
-	<title>Beacon / Record OAS Statements</title>
+	<title>Beacon / Record OAS</title>
 </svelte:head>
 
 {#snippet resultIcon(outcome: SignOffOutcome)}
@@ -313,7 +313,7 @@
 
 <div class="sign-off has-action-bar">
 	<RecordSwitch />
-	<h2>Record OAS Statements</h2>
+	<h2>Record OAS</h2>
 	<StepBar
 		steps={['Statements', 'Youth', 'Save']}
 		current={['statements', 'youth', 'review'].indexOf(step)}
