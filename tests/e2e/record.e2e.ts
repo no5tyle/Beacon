@@ -57,12 +57,11 @@ test('logs a camp that’s over: details, who came, logbook, how it went, then s
 	await page.locator('.attendee', { hasText: 'Noah Jones' }).getByRole('checkbox').uncheck();
 	await next.click();
 
-	// Two nights from the dates, the same for everyone unless changed
-	await expect(page.getByLabel('Nights camped')).toHaveValue('2');
-	await page.getByLabel('Kilometres hiked').fill('6');
-	await page.getByText('Different for some youth').click();
-	await page.getByLabel("Liam Smith's nights").fill('1');
-	await page.getByLabel("Liam Smith's nights").blur();
+	// Two nights from the dates, and the walking they did, for everyone who came
+	await expect(page.locator('.nights')).toContainText('2 nights camped');
+	await expect(page.getByText('Counts towards the Walkabout award')).toHaveCount(0);
+	await page.getByLabel(/Kilometres walked/).fill('6');
+	await expect(page.getByLabel('Counts towards the Walkabout award')).toBeChecked();
 	await next.click();
 
 	// It's over, so Terrain concludes it with a review
@@ -80,10 +79,8 @@ test('logs a camp that’s over: details, who came, logbook, how it went, then s
 	await expect(review).toContainText('2026-10-23 18:00 to 2026-10-25 12:00');
 	await expect(review).toContainText('Outdoors');
 	await expect(review).toContainText('2 participants, 1 leader');
-	await expect(review).toContainText('2 nights, 6 km each, different for 1');
+	await expect(review).toContainText('2 nights, 6 km walked, towards Walkabout');
 	await expect(review.locator('li')).toHaveText(['Ava Nguyen (Leader)', 'Liam Smith', 'Mia Brown']);
-	// The logbook isn't sent yet, and says so
-	await expect(page.locator('.alert-info')).toContainText("nights and kilometres aren't sent");
 	expect(terrain.writes).toEqual([]);
 
 	// Saved to the unit's programme as planned, as the leader, with who came in each role
@@ -108,10 +105,20 @@ test('logs a camp that’s over: details, who came, logbook, how it went, then s
 			attendee_member_ids: ['unit-1-m0', 'unit-1-m1', 'unit-1-m2'],
 			participant_member_ids: ['unit-1-m1', 'unit-1-m2']
 		},
+		achievement_pathway_logbook_data: {
+			distance_travelled: 6000,
+			distance_walkabout: 6000,
+			achievement_meta: { stream: 'camping', branch: 'camping' },
+			categories: ['camping', 'walking_hike']
+		},
 		status: 'planned'
 	});
 	expect(terrain.writes[1].body).toMatchObject({
 		status: 'concluded',
+		achievement_pathway_logbook_data: {
+			distance_travelled: 6000,
+			categories: ['camping', 'walking_hike']
+		},
 		review: {
 			general_tags: ['fun', 'challenging'],
 			scout_method_elements: ['learn_by_doing', 'nature_and_outdoors'],
