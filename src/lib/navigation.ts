@@ -27,7 +27,7 @@ export interface NavOptions {
 	approvalsWaiting?: number;
 }
 
-/** The main pages: tabs along the bottom on phones, the top of the sidebar on desktop */
+/** The main pages: the top of the sidebar on desktop, and on phones the tabs along the bottom (see phoneTabs) */
 export function mainPages({ isYouth }: NavOptions): NavPage[] {
 	const pages: NavPage[] = [
 		{ href: '', icon: 'home', title: 'Home', shortTitle: 'Home', exact: true }
@@ -51,7 +51,7 @@ export function mainPages({ isYouth }: NavOptions): NavPage[] {
 	return pages;
 }
 
-/** Less used pages: under More on phones, the bottom of the sidebar on desktop */
+/** Less used pages: the bottom of the sidebar on desktop, and under More on phones (see phoneTabs) */
 export function morePages({ isYouth, approvalsWaiting = 0 }: NavOptions): NavPage[] {
 	const pages: NavPage[] = [];
 	if (!isYouth)
@@ -66,6 +66,30 @@ export function morePages({ isYouth, approvalsWaiting = 0 }: NavOptions): NavPag
 		...pages,
 		{ href: 'logout/', icon: 'account-logout', title: 'Logout', shortTitle: 'Logout' }
 	];
+}
+
+/** Pages that may stand in for Reference on the phone's tab bar while they're open */
+const SWAPPABLE = ['progress/', 'approvals/'];
+
+/**
+	The phone's tab bar and its More menu. Fewer tabs than the sidebar so they aren't cramped: for leaders
+	Progress goes under More. While a page from More is open it takes Reference's place in the bar, and
+	Reference goes under More, so the current page always has a tab of its own.
+*/
+export function phoneTabs(options: NavOptions, path: string): { main: NavPage[]; more: NavPage[] } {
+	let main = mainPages(options);
+	let more = morePages(options);
+	if (!options.isYouth) {
+		more = [...main.filter((p) => p.href === 'progress/'), ...more];
+		main = main.filter((p) => p.href !== 'progress/');
+	}
+	const open = more.find((p) => SWAPPABLE.includes(p.href) && isActive(p, path));
+	const reference = main.find((p) => p.href === 'oas-reference/');
+	if (open && reference) {
+		main = main.map((p) => (p === reference ? open : p));
+		more = [reference, ...more.filter((p) => p !== open)];
+	}
+	return { main, more };
 }
 
 /** Logging has no menu item: tapping the version opens it, as it's only needed to help solve a problem */
