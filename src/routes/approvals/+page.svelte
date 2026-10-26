@@ -731,6 +731,7 @@
 		width: 44px;
 		height: 44px;
 		padding: 0;
+		border-radius: 50%;
 	}
 
 	.unit-section + .unit-section {
@@ -784,7 +785,7 @@
 		margin-bottom: 0.5rem;
 		padding: 0.6rem 0.8rem;
 		border: 1px solid var(--border);
-		border-radius: 0.5rem;
+		border-radius: var(--radius-lg);
 		background: var(--surface);
 	}
 
@@ -857,7 +858,7 @@
 	.approvals-empty {
 		padding: 1.5rem 1rem;
 		border: 1px dashed var(--border);
-		border-radius: 0.5rem;
+		border-radius: var(--radius-lg);
 		color: var(--muted);
 		text-align: center;
 	}

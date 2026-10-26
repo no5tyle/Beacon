@@ -842,6 +842,7 @@
 		width: 44px;
 		height: 44px;
 		padding: 0;
+		border-radius: 50%;
 	}
 
 	/* How many filters differ from the defaults */
@@ -864,7 +865,7 @@
 		margin-bottom: 1rem;
 		padding: 0.25rem 0.9rem 0.75rem;
 		border: 1px solid var(--border);
-		border-radius: 0.5rem;
+		border-radius: var(--radius-lg);
 	}
 
 	.filters-section {
@@ -954,7 +955,7 @@
 	.stat-tile {
 		padding: 0.75rem 1rem;
 		border: 1px solid var(--border);
-		border-radius: 0.5rem;
+		border-radius: var(--radius-lg);
 		background: var(--surface);
 	}
 

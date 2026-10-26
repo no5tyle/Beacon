@@ -23,7 +23,7 @@
 		margin-bottom: 1rem;
 		padding: 0.75rem 0.9rem;
 		border: 1px solid var(--border);
-		border-radius: 0.6rem;
+		border-radius: var(--radius-lg);
 		background: var(--surface-2);
 	}
 

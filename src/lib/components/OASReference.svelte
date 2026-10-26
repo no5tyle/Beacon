@@ -836,7 +836,7 @@
 	.as-cards .statement {
 		margin-bottom: 0.5rem;
 		border: 1px solid var(--border);
-		border-radius: 0.5rem;
+		border-radius: var(--radius-lg);
 		background: var(--surface);
 		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 	}
@@ -869,7 +869,7 @@
 		.statement {
 			margin-bottom: 0.5rem;
 			border: 1px solid var(--border);
-			border-radius: 0.5rem;
+			border-radius: var(--radius-lg);
 			background: var(--surface);
 			box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 		}
