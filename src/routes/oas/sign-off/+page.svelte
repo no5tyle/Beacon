@@ -16,7 +16,9 @@
 		type OASStatement
 	} from '#lib/model/oas/recording.js';
 	import {
+		combineOutcomes,
 		forYouth,
+		forYouthAcrossStages,
 		readyToSubmit,
 		type SignOffOutcome,
 		type UnitOASRecord
@@ -29,15 +31,23 @@
 
 	type Step = 'statements' | 'youth' | 'review';
 
+	/** A stage with statements picked, in the order it was first picked from */
+	interface Picked {
+		stage: OASStage;
+		statements: OASStatement[];
+		inputIds: string[];
+	}
+
 	let step = $state<Step>('statements');
 	let allStages = $state<OASStage[]>([]);
 	let showNonCore = $state(false);
 	let selectedStream = $state('');
 	let stage = $state<OASStage | null>(null);
 	let statements = $state<OASStatement[]>([]);
-	let selectedStatements = $state<string[]>([]);
+	// Statements picked on every stage, keyed by template, so moving to another stream keeps them
+	let picked = $state<Record<string, Picked>>({});
 	let youth = $state<MemberSummary[]>([]);
-	let unitRecords = $state.raw(new Map<string, UnitOASRecord>());
+	let unitRecords = $state.raw(new Map<string, Map<string, UnitOASRecord>>());
 	let selectedYouth = $state<string[]>([]);
 	let patrolFilter = $state('');
 	let verifier = $state(recording.defaultVerifier());
@@ -63,16 +73,17 @@
 	// Opened from a stage's analysis on Insights: start with its stage, statements and youth picked
 	async function openFromLink() {
 		const params = page.url.searchParams;
-		const picked = allStages.find((s) => s.templateLink === params.get('template'));
-		if (!picked) return;
+		const fromLink = allStages.find((s) => s.templateLink === params.get('template'));
+		if (!fromLink) return;
 		const list = (name: string) => (params.get(name) ?? '').split(',').filter((id) => id);
-		showNonCore = !isCoreStream(picked.stream.toLowerCase());
-		selectStream(picked.stream);
-		await selectStage(picked);
-		selectedStatements = list('statements').filter((id) =>
-			statements.some((s) => s.inputId === id && canSelect(s))
-		);
-		if (selectedStatements.length === 0) return;
+		showNonCore = !isCoreStream(fromLink.stream.toLowerCase());
+		selectStream(fromLink.stream);
+		await selectStage(fromLink);
+		for (const id of list('statements')) {
+			const statement = statements.find((s) => s.inputId === id);
+			if (statement && !isPicked(statement)) toggleStatement(statement);
+		}
+		if (pickedCount === 0) return;
 		// Moving to the youth step keeps only those who still need something
 		selectedYouth = list('youth');
 		await goToYouth();
@@ -99,23 +110,38 @@
 		stagesForStream.filter((s) => s.stage === option.stage).length > 1
 			? `Stage ${option.stage} · ${option.stageTitle}`
 			: `Stage ${option.stage}`;
-	const stageName = $derived(stage ? `${stage.stream} Stage ${stage.stage}` : '');
+	const nameOfStage = (option: OASStage) => `${option.stream} Stage ${option.stage}`;
+	const stageName = $derived(stage ? nameOfStage(stage) : '');
+	const pickedStages = $derived(Object.values(picked));
+	const pickedCount = $derived(pickedStages.reduce((sum, p) => sum + p.inputIds.length, 0));
+	const pickedName = $derived(
+		pickedStages.length === 1
+			? nameOfStage(pickedStages[0].stage)
+			: plural(pickedStages.length, 'stage')
+	);
+	const pickedInStream = (stream: string) =>
+		pickedStages
+			.filter((p) => p.stage.stream === stream)
+			.reduce((sum, p) => sum + p.inputIds.length, 0);
+	const pickedInStage = (option: OASStage) => picked[option.templateLink]?.inputIds.length ?? 0;
 	const leadersCanVerify = $derived(stage !== null && stage.stage <= MAX_LEADER_VERIFIABLE_STAGE);
 	const canSelect = (statement: OASStatement) => statement.isLogbook || leadersCanVerify;
-	const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? '' : 's'}`;
+	const isPicked = (statement: OASStatement) =>
+		stage !== null && (picked[stage.templateLink]?.inputIds.includes(statement.inputId) ?? false);
+	function plural(count: number, word: string) {
+		return `${count} ${word}${count === 1 ? '' : 's'}`;
+	}
 
 	function selectStream(stream: string) {
 		selectedStream = stream;
 		stage = null;
 		statements = [];
-		selectedStatements = [];
 		message = '';
 	}
 
 	async function selectStage(option: OASStage) {
 		stage = option;
 		statements = [];
-		selectedStatements = [];
 		message = '';
 		loading = true;
 		try {
@@ -128,29 +154,57 @@
 		loading = false;
 	}
 
+	function setPicked(inputIds: string[]) {
+		if (!stage) return;
+		const key = stage.templateLink;
+		if (inputIds.length === 0) {
+			delete picked[key];
+			return;
+		}
+		// Kept in the stage's own order, whatever order they were ticked in
+		const ordered = statements.map((s) => s.inputId).filter((id) => inputIds.includes(id));
+		picked[key] = { stage, statements: $state.snapshot(statements), inputIds: ordered };
+	}
+
 	function toggleStatement(statement: OASStatement) {
-		if (!canSelect(statement)) return;
-		selectedStatements = selectedStatements.includes(statement.inputId)
-			? selectedStatements.filter((id) => id !== statement.inputId)
-			: [...selectedStatements, statement.inputId];
+		if (!stage || !canSelect(statement)) return;
+		const current = picked[stage.templateLink]?.inputIds ?? [];
+		setPicked(
+			current.includes(statement.inputId)
+				? current.filter((id) => id !== statement.inputId)
+				: [...current, statement.inputId]
+		);
 	}
 
 	function selectAllStatements() {
-		selectedStatements = distinct([
-			...selectedStatements,
-			...statements.filter(canSelect).map((s) => s.inputId)
-		]);
+		if (!stage) return;
+		setPicked(
+			distinct([
+				...(picked[stage.templateLink]?.inputIds ?? []),
+				...statements.filter(canSelect).map((s) => s.inputId)
+			])
+		);
+	}
+
+	async function openPicked(option: OASStage) {
+		if (!isCoreStream(option.stream.toLowerCase())) showNonCore = true;
+		selectStream(option.stream);
+		await selectStage(option);
+	}
+
+	function unpick(option: OASStage) {
+		delete picked[option.templateLink];
 	}
 
 	async function goToYouth() {
-		if (!stage || selectedStatements.length === 0) return;
+		if (pickedCount === 0) return;
 		step = 'youth';
 		message = '';
 		await loadYouth();
 	}
 
 	async function loadYouth() {
-		if (!stage || !unitId) return;
+		if (pickedCount === 0 || !unitId) return;
 		loading = true;
 		try {
 			youth = sortBy(
@@ -158,7 +212,10 @@
 				asc((m) => m.firstName),
 				asc((m) => m.lastName)
 			);
-			unitRecords = await recording.loadUnitStage(unitId, stage);
+			const records: [string, Map<string, UnitOASRecord>][] = [];
+			for (const p of pickedStages)
+				records.push([p.stage.templateLink, await recording.loadUnitStage(unitId, p.stage)]);
+			unitRecords = new Map(records);
 		} catch {
 			message = "Couldn't load the unit's youth from Terrain.";
 		}
@@ -167,7 +224,12 @@
 		loading = false;
 	}
 
-	const youthState = (memberId: string) => forYouth(unitRecords.get(memberId), selectedStatements);
+	const recordFor = (memberId: string, option: OASStage) =>
+		unitRecords.get(option.templateLink)?.get(memberId);
+	const youthState = (memberId: string) =>
+		forYouthAcrossStages(
+			pickedStages.map((p) => forYouth(recordFor(memberId, p.stage), p.inputIds))
+		);
 
 	const patrols = $derived(
 		sortBy(
@@ -201,7 +263,9 @@
 	}
 
 	const needsVerifier = $derived(
-		statements.some((s) => selectedStatements.includes(s.inputId) && !s.isLogbook)
+		pickedStages.some((p) =>
+			p.statements.some((s) => p.inputIds.includes(s.inputId) && !s.isLogbook)
+		)
 	);
 	const verifierValid = $derived(
 		!needsVerifier || (verifier.name.trim() !== '' && verifier.contact.trim() !== '')
@@ -218,51 +282,79 @@
 		return m ? `${m.firstName} ${m.lastName}` : '';
 	};
 
-	// One youth at a time: saving switches Terrain to that youth's profile and back
+	// One youth at a time, a stage at a time: saving switches Terrain to that youth's profile and back
 	async function saveAll() {
-		if (!stage || working || !verifierValid) return;
+		if (pickedCount === 0 || working || !verifierValid) return;
 		working = true;
 		message = '';
 		const order = selectedInOrder.map((m) => m.id);
-		const ids = $state.snapshot(selectedStatements);
+		const stages = $state.snapshot(pickedStages);
 		const who = $state.snapshot(verifier);
 		outcomes = Object.fromEntries(
 			order.map((id) => [id, { state: 'Waiting', savedCount: 0, message: '' }])
 		);
 		for (const memberId of order) {
 			outcomes[memberId] = { ...outcomes[memberId], state: 'Saving' };
-			outcomes[memberId] = await recording.signOff(memberId, stage, ids, who);
+			const results: { name: string; outcome: SignOffOutcome }[] = [];
+			for (const p of stages)
+				results.push({
+					name: nameOfStage(p.stage),
+					outcome: await recording.signOff(memberId, p.stage, p.inputIds, who)
+				});
+			outcomes[memberId] = combineOutcomes(results);
 		}
 		working = false;
 		// Pick up what was just saved, so a second round shows it as done
 		await loadYouth();
 	}
 
-	// Youth this round left with every statement ticked, including the logbook
+	// Each youth and stage this round left with every statement ticked, including the logbook
 	const readyForReview = $derived(
-		youth.filter(
-			(m) =>
-				outcomes[m.id]?.state === 'Saved' &&
-				!submitOutcomes[m.id] &&
-				readyToSubmit(
-					unitRecords.get(m.id),
-					statements.map((s) => s.inputId)
-				)
+		youth.flatMap((m) =>
+			outcomes[m.id] && outcomes[m.id].savedCount > 0
+				? pickedStages
+						.filter(
+							(p) =>
+								!submitOutcomes[submitKey(m.id, p.stage)] &&
+								readyToSubmit(
+									recordFor(m.id, p.stage),
+									p.statements.map((s) => s.inputId)
+								)
+						)
+						.map((p) => ({ member: m, stage: p.stage }))
+				: []
+		)
+	);
+	const readyNames = $derived(
+		groupBy(readyForReview, (r) => nameOfStage(r.stage)).map(
+			(g) => `${g.items.map((r) => r.member.firstName).join(', ')} for ${g.key}`
 		)
 	);
 
+	function submitKey(memberId: string, option: OASStage) {
+		return `${memberId}|${option.templateLink}`;
+	}
+
 	async function submitReady() {
-		if (!stage || working) return;
+		if (working) return;
 		working = true;
-		const ready = readyForReview.map((m) => m.id);
-		for (const id of ready) submitOutcomes[id] = { state: 'Waiting', savedCount: 0, message: '' };
-		for (const id of ready) {
-			submitOutcomes[id] = { ...submitOutcomes[id], state: 'Saving' };
-			submitOutcomes[id] = await recording.submitStage(id, stage);
+		const ready = readyForReview.map((r) => ({ key: submitKey(r.member.id, r.stage), ...r }));
+		for (const r of ready) submitOutcomes[r.key] = { state: 'Waiting', savedCount: 0, message: '' };
+		for (const r of ready) {
+			submitOutcomes[r.key] = { ...submitOutcomes[r.key], state: 'Saving' };
+			submitOutcomes[r.key] = await recording.submitStage(r.member.id, r.stage);
 		}
 		working = false;
 		await loadYouth();
 	}
+
+	const submittedName = (key: string) => {
+		const [memberId, templateLink] = key.split('|');
+		const option = allStages.find((s) => s.templateLink === templateLink);
+		return pickedStages.length > 1 && option
+			? `${nameOf(memberId)} · ${nameOfStage(option)}`
+			: nameOf(memberId);
+	};
 
 	function moreYouth() {
 		selectedYouth = [];
@@ -273,7 +365,7 @@
 
 	function startAgain() {
 		selectedYouth = [];
-		selectedStatements = [];
+		picked = {};
 		outcomes = {};
 		submitOutcomes = {};
 		patrolFilter = '';
@@ -332,7 +424,10 @@
 					type="button"
 					class="btn chip {stream === selectedStream ? 'btn-primary' : 'btn-outline-primary'}"
 					disabled={loading}
-					onclick={() => selectStream(stream)}>{stream}</button
+					onclick={() => selectStream(stream)}
+					>{stream}{#if pickedInStream(stream) > 0}<span class="picked-count"
+							>{pickedInStream(stream)}<span class="visually-hidden"> picked</span></span
+						>{/if}</button
 				>
 			{/each}
 			<button
@@ -353,7 +448,10 @@
 							? 'btn-primary'
 							: 'btn-outline-primary'}"
 						disabled={loading}
-						onclick={() => selectStage(option)}>{stageButtonText(option)}</button
+						onclick={() => selectStage(option)}
+						>{stageButtonText(option)}{#if pickedInStage(option) > 0}<span class="picked-count"
+								>{pickedInStage(option)}<span class="visually-hidden"> picked</span></span
+							>{/if}</button
 					>
 				{/each}
 			</div>
@@ -389,7 +487,7 @@
 						<input
 							type="checkbox"
 							class="form-check-input"
-							checked={selectedStatements.includes(statement.inputId)}
+							checked={isPicked(statement)}
 							disabled={!canSelect(statement)}
 							onchange={() => toggleStatement(statement)}
 						/>
@@ -399,18 +497,46 @@
 			{/each}
 		{/if}
 
+		{#if pickedStages.length > 0}
+			<div class="card picked">
+				<strong>Picked</strong>
+				{#each pickedStages as p (p.stage.templateLink)}
+					<div class="picked-row">
+						<button
+							type="button"
+							class="btn btn-link btn-sm grow"
+							disabled={loading}
+							onclick={() => openPicked(p.stage)}
+							>{nameOfStage(p.stage)} · {plural(p.inputIds.length, 'statement')}</button
+						>
+						<button
+							type="button"
+							class="btn btn-link btn-sm text-danger"
+							aria-label="Remove {nameOfStage(p.stage)}"
+							onclick={() => unpick(p.stage)}><Icon name="x" /></button
+						>
+					</div>
+				{/each}
+				{#if pickedStages.length === 1}
+					<div class="small muted">
+						Pick statements from other streams or stages too, if you like.
+					</div>
+				{/if}
+			</div>
+		{/if}
+
 		<div class="action-bar">
-			<span class="small muted">{plural(selectedStatements.length, 'statement')}</span>
+			<span class="small muted">{plural(pickedCount, 'statement')}</span>
 			<button
 				type="button"
 				class="btn btn-primary"
-				disabled={selectedStatements.length === 0 || loading}
+				disabled={pickedCount === 0 || loading}
 				onclick={goToYouth}>Choose youth</button
 			>
 		</div>
 	{:else if step === 'youth'}
 		<div class="small muted subtitle">
-			{stageName} · {plural(selectedStatements.length, 'statement')}
+			{pickedName} · {plural(pickedCount, 'statement')}
 		</div>
 
 		{#if loading}
@@ -456,11 +582,13 @@
 						<small class="detail muted">
 							{member.patrolName}
 							{#if state.state === 'AlreadyDone'}
-								· already has {selectedStatements.length === 1 ? 'it' : 'these'}
+								· already has {pickedCount === 1 ? 'it' : 'these'}
 							{:else if state.state === 'Locked'}
-								· {statusDisplay(state.status)}, can't change
-							{:else if state.toAddCount < selectedStatements.length}
-								· {state.toAddCount} of {selectedStatements.length} new
+								· {pickedStages.length === 1
+									? `${statusDisplay(state.status)}, can't change`
+									: 'nothing to add that can be changed'}
+							{:else if state.toAddCount < pickedCount}
+								· {state.toAddCount} of {pickedCount} new
 							{/if}
 						</small>
 					</span>
@@ -486,12 +614,14 @@
 		</div>
 	{:else if outcomeList.length === 0}
 		<div class="card review">
-			<strong>{stageName}</strong>
-			<ul class="small">
-				{#each statements.filter( (s) => selectedStatements.includes(s.inputId) ) as statement (statement.inputId)}
-					<li>{statement.label}</li>
-				{/each}
-			</ul>
+			{#each pickedStages as p (p.stage.templateLink)}
+				<strong>{nameOfStage(p.stage)}</strong>
+				<ul class="small">
+					{#each p.statements.filter( (s) => p.inputIds.includes(s.inputId) ) as statement (statement.inputId)}
+						<li>{statement.label}</li>
+					{/each}
+				</ul>
+			{/each}
 			<strong>For {selectedYouth.length} youth</strong>
 			<div class="small">
 				{selectedInOrder.map((m) => `${m.firstName} ${m.lastName}`).join(', ')}
@@ -533,7 +663,7 @@
 		</div>
 	{:else}
 		<div class="progress-heading">
-			<strong>{stageName}</strong>
+			<strong>{pickedName}</strong>
 			<div class="bar">
 				<div style:width="{(100 * outcomeList.filter(settled).length) / outcomeList.length}%"></div>
 			</div>
@@ -565,9 +695,7 @@
 				<div class="card ready">
 					<strong>Ready for the Unit Council</strong>
 					<div class="small">
-						{readyForReview.map((m) => m.firstName).join(', ')} now {readyForReview.length === 1
-							? 'has'
-							: 'have'} every statement for {stageName}, including the logbook.
+						Every statement, including the logbook, is now done by {readyNames.join('; ')}.
 					</div>
 					<button type="button" class="btn btn-success" disabled={working} onclick={submitReady}
 						>Submit {readyForReview.length} for review</button
@@ -576,11 +704,11 @@
 			{/if}
 			{#if Object.keys(submitOutcomes).length > 0}
 				<div class="strong submitting">Submitting for review</div>
-				{#each Object.entries(submitOutcomes) as [memberId, outcome] (memberId)}
+				{#each Object.entries(submitOutcomes) as [key, outcome] (key)}
 					<div class="result-row">
 						{@render resultIcon(outcome)}
 						<span class="grow">
-							{nameOf(memberId)}
+							{submittedName(key)}
 							<small class="detail muted">
 								{#if outcome.state === 'Saved'}Submitted for review
 								{:else if outcome.state === 'Saving'}Submitting...
@@ -607,6 +735,34 @@
 </div>
 
 <style>
+	.picked-count {
+		display: inline-block;
+		min-width: 1.4em;
+		margin-left: 0.4em;
+		padding: 0 0.35em;
+		border-radius: 999px;
+		background: var(--warning, #f0ad4e);
+		color: #000;
+		font-size: 0.75em;
+		font-weight: 600;
+		line-height: 1.4;
+	}
+
+	.picked {
+		margin: 1rem 0 0;
+	}
+
+	.picked-row {
+		display: flex;
+		align-items: center;
+	}
+
+	.picked-row .btn.grow {
+		justify-content: flex-start;
+		text-align: left;
+		padding-left: 0;
+	}
+
 	.chip-more {
 		min-height: 40px;
 		padding-left: 0.25rem;

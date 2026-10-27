@@ -1,7 +1,9 @@
 // Ported from the C# OASSignOffTests
 import { describe, expect, it } from 'vitest';
 import {
+	combineOutcomes,
 	forYouth,
+	forYouthAcrossStages,
 	latestByMember,
 	readyToSubmit,
 	type UnitOASRecord
@@ -80,5 +82,49 @@ describe('OAS sign off', () => {
 		expect(latest.get('y1')!.status).toBe('awarded');
 		expect(latest.get('y2')!.status).toBe('draft_review');
 		expect(latest.has('y3')).toBe(false);
+	});
+
+	it('combines a youth across several stages', () => {
+		const toAdd = { state: 'ToAdd', status: '', toAddCount: 2 } as const;
+		const done = { state: 'AlreadyDone', status: 'in_progress', toAddCount: 0 } as const;
+		const locked = { state: 'Locked', status: 'awarded', toAddCount: 0 } as const;
+
+		expect(forYouthAcrossStages([locked, toAdd, { ...toAdd, toAddCount: 1 }])).toEqual({
+			state: 'ToAdd',
+			status: '',
+			toAddCount: 3
+		});
+		expect(forYouthAcrossStages([locked, locked]).state).toBe('Locked');
+		expect(forYouthAcrossStages([locked, done]).state).toBe('AlreadyDone');
+	});
+
+	it('combines the outcomes of saving several stages', () => {
+		const saved = (savedCount: number) => ({ state: 'Saved', savedCount, message: '' }) as const;
+		const skipped = { state: 'Skipped', savedCount: 0, message: 'Already had these.' } as const;
+		const failed = { state: 'Failed', savedCount: 0, message: 'Terrain said no.' } as const;
+
+		expect(combineOutcomes([{ name: 'A', outcome: failed }])).toEqual(failed);
+		expect(
+			combineOutcomes([
+				{ name: 'A', outcome: saved(2) },
+				{ name: 'B', outcome: skipped }
+			])
+		).toEqual(saved(2));
+		expect(
+			combineOutcomes([
+				{ name: 'A', outcome: skipped },
+				{ name: 'B', outcome: skipped }
+			])
+		).toEqual(skipped);
+		expect(
+			combineOutcomes([
+				{ name: 'Camping Stage 2', outcome: saved(1) },
+				{ name: 'Bushwalking Stage 4', outcome: failed }
+			])
+		).toEqual({
+			state: 'Failed',
+			savedCount: 1,
+			message: 'Saved 1, but Bushwalking Stage 4: Terrain said no.'
+		});
 	});
 });
