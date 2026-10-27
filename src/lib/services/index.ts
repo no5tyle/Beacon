@@ -30,5 +30,6 @@ export const activities = new ActivitiesService(app);
 app.onReset(() => {
 	members.clear();
 	unitProgress.clear();
+	insights.clear();
 	approvalsBadge.clear();
 });
