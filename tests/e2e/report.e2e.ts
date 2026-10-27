@@ -45,6 +45,7 @@ test("a youth's details open their own report, and the note prints but isn't kep
 	await fakeTerrain(page);
 	await logIn(page);
 	await navigate(page, 'progress/unit-1-m0/');
+	await page.getByRole('button', { name: 'Options' }).click();
 	await page.getByRole('link', { name: 'Progress report to print' }).click();
 	await expect(page.locator('.report')).toHaveCount(1);
 	await expect(page.locator('.report-name')).toHaveText('Ava Nguyen');
