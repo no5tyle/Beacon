@@ -25,11 +25,11 @@ describe('navigation', () => {
 		expect(mainPages(youth).map((p) => p.shortTitle)).toEqual(['Progress', 'Reference']);
 	});
 
-	it('puts Info, Approvals (leaders only) and Logout under More, with logging left to the version', () => {
-		expect(morePages(leader).map((p) => p.title)).toEqual(['Info', 'Approvals', 'Logout']);
+	it('puts Approvals (leaders only), Info and Logout under More, with logging left to the version', () => {
+		expect(morePages(leader).map((p) => p.title)).toEqual(['Approvals', 'Info', 'Logout']);
 		expect(morePages({ ...leader, logging: true }).map((p) => p.title)).toEqual([
-			'Info',
 			'Approvals',
+			'Info',
 			'Logout'
 		]);
 		expect(morePages(youth).map((p) => p.title)).toEqual(['Info', 'Logout']);
@@ -68,14 +68,14 @@ describe('navigation', () => {
 		it('put Progress under More for leaders, to keep the tab bar roomy', () => {
 			expect(titles(phoneTabs(leader, '/insights/'))).toEqual({
 				main: ['Insights', 'Record', 'Reference'],
-				more: ['Progress', 'Info', 'Approvals', 'Logout']
+				more: ['Progress', 'Approvals', 'Info', 'Logout']
 			});
 		});
 
 		it('swap the open page from More into the bar, and Reference into More', () => {
 			expect(titles(phoneTabs(leader, '/progress/m1/'))).toEqual({
 				main: ['Insights', 'Record', 'Progress'],
-				more: ['Reference', 'Info', 'Approvals', 'Logout']
+				more: ['Reference', 'Approvals', 'Info', 'Logout']
 			});
 			expect(titles(phoneTabs(leader, '/approvals/'))).toEqual({
 				main: ['Insights', 'Record', 'Approvals'],

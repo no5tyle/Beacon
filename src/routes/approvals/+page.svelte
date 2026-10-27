@@ -642,7 +642,7 @@
 				aria-selected={tab === 'waiting'}
 				onclick={() => showTab('waiting')}
 				>Waiting{#if pending.length > 0}
-					<span class="badge tab-count">{pending.length}</span>{/if}</button
+					<span class="badge">{pending.length}</span>{/if}</button
 			>
 			<button
 				type="button"
@@ -746,10 +746,6 @@
 
 	.summary {
 		margin-bottom: 0.75rem;
-	}
-
-	.tab-count {
-		margin-left: 0.25rem;
 	}
 
 	.history-title {

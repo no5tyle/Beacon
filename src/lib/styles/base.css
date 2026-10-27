@@ -390,10 +390,16 @@ small {
 	-webkit-tap-highlight-color: transparent;
 }
 
+.tabs button,
 .tabs a {
 	display: flex;
 	align-items: center;
 	justify-content: center;
+}
+
+/* A count beside a tab's name, centred on the text rather than sitting on its baseline */
+.tabs .badge {
+	margin-left: 0.35em;
 }
 
 .tabs button[aria-selected='true'],
