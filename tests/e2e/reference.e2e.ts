@@ -118,10 +118,7 @@ test('printed while signed in, every stage has its counts', async ({ page }) => 
 	await expect(page.locator('.unit-count').first()).toBeVisible();
 });
 
-test('printed with names, each statement lists the youth without it', async ({
-	page,
-	isMobile
-}) => {
+test('printed with names, each statement lists the youth without it', async ({ page }) => {
 	await fakeTerrain(page);
 	await logIn(page);
 	await navigate(page, 'oas-reference/?stream=bushwalking&stage=4');
