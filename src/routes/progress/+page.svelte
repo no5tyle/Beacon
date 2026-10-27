@@ -1,15 +1,45 @@
 <!-- Progress: the unit's youth, each opening their progress details -->
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import ChooseUnit from '#lib/components/ChooseUnit.svelte';
 	import { pullToRefresh } from '#lib/actions/pullToRefresh.js';
 	import { asc, sortBy } from '#lib/model/util.js';
 	import { pagePath } from '#lib/paths.js';
-	import { app, members } from '#lib/services/index.js';
+	import { peakAwardBreakdown } from '#lib/model/insights/insightsCalculator.js';
+	import { rulesFor } from '#lib/model/insights/settings.js';
+	import { app, members, unitProgress } from '#lib/services/index.js';
 	import type { MemberSummary } from '#lib/services/members.js';
+	import { readInsightsSettings } from '#lib/stores/storage.js';
 
 	let youth = $state<MemberSummary[]>([]);
 	let loading = $state(false);
 	let message = $state('');
+	// Each youth's award progress, once the unit's progress is loaded (by Insights, or in the background).
+	// Nothing is loaded just for this
+	let percents = $state<Record<string, number>>({});
+	const rules = $derived(rulesFor(readInsightsSettings(), app.section));
+
+	async function loadPercents(unitId: string) {
+		const loaded = unitProgress.loadProgress(unitId);
+		const finished = loaded.total > 0 && loaded.done === loaded.total;
+		if (!unitProgress.isCached(unitId) && !finished) return;
+		const all = await unitProgress.get(unitId);
+		if (unitId !== app.unitId) return;
+		percents = Object.fromEntries(
+			all.map((p) => [
+				p.memberId,
+				Math.round(peakAwardBreakdown(p, rules).reduce((total, c) => total + c.earned, 0))
+			])
+		);
+	}
+
+	$effect(() => {
+		percents = {};
+		if (app.unitId) loadPercents(app.unitId);
+	});
+
+	// The background load may finish while the list is open
+	onMount(() => unitProgress.onProgress(() => app.unitId && loadPercents(app.unitId)));
 
 	async function load(unitId: string) {
 		loading = true;
@@ -66,6 +96,13 @@
 					<a class="card row-link youth" href={pagePath(`progress/${member.id}/`)}>
 						<div class="grow">
 							<div class="strong">{member.firstName} {members.lastName(member)}</div>
+							{#if percents[member.id] !== undefined}
+								<div class="award">
+									<span class="award-track"><span style:width="{percents[member.id]}%"></span></span
+									>
+									<span class="small muted">{rules.peakAwardName} {percents[member.id]}%</span>
+								</div>
+							{/if}
 							<dl>
 								<div>
 									<dt>Member Number</dt>
@@ -126,6 +163,28 @@
 
 	dd {
 		margin: 0;
+	}
+
+	.award {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		margin-top: 0.15rem;
+	}
+
+	.award-track {
+		flex-shrink: 0;
+		width: 4rem;
+		height: 6px;
+		border-radius: 3px;
+		background: var(--surface-3);
+		overflow: hidden;
+	}
+
+	.award-track span {
+		display: block;
+		height: 100%;
+		background: var(--success);
 	}
 
 	.chevron {
