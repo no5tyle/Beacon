@@ -107,16 +107,17 @@ test('Beacon Reference has its own web app manifest', async ({ page }) => {
 test.describe('phone', () => {
 	test.skip(({ isMobile }) => !isMobile, 'phone layout only');
 
-	test('signed out, shows Beacon and the Reference but no tabs', async ({ page }) => {
+	test('signed out, the tabs are Login and the Reference', async ({ page }) => {
 		await page.goto('login/');
-		await expect(page.locator('.top-bar')).toBeVisible();
-		await expect(page.locator('.top-action')).toHaveText(/Reference/);
-		await expect(page.locator('.tab-bar')).toHaveCount(0);
+		await expect(page.locator('.tab-bar .tab-label')).toHaveText(['Login', 'Reference']);
+		await expect(page.locator('.tab-bar .tab.active')).toHaveText('Login');
+		await page.locator('.tab-bar a', { hasText: 'Reference' }).click();
+		await expect(page).toHaveURL(/\/oas-reference\/$/);
+		await expect(page.locator('.tab-bar .tab.active')).toHaveText('Reference');
 	});
 
 	test('tab bar moves between pages and shows the current one', async ({ page }) => {
 		await logIn(page);
-		await expect(page.locator('.top-bar')).toHaveCount(0);
 		// The labels: More also carries the approvals badge
 		const tabs = page.locator('.tab-bar .tab .tab-label');
 		await expect(tabs).toHaveText(['Insights', 'Record', 'Reference', 'More']);
@@ -169,7 +170,7 @@ test.describe('phone', () => {
 
 		await page.locator('.more-item', { hasText: 'Logout' }).click();
 		await expect(page).toHaveURL(/\/login\/$/);
-		await expect(page.locator('.tab-bar')).toHaveCount(0);
+		await expect(page.locator('.tab-bar .tab-label')).toHaveText(['Login', 'Reference']);
 		await page.goto('insights/');
 		await expect(page, 'signed out pages go to the login').toHaveURL(/\/login\/$/);
 	});

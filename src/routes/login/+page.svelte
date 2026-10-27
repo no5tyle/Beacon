@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount, tick } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { asset } from '$app/paths';
 	import InstallHint from '#lib/components/InstallHint.svelte';
 	import { watchLoginAutofill } from '#lib/loginAutofill.js';
 	import { pagePath } from '#lib/paths.js';
@@ -75,103 +76,135 @@
 	<title>Beacon / Login</title>
 </svelte:head>
 
-<h2>Log in to Beacon</h2>
-<p class="muted">Use your Scouts Australia member number and Terrain password.</p>
+<div class="login-page">
+	<header class="hero">
+		<img class="app-icon" src={asset('icon-192.png')} width="60" height="60" alt="" />
+		<h2>Log in to Beacon</h2>
+		<p class="muted">Use your Scouts Australia member number and Terrain password.</p>
+	</header>
 
-<InstallHint />
+	<InstallHint />
 
-<form class="login" onsubmit={logIn}>
-	<div class="field">
-		<label class="form-label" for="branch">Branch</label>
-		<select id="branch" class="form-select" bind:this={branchField} bind:value={branch}>
-			<option value="">Select branch</option>
-			{#each BRANCHES as name (name)}
-				<option value={name.toLowerCase()}>{name}</option>
-			{/each}
-		</select>
-	</div>
-	<div class="field">
-		<label class="form-label" for="memberNumber">Member Number</label>
-		<input
-			id="memberNumber"
-			class="form-control"
-			placeholder="Member Number"
-			autocomplete="username"
-			inputmode="numeric"
-			bind:this={memberField}
-		/>
-	</div>
-	<div class="field">
-		<label class="form-label" for="password">Password</label>
-		<input
-			id="password"
-			class="form-control"
-			type="password"
-			placeholder="Password"
-			autocomplete="current-password"
-			bind:this={passwordField}
-		/>
-	</div>
-	{#if error}
-		<div class="alert alert-danger" role="alert">{error}</div>
-	{:else if app.sessionExpired}
-		<div class="alert alert-info" role="status">
-			Your Terrain login expired. Log in again to carry on.
+	<form class="card login" onsubmit={logIn}>
+		<div class="field">
+			<label class="form-label" for="branch">Branch</label>
+			<select id="branch" class="form-select" bind:this={branchField} bind:value={branch}>
+				<option value="">Select branch</option>
+				{#each BRANCHES as name (name)}
+					<option value={name.toLowerCase()}>{name}</option>
+				{/each}
+			</select>
 		</div>
-	{/if}
-	<button id="logIn" type="submit" class="btn btn-primary" disabled={loggingIn}>
-		{loggingIn ? 'Logging in...' : 'Log In'}
-	</button>
+		<div class="field">
+			<label class="form-label" for="memberNumber">Member Number</label>
+			<input
+				id="memberNumber"
+				class="form-control"
+				placeholder="Member Number"
+				autocomplete="username"
+				inputmode="numeric"
+				bind:this={memberField}
+			/>
+		</div>
+		<div class="field">
+			<label class="form-label" for="password">Password</label>
+			<input
+				id="password"
+				class="form-control"
+				type="password"
+				placeholder="Password"
+				autocomplete="current-password"
+				bind:this={passwordField}
+			/>
+		</div>
+		{#if error}
+			<div class="alert alert-danger" role="alert">{error}</div>
+		{:else if app.sessionExpired}
+			<div class="alert alert-info" role="status">
+				Your Terrain login expired. Log in again to carry on.
+			</div>
+		{/if}
+		<button id="logIn" type="submit" class="btn btn-primary log-in" disabled={loggingIn}>
+			{loggingIn ? 'Logging in...' : 'Log In'}
+		</button>
+	</form>
+
 	<p class="small muted privacy">
 		Your password goes only to Terrain and is never saved.
 		<a href="https://github.com/no5tyle/Beacon/blob/main/PRIVACY.md" target="_blank" rel="noopener"
 			>How Beacon handles your information</a
 		>
 	</p>
-</form>
 
-{#if showDiagnostics}
-	<pre class="diagnostics">{diagnostics.join('\n')}</pre>
-{/if}
-<button type="button" class="version" onclick={() => (showDiagnostics = !showDiagnostics)}>
-	Beacon version {VERSION}
-</button>
+	<!-- Tapping the version shows what the login fields heard, to help track down a password manager
+	     fill that isn't picked up -->
+	<button type="button" class="version" onclick={() => (showDiagnostics = !showDiagnostics)}>
+		Beacon version {VERSION}
+	</button>
+	{#if showDiagnostics}
+		<pre class="diagnostics">{diagnostics.join('\n')}</pre>
+	{/if}
+</div>
 
 <style>
-	.login {
+	/* A narrow column, like a sign in sheet: centred on phones, beside the sidebar on wider screens */
+	.login-page {
 		max-width: 26rem;
+		margin: 0 auto;
 	}
 
-	/* Version at the bottom of the screen, clear of the iPhone home indicator. Tapping it shows what the
-	   login fields heard, to help track down a password manager fill that isn't picked up */
-	.privacy {
+	.hero {
+		margin: 0 0 1rem;
+		text-align: center;
+	}
+
+	.app-icon {
+		display: block;
+		width: 60px;
+		height: 60px;
+		margin: 0 auto 0.6rem;
+		border-radius: 22%;
+		box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+	}
+
+	.hero h2 {
+		margin-bottom: 0.25rem;
+	}
+
+	.hero p {
+		margin: 0;
+	}
+
+	.login {
 		margin-top: 1rem;
 	}
 
+	.log-in {
+		width: 100%;
+		margin-top: 0.25rem;
+	}
+
+	.privacy {
+		margin: 0.75rem 0.25rem 0;
+		text-align: center;
+	}
+
 	.version {
-		position: fixed;
-		left: 0;
-		right: 0;
-		bottom: 0;
-		padding: 0.5rem 1rem max(env(safe-area-inset-bottom), 0.5rem);
+		display: block;
+		margin: 1.5rem auto 0;
+		padding: 0.5rem 1rem;
 		border: 0;
 		background: none;
 		color: var(--faint);
 		font: inherit;
 		font-size: 0.75rem;
-		text-align: center;
 		cursor: pointer;
 	}
 
 	.diagnostics {
-		position: fixed;
-		left: 0.5rem;
-		right: 0.5rem;
-		bottom: 2.5rem;
-		z-index: 20;
 		max-height: 45vh;
 		overflow: auto;
-		margin: 0;
+		margin: 0.5rem 0 0;
 		padding: 0.5rem;
 		border: 1px solid var(--border);
 		border-radius: var(--radius);
@@ -179,11 +212,5 @@
 		color: var(--text);
 		font-size: 0.7rem;
 		white-space: pre-wrap;
-	}
-
-	@media (min-width: 641px) {
-		.version {
-			left: 250px;
-		}
 	}
 </style>
