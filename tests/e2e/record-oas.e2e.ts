@@ -99,3 +99,56 @@ test('saves to a record that has no last_updated, without sending one', async ({
 	expect(save?.body).not.toHaveProperty('last_updated');
 	expect(save?.body).toMatchObject({ answers: { bushcraft_1_knots: true } });
 });
+
+test('ticks on several stages are kept, and saved together', async ({ page }) => {
+	const terrain = await fakeTerrain(page);
+	await logIn(page);
+	await navigate(page, 'progress/unit-1-m3/record-oas/');
+	await page.selectOption('#stage', { label: 'Camping 1' });
+	await page.getByLabel('I can tie a reef knot and a clove hitch.').check();
+	await page.selectOption('#stage', { label: 'Bushwalking 1' });
+	await page.getByLabel('I can tie a reef knot and a clove hitch.').check();
+	await page.getByLabel('I can treat a blister and a minor cut with first aid.').check();
+
+	// Back on Camping 1, its tick is still there
+	await page.selectOption('#stage', { label: 'Camping 1 · 1 ticked' });
+	await expect(page.getByLabel('I can tie a reef knot and a clove hitch.')).toBeChecked();
+	await expect(page.locator('.picked-row')).toHaveText([
+		/Bushwalking Stage 1 · 2 statements/,
+		/Camping Stage 1 · 1 statement/
+	]);
+
+	await page.getByRole('button', { name: 'Save 3 to Terrain' }).click();
+	await expect(page.locator('.confirm-box')).toContainText('to 2 stages');
+	await page.getByRole('button', { name: 'Yes, save' }).click();
+	await expect(page.locator('.alert-success')).toHaveText('Saved 3 statements to Terrain.');
+	await expect(page.locator('.picked')).toHaveCount(0);
+	await expect(page.getByText('1 of 7 done in Terrain')).toBeVisible();
+	const created = terrain.writes.filter(
+		(w) => w.request === 'POST achievements/members/unit-1-m3/achievements'
+	);
+	expect(created).toHaveLength(2);
+});
+
+test('ticks can be cleared for a stage, a stream, or all of them', async ({ page }) => {
+	await fakeTerrain(page);
+	await logIn(page);
+	await navigate(page, 'progress/unit-1-m3/record-oas/');
+	for (const stage of ['Camping 1', 'Camping 2', 'Bushwalking 1']) {
+		await page.selectOption('#stage', { label: stage });
+		await page.getByLabel('I can tie a reef knot and a clove hitch.').check();
+	}
+	await expect(page.getByRole('button', { name: 'Save 3 to Terrain' })).toBeVisible();
+
+	await page.getByRole('button', { name: 'Clear Camping' }).click();
+	await expect(page.locator('.picked-row')).toHaveText([/Bushwalking Stage 1/]);
+	await page.selectOption('#stage', { label: 'Camping 2' });
+	await expect(page.getByLabel('I can tie a reef knot and a clove hitch.')).not.toBeChecked();
+
+	await page.getByRole('button', { name: 'Remove Bushwalking Stage 1' }).click();
+	await expect(page.locator('.picked')).toHaveCount(0);
+
+	await page.getByLabel('I can tie a reef knot and a clove hitch.').check();
+	await page.getByRole('button', { name: 'Clear all' }).click();
+	await expect(page.getByRole('button', { name: 'Save 0 to Terrain' })).toBeDisabled();
+});

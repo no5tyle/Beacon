@@ -17,6 +17,7 @@
 		type OASStatement
 	} from '#lib/model/oas/recording.js';
 	import type { OASStage } from '#lib/model/oas/templates.js';
+	import PickedStages from '#lib/components/PickedStages.svelte';
 	import { asc, groupBy, sortBy } from '#lib/model/util.js';
 	import { pagePath } from '#lib/paths.js';
 	import { app, members, oas, recording } from '#lib/services/index.js';
@@ -31,8 +32,9 @@
 	let loadingStages = $state(true);
 	let showNonCoreOAS = $state(false);
 	let selectedTemplateLink = $state('');
-	let record = $state<OASRecordingState | null>(null);
-	let ticked = $state<string[]>([]);
+	// Each stage opened, and what's ticked on it, so moving to another stage or stream keeps the ticks
+	let records = $state<Record<string, OASRecordingState>>({});
+	let ticks = $state<Record<string, string[]>>({});
 	let verifier = $state(recording.defaultVerifier());
 	let loading = $state(false);
 	let confirmingSave = $state(false);
@@ -84,20 +86,61 @@
 	);
 
 	async function loadStage() {
-		record = null;
-		ticked = [];
 		confirmingSave = false;
 		confirmingSubmit = false;
 		const stage = allStages.find((s) => s.templateLink === selectedTemplateLink);
-		if (!stage) return;
+		if (!stage || records[stage.templateLink]) return;
 		loading = true;
+		await reload(stage);
+		loading = false;
+	}
+
+	async function reload(stage: OASStage) {
 		try {
-			record = await recording.loadStage(memberId, stage);
+			records[stage.templateLink] = await recording.loadStage(memberId, stage);
 		} catch {
 			showMessage("Couldn't load this stage from Terrain.", true);
 		}
-		loading = false;
 	}
+
+	const record = $derived(records[selectedTemplateLink] ?? null);
+	const ticked = $derived(ticks[selectedTemplateLink] ?? []);
+	// Every stage with something ticked
+	const tickedStages = $derived(
+		sortBy(
+			Object.entries(ticks)
+				.filter(([key, ids]) => ids.length > 0 && records[key])
+				.map(([key, ids]) => ({
+					state: records[key],
+					statements: records[key].statements.filter((s) => ids.includes(s.inputId))
+				})),
+			asc((t) => t.state.stage.stream),
+			asc((t) => t.state.stage.stage)
+		)
+	);
+	const tickedCount = $derived(tickedStages.reduce((n, t) => n + t.statements.length, 0));
+
+	function setTicked(ids: string[]) {
+		if (ids.length === 0) delete ticks[selectedTemplateLink];
+		else ticks[selectedTemplateLink] = ids;
+		confirmingSave = false;
+	}
+
+	function clearTicks(stages: OASStage[]) {
+		for (const stage of stages) delete ticks[stage.templateLink];
+		confirmingSave = false;
+	}
+
+	async function openStage(stage: OASStage) {
+		if (!isCoreStream(stage.stream.toLowerCase())) showNonCoreOAS = true;
+		selectedTemplateLink = stage.templateLink;
+		await loadStage();
+	}
+
+	const optionText = (option: OASStage) => {
+		const count = ticks[option.templateLink]?.length ?? 0;
+		return count > 0 ? `${option.selectListItemText} · ${count} ticked` : option.selectListItemText;
+	};
 
 	const status = $derived(record ? recordStatus(record) : '');
 	const canEdit = $derived(record !== null && isEditable(status));
@@ -106,7 +149,6 @@
 	);
 	const canTick = (statement: OASStatement) =>
 		canEdit && !statement.alreadyDone && (statement.isLogbook || canVerifyStatements);
-	const newlyTicked = $derived(record?.statements.filter((s) => ticked.includes(s.inputId)) ?? []);
 	const verifierValid = $derived(verifier.name.trim() !== '' && verifier.contact.trim() !== '');
 	const readyToSubmit = $derived(
 		record !== null &&
@@ -116,9 +158,17 @@
 			allComplete(record.statements) &&
 			canReceiveCredit(record.stage.stage, record.completedStagesInStream)
 	);
-	const stageTitle = $derived(record ? `${record.stage.stream} Stage ${record.stage.stage}` : '');
+	const titleOf = (state: OASRecordingState) => `${state.stage.stream} Stage ${state.stage.stage}`;
+	const stageTitle = $derived(record ? titleOf(record) : '');
+	const savingTo = $derived(
+		tickedStages.length === 1
+			? titleOf(tickedStages[0].state)
+			: plural(tickedStages.length, 'stage')
+	);
 	const doneCount = $derived(record?.statements.filter((s) => s.alreadyDone).length ?? 0);
-	const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? '' : 's'}`;
+	function plural(count: number, word: string) {
+		return `${count} ${word}${count === 1 ? '' : 's'}`;
+	}
 
 	function statusDisplay(value: string): string {
 		switch (value) {
@@ -143,39 +193,53 @@
 	}
 
 	function toggle(statement: OASStatement, on: boolean) {
-		ticked = on ? [...ticked, statement.inputId] : ticked.filter((id) => id !== statement.inputId);
-		confirmingSave = false;
+		setTicked(
+			on ? [...ticked, statement.inputId] : ticked.filter((id) => id !== statement.inputId)
+		);
 	}
 
 	function tickAllRemaining() {
 		const remaining = (record?.statements ?? []).filter(canTick).map((s) => s.inputId);
-		ticked = [...new Set([...ticked, ...remaining])];
-		confirmingSave = false;
+		setTicked([...new Set([...ticked, ...remaining])]);
 	}
+
+	const needsVerifier = $derived(tickedStages.some((t) => t.statements.some((s) => !s.isLogbook)));
 
 	function startSave() {
 		message = '';
-		if (newlyTicked.length === 0) return showMessage('Tick at least one statement first.', true);
-		if (newlyTicked.some((s) => !s.isLogbook) && !verifierValid)
+		if (tickedCount === 0) return showMessage('Tick at least one statement first.', true);
+		if (needsVerifier && !verifierValid)
 			return showMessage("Enter the verifier's name and email or phone.", true);
 		confirmingSave = true;
 	}
 
+	// A stage at a time; each one saved is read again from Terrain and its ticks cleared
 	async function confirmSave() {
-		if (!record || working) return;
+		if (tickedCount === 0 || working) return;
 		working = true;
-		const count = newlyTicked.length;
-		const result = await recording.saveVerifications(record, $state.snapshot(newlyTicked), {
-			...verifier
-		});
+		let saved = 0;
+		const failures: string[] = [];
+		for (const { state, statements } of $state.snapshot(tickedStages)) {
+			const result = await recording.saveVerifications(state, statements, { ...verifier });
+			if (result.success) {
+				saved += statements.length;
+				delete ticks[state.stage.templateLink];
+				await reload(state.stage);
+			} else {
+				const failure = failureMessage('save', result);
+				failures.push(tickedStages.length > 1 ? `${titleOf(state)}: ${failure}` : failure);
+			}
+		}
 		working = false;
 		confirmingSave = false;
-		if (result.success) {
-			await loadStage();
-			showMessage(`Saved ${plural(count, 'statement')} to Terrain.`, false);
-		} else {
-			showMessage(failureMessage('save', result), true);
-		}
+		if (failures.length === 0)
+			showMessage(`Saved ${plural(saved, 'statement')} to Terrain.`, false);
+		else
+			showMessage(
+				(saved > 0 ? `Saved ${plural(saved, 'statement')}, but not the rest. ` : '') +
+					failures.join(' '),
+				true
+			);
 	}
 
 	function startSubmit() {
@@ -190,7 +254,7 @@
 		working = false;
 		confirmingSubmit = false;
 		if (result.success) {
-			await loadStage();
+			await reload(record.stage);
 			showMessage('Submitted. It now needs approval by the Unit Council in Terrain.', false);
 		} else {
 			showMessage(failureMessage('submit', result), true);
@@ -231,7 +295,7 @@
 		>
 			<option value="">{loadingStages ? 'Loading stages...' : 'Select a stage'}</option>
 			{#each stageOptions as option (option.templateLink)}
-				<option value={option.templateLink}>{option.selectListItemText}</option>
+				<option value={option.templateLink}>{optionText(option)}</option>
 			{/each}
 		</select>
 	</div>
@@ -309,40 +373,12 @@
 		{/each}
 
 		{#if canEdit}
-			<div class="verifier">
-				<div class="field">
-					<label class="form-label small" for="verifierName">Verifier name</label>
-					<input
-						id="verifierName"
-						class="form-control"
-						bind:value={verifier.name}
-						disabled={working}
-					/>
-				</div>
-				<div class="field">
-					<label class="form-label small" for="verifierContact">Verifier email or phone</label>
-					<input
-						id="verifierContact"
-						class="form-control"
-						bind:value={verifier.contact}
-						disabled={working}
-					/>
-				</div>
-			</div>
-			<div class="small muted">Recorded in Terrain as verified by a Scout member, dated today.</div>
-
 			<div class="button-row">
 				<button
 					type="button"
 					class="btn btn-sm btn-outline-secondary"
 					onclick={tickAllRemaining}
 					disabled={working}>Tick all remaining</button
-				>
-				<button
-					type="button"
-					class="btn btn-sm btn-primary"
-					onclick={startSave}
-					disabled={working || ticked.length === 0}>Save {ticked.length} to Terrain</button
 				>
 				<button
 					type="button"
@@ -356,40 +392,6 @@
 					>
 				{/if}
 			</div>
-
-			{#if confirmingSave}
-				<div class="confirm-box">
-					<strong>Save to Terrain as {member?.firstName}?</strong>
-					<p class="small">
-						Beacon will switch to {member?.firstName}'s profile, add these {plural(
-							newlyTicked.length,
-							'statement'
-						)} to {stageTitle}, then switch back. Nothing already recorded is changed.
-					</p>
-					<ul class="small">
-						{#each newlyTicked as statement (statement.inputId)}
-							<li>{statement.label}</li>
-						{/each}
-					</ul>
-					{#if newlyTicked.some((s) => !s.isLogbook)}
-						<p class="small">
-							Verified by {verifier.name} ({verifier.contact}) on {dayMonthYear(today())}.
-						</p>
-					{/if}
-					<button
-						type="button"
-						class="btn btn-sm btn-primary"
-						onclick={confirmSave}
-						disabled={working}>{working ? 'Saving...' : 'Yes, save'}</button
-					>
-					<button
-						type="button"
-						class="btn btn-sm btn-outline-secondary"
-						onclick={() => (confirmingSave = false)}
-						disabled={working}>Cancel</button
-					>
-				</div>
-			{/if}
 
 			{#if confirmingSubmit}
 				<div class="confirm-box">
@@ -412,6 +414,85 @@
 					>
 				</div>
 			{/if}
+		{/if}
+	</section>
+{/if}
+
+{#if tickedCount > 0 || canEdit}
+	<section class="saving">
+		<PickedStages
+			picked={tickedStages.map((t) => ({ stage: t.state.stage, count: t.statements.length }))}
+			disabled={working}
+			onopen={openStage}
+			onclear={clearTicks}
+		/>
+
+		<div class="verifier">
+			<div class="field">
+				<label class="form-label small" for="verifierName">Verifier name</label>
+				<input
+					id="verifierName"
+					class="form-control"
+					bind:value={verifier.name}
+					disabled={working}
+				/>
+			</div>
+			<div class="field">
+				<label class="form-label small" for="verifierContact">Verifier email or phone</label>
+				<input
+					id="verifierContact"
+					class="form-control"
+					bind:value={verifier.contact}
+					disabled={working}
+				/>
+			</div>
+		</div>
+		<div class="small muted">Recorded in Terrain as verified by a Scout member, dated today.</div>
+
+		<div class="button-row">
+			<button
+				type="button"
+				class="btn btn-sm btn-primary"
+				onclick={startSave}
+				disabled={working || tickedCount === 0}>Save {tickedCount} to Terrain</button
+			>
+		</div>
+
+		{#if confirmingSave}
+			<div class="confirm-box">
+				<strong>Save to Terrain as {member?.firstName}?</strong>
+				<p class="small">
+					Beacon will switch to {member?.firstName}'s profile, add these {plural(
+						tickedCount,
+						'statement'
+					)} to {savingTo}, then switch back. Nothing already recorded is changed.
+				</p>
+				{#each tickedStages as t (t.state.stage.templateLink)}
+					{#if tickedStages.length > 1}<strong class="small">{titleOf(t.state)}</strong>{/if}
+					<ul class="small">
+						{#each t.statements as statement (statement.inputId)}
+							<li>{statement.label}</li>
+						{/each}
+					</ul>
+				{/each}
+				{#if needsVerifier}
+					<p class="small">
+						Verified by {verifier.name} ({verifier.contact}) on {dayMonthYear(today())}.
+					</p>
+				{/if}
+				<button
+					type="button"
+					class="btn btn-sm btn-primary"
+					onclick={confirmSave}
+					disabled={working}>{working ? 'Saving...' : 'Yes, save'}</button
+				>
+				<button
+					type="button"
+					class="btn btn-sm btn-outline-secondary"
+					onclick={() => (confirmingSave = false)}
+					disabled={working}>Cancel</button
+				>
+			</div>
 		{/if}
 	</section>
 {/if}
@@ -478,6 +559,10 @@
 
 	.to-save {
 		color: var(--link);
+	}
+
+	.saving {
+		margin-top: 1rem;
 	}
 
 	.verifier {
