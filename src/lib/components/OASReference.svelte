@@ -46,14 +46,28 @@
 		return typeof found === 'object' ? found : null;
 	};
 
-	function loadCounts(stage: OASReferenceStage) {
+	// Each stage's count as it loads, so printing can wait for those it needs
+	const counting = new SvelteMap<string, Promise<void>>();
+
+	function loadCounts(stage: OASReferenceStage): Promise<void> {
 		const key = countsKey(stage);
-		if (!showCounts || counts[key]) return;
+		if (!showCounts) return Promise.resolve();
+		const loading = counting.get(key);
+		if (loading && counts[key]) return loading;
 		counts[key] = 'loading';
-		statementCounts
+		const load = statementCounts
 			.stageCounts(app.unitId, stage)
-			.then((found) => (counts[key] = found))
-			.catch(() => (counts[key] = 'failed'));
+			.then((found) => void (counts[key] = found))
+			.catch(() => void (counts[key] = 'failed'));
+		counting.set(key, load);
+		return load;
+	}
+
+	/** Counts every stage on the page, a few at a time, so a printout has them all */
+	async function countAllShown() {
+		const stages = groupBy(shown, (s) => s.stage.templateLink).map((g) => g.items[0].stage);
+		for (let i = 0; i < stages.length; i += 4)
+			await Promise.all(stages.slice(i, i + 4).map(loadCounts));
 	}
 
 	// The stages on screen, so choosing another unit can count them straight away
@@ -86,6 +100,7 @@
 		void [showCounts, app.unitId];
 		untrack(() => {
 			counts = {};
+			counting.clear();
 			for (const stage of inView.values()) loadCounts(stage);
 		});
 	});
@@ -338,8 +353,13 @@
 		}, 2500);
 	}
 
-	function print() {
+	async function print() {
 		filtersOpen = false;
+		// Signed in, the printout shows how many youth have each statement, so count every stage first
+		if (showCounts) {
+			showToast("Counting the unit's youth for each stage...");
+			await countAllShown();
+		}
 		// Let the menu close before the print preview captures the page
 		setTimeout(() => window.print(), 50);
 	}
@@ -515,7 +535,7 @@
 		>
 			<h3 class="stage-title">{stageTitle(stageGroup.items[0].stage)}</h3>
 			{#if groupCounts}
-				<div class="count-key small muted no-print">
+				<div class="count-key small muted">
 					Of the {groupCounts.youth} youth in {app.unitName}: ✓ have it · ○ don't yet
 				</div>
 			{/if}
@@ -545,7 +565,7 @@
 										groupCounts.completed + (groupCounts.ticked[statement.inputId] ?? 0)
 									)}
 									<span
-										class="unit-count no-print"
+										class="unit-count"
 										title="{have} of {groupCounts.youth} youth have this"
 										aria-label="{have} youth have this, {groupCounts.youth - have} don't yet"
 										>✓ {have} · ○ {groupCounts.youth - have}</span

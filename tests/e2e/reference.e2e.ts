@@ -75,7 +75,13 @@ test("signed in, each statement shows how many of the unit's youth have it", asy
 	await expect(statement('I can tie a reef knot')).toHaveAccessibleName(
 		"0 youth have this, 4 don't yet"
 	);
-	expect(terrain.requests.filter((r) => r.includes('units/unit-1/achievements'))).toHaveLength(1);
+	expect(
+		terrain.requests.filter(
+			(r) =>
+				r.includes('units/unit-1/achievements') &&
+				r.includes('stream=bushwalking&branch=bushwalking&stage=4')
+		)
+	).toHaveLength(1);
 });
 
 test('signed out, the Reference shows no counts', async ({ page }) => {
@@ -83,4 +89,32 @@ test('signed out, the Reference shows no counts', async ({ page }) => {
 	await page.goto('oas-reference/?stream=bushwalking&stage=4');
 	await expect(page.locator('.statement').first()).toBeVisible();
 	await expect(page.locator('.unit-count, .count-key')).toHaveCount(0);
+});
+
+test('printed while signed in, every stage has its counts', async ({ page, isMobile }) => {
+	const terrain = await fakeTerrain(page);
+	await logIn(page);
+	await navigate(page, 'oas-reference/?stream=camping');
+	await expect(page.locator('.stage-group').first()).toBeVisible();
+	const stages = await page.locator('.stage-group').count();
+	await page.evaluate(() => {
+		(window as unknown as { printed: number }).printed = 0;
+		window.print = () => (window as unknown as { printed: number }).printed++;
+	});
+	if (isMobile) await page.getByRole('button', { name: 'Filters' }).click();
+	await page.getByRole('button', { name: 'Print', exact: true }).first().click();
+	await expect
+		.poll(() => page.evaluate(() => (window as unknown as { printed: number }).printed))
+		.toBe(1);
+	// Every stage was counted before the print, not just those scrolled into view
+	await expect(page.locator('.count-key')).toHaveCount(stages);
+	expect(
+		new Set(
+			terrain.requests.filter(
+				(r) => r.includes('units/unit-1/achievements') && r.includes('stream=camping')
+			)
+		).size
+	).toBe(stages);
+	await page.emulateMedia({ media: 'print' });
+	await expect(page.locator('.unit-count').first()).toBeVisible();
 });
