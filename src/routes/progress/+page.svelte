@@ -105,14 +105,11 @@
 							<div class="strong">{member.firstName} {members.lastName(member)}</div>
 							{#if loaded[member.id]}
 								{@const summary = loaded[member.id]}
+								<div class="award-track" aria-hidden="true">
+									<span style:width="{summary.percent}%"></span>
+								</div>
 								<div class="award small muted">
-									<span
-										class="logbook"
-										title={rules.peakAwardName}
-										aria-label="{rules.peakAwardName} {summary.percent}%"
-										><span class="award-track"><span style:width="{summary.percent}%"></span></span>
-										{summary.percent}%</span
-									>
+									<span>{rules.peakAwardName} {summary.percent}%</span>
 									<span
 										class="logbook"
 										title="Nights camped"
@@ -186,24 +183,10 @@
 		margin: 0;
 	}
 
-	.award {
-		display: flex;
-		align-items: center;
-		gap: 0.75rem;
-		margin-top: 0.15rem;
-	}
-
-	.logbook {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.25rem;
-		white-space: nowrap;
-	}
-
+	/* The award's progress, the width of the card, with the numbers beneath */
 	.award-track {
-		flex-shrink: 0;
-		width: 4rem;
 		height: 6px;
+		margin: 0.4rem 0 0.3rem;
 		border-radius: 3px;
 		background: var(--surface-3);
 		overflow: hidden;
@@ -212,7 +195,23 @@
 	.award-track span {
 		display: block;
 		height: 100%;
+		border-radius: 3px;
 		background: var(--success);
+	}
+
+	.award {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.2rem 0.75rem;
+		margin-bottom: 0.2rem;
+	}
+
+	.logbook {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		white-space: nowrap;
 	}
 
 	.chevron {
