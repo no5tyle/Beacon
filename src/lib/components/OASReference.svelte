@@ -29,7 +29,7 @@
 	import { compareText, distinct, groupBy } from '#lib/model/util.js';
 	import { pagePath } from '#lib/paths.js';
 	import { app, reference, statementCounts } from '#lib/services/index.js';
-	import type { StageCounts } from '#lib/services/statementCounts.js';
+	import { lacking, type StageCounts } from '#lib/services/statementCounts.js';
 	import { share as shareText } from '#lib/share.js';
 	import { install } from '#lib/stores/install.svelte.js';
 	import { readSetting, writeSetting } from '#lib/stores/storage.js';
@@ -40,6 +40,10 @@
 	// A stage's counts load when it comes into view, and are kept only while the page is open
 	const showCounts = $derived(app.isSignedIn && !app.isYouth && !!app.unitId);
 	let counts = $state<Record<string, StageCounts | 'loading' | 'failed'>>({});
+	// Printed, each statement can list the youth who don't have it yet. The choice is kept on the device
+	const PRINT_NAMES_KEY = 'beacon-reference-print-names';
+	let printNames = $state(readSetting(PRINT_NAMES_KEY) === 'true');
+	$effect(() => writeSetting(PRINT_NAMES_KEY, String(printNames)));
 	const countsKey = (stage: OASReferenceStage) => `${app.unitId}|${stagePath(stage)}`;
 	const stageCounts = (stage: OASReferenceStage) => {
 		const found = counts[countsKey(stage)];
@@ -409,6 +413,16 @@
 	<button type="button" class="btn btn-outline-secondary btn-sm" onclick={print}
 		><Icon name="print" /> Print</button
 	>
+	{@render printNamesOption()}
+{/snippet}
+
+{#snippet printNamesOption()}
+	{#if showCounts}
+		<label class="print-names-option small">
+			<input type="checkbox" class="form-check-input" bind:checked={printNames} />
+			Print the names of youth without each statement
+		</label>
+	{/if}
 {/snippet}
 
 {#snippet filterControls()}
@@ -496,6 +510,7 @@
 					<button type="button" class="btn btn-outline-secondary btn-sm" onclick={shareStarred}
 						><Icon name="share-boxed" /> Share list</button
 					>
+					{@render printNamesOption()}
 					<button type="button" class="btn btn-link btn-sm text-danger" onclick={clearStarred}
 						>Clear starred</button
 					>
@@ -600,6 +615,12 @@
 								</span>
 							</span>
 						</div>
+						{#if groupCounts && printNames}
+							{@const without = lacking(groupCounts, statement.inputId)}
+							<div class="lacking-names small">
+								{without.length > 0 ? `Not yet: ${without.join(', ')}` : 'Everyone has this'}
+							</div>
+						{/if}
 						{#if open}
 							<div class="statement-detail">
 								{#if statement.detail}
@@ -1159,6 +1180,20 @@
 		display: none;
 	}
 
+	.print-names-option {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		min-height: 36px;
+	}
+
+	/* Who doesn't have a statement yet: only on paper */
+	.lacking-names {
+		display: none;
+		margin: 0.15rem 0 0 1.4rem;
+		color: var(--muted);
+	}
+
 	/* Printing gives a plain checklist of what's on screen */
 	@media print {
 		.app-top,
@@ -1168,6 +1203,10 @@
 
 		.print-only {
 			display: inline;
+		}
+
+		.lacking-names {
+			display: block;
 		}
 
 		.app-content {

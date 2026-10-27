@@ -91,7 +91,7 @@ test('signed out, the Reference shows no counts', async ({ page }) => {
 	await expect(page.locator('.unit-count, .count-key')).toHaveCount(0);
 });
 
-test('printed while signed in, every stage has its counts', async ({ page, isMobile }) => {
+test('printed while signed in, every stage has its counts', async ({ page }) => {
 	const terrain = await fakeTerrain(page);
 	await logIn(page);
 	await navigate(page, 'oas-reference/?stream=camping');
@@ -101,7 +101,6 @@ test('printed while signed in, every stage has its counts', async ({ page, isMob
 		(window as unknown as { printed: number }).printed = 0;
 		window.print = () => (window as unknown as { printed: number }).printed++;
 	});
-	if (isMobile) await page.getByRole('button', { name: 'Filters' }).click();
 	await page.getByRole('button', { name: 'Print', exact: true }).first().click();
 	await expect
 		.poll(() => page.evaluate(() => (window as unknown as { printed: number }).printed))
@@ -117,4 +116,32 @@ test('printed while signed in, every stage has its counts', async ({ page, isMob
 	).toBe(stages);
 	await page.emulateMedia({ media: 'print' });
 	await expect(page.locator('.unit-count').first()).toBeVisible();
+});
+
+test('printed with names, each statement lists the youth without it', async ({
+	page,
+	isMobile
+}) => {
+	await fakeTerrain(page);
+	await logIn(page);
+	await navigate(page, 'oas-reference/?stream=bushwalking&stage=4');
+	await page.evaluate(() => (window.print = () => undefined));
+	await page.getByLabel('Print the names of youth without each statement').check();
+	await page.getByRole('button', { name: 'Print', exact: true }).first().click();
+	await expect(page.locator('.count-key')).toHaveCount(1);
+	// Only on paper
+	const names = (text: string) =>
+		page.locator('.statement', { hasText: text }).locator('.lacking-names');
+	await expect(names('I can use a map and compass')).toBeHidden();
+	await page.emulateMedia({ media: 'print' });
+	await expect(names('I can use a map and compass')).toHaveText(
+		'Not yet: Liam Smith, Mia Brown, Noah Jones'
+	);
+	await expect(names('I can tie a reef knot')).toHaveText(
+		'Not yet: Ava Nguyen, Liam Smith, Mia Brown, Noah Jones'
+	);
+	// Remembered on the device; no names are kept
+	expect(await page.evaluate(() => localStorage.getItem('beacon-reference-print-names'))).toBe(
+		'true'
+	);
 });
