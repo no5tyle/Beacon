@@ -17,6 +17,8 @@ import {
 	siaSummaries,
 	ProgressService
 } from '#lib/services/progress.js';
+import { InsightsService } from '#lib/services/insights.js';
+import { defaultInsightsSettings } from '#lib/model/insights/settings.js';
 import { RecordingService } from '#lib/services/recording.js';
 import { UnitProgressService, youthProgress } from '#lib/services/unitProgress.js';
 import { AppState } from '#lib/stores/app.svelte.js';
@@ -256,6 +258,39 @@ describe('unit progress', () => {
 
 		await expect(load).rejects.toThrow('Logged out');
 		expect(service.isCached('unit-1')).toBe(false);
+	});
+});
+
+describe('insights', () => {
+	it('shows the last report again without asking Terrain, until the unit is loaded afresh', async () => {
+		const unit: FakeUnit = {
+			profiles: leaderProfiles(),
+			members: [member('m1', 'Ava', 'Nguyen'), member('m2', 'Liam', 'Smith')],
+			records: {}
+		};
+		const { terrain, calls } = await signedInTerrain(unit);
+		const ctx = context(terrain, unit);
+		const membersService = new MembersService(ctx);
+		const unitProgress = new UnitProgressService(ctx, membersService);
+		// No stages to look at closely: the fake unit has no OAS records
+		const oas = Object.assign(new OASService(() => terrain), { stageList: async () => [] });
+		const service = new InsightsService(ctx, membersService, unitProgress, oas);
+		const settings = defaultInsightsSettings();
+
+		const first = await service.report('unit-1', settings);
+		const asked = calls.length;
+		expect(await service.report('unit-1', settings)).toBe(first);
+		expect(calls.length, 'nothing asked of Terrain the second time').toBe(asked);
+
+		// Different filters build a new report from what's loaded
+		expect(await service.report('unit-1', { ...settings, includeNonCoreOAS: true })).not.toBe(
+			first
+		);
+
+		// After a save or Refresh the unit's progress is loaded again, and so is the report
+		unitProgress.clear('unit-1');
+		expect(await service.report('unit-1', settings)).not.toBe(first);
+		expect(calls.length).toBeGreaterThan(asked);
 	});
 });
 

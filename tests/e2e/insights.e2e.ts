@@ -37,6 +37,22 @@ test('analyses the unit as soon as it opens', async ({ page, isMobile }) => {
 	await expect(page.locator('.bar-row')).not.toHaveCount(0);
 });
 
+test('coming back to Insights shows the last analysis straight away', async ({ page }) => {
+	const terrain = await fakeTerrain(page);
+	await logIn(page);
+	await navigate(page, 'insights/');
+	await expect(page.locator('.stat-tile').first()).toContainText('Youth analysed 4');
+	const asked = terrain.requests.length;
+
+	await navigate(page, 'progress/');
+	await navigate(page, 'insights/');
+	await expect(page.locator('.stat-tile').first()).toContainText('Youth analysed 4');
+	expect(
+		terrain.requests.slice(asked).filter((r) => r.includes('type=outdoor_adventure_skill')),
+		"the unit's OAS records aren't asked for again"
+	).toEqual([]);
+});
+
 test('focus youth join the priority list and are remembered', async ({ page }) => {
 	await fakeTerrain(page);
 	await logIn(page);

@@ -49,6 +49,9 @@ export interface StageReport {
 	records: Map<string, UnitOASRecord>;
 }
 
+/** How many stages' records Insights asks Terrain for at once */
+const STAGES_AT_ONCE = 4;
+
 export class InsightsService {
 	// The last analysis, so the report can be rebuilt straight away when focus youth change
 	private last: {
@@ -56,6 +59,12 @@ export class InsightsService {
 		youth: YouthRecord[];
 		requirements: OASRequirementStatus[];
 	} | null = null;
+	/**
+	 * The last report and what it was built from. Coming back to Insights shows it again straight away,
+	 * as long as the unit's progress is still the same load (a save or Refresh loads it afresh).
+	 */
+	private saved: { key: string; progress: readonly unknown[]; report: InsightsReport } | null =
+		null;
 
 	constructor(
 		private readonly context: BeaconContext,
@@ -75,6 +84,8 @@ export class InsightsService {
 
 		const members = await this.members.get(unitId);
 		const progress = await this.unitProgress.get(unitId);
+		const key = JSON.stringify([unitId, settings, focusIds, this.context.suppressLastName]);
+		if (this.saved?.key === key && this.saved.progress === progress) return this.saved.report;
 		const youth: YouthRecord[] = progress.map((p) => ({
 			memberId: p.memberId,
 			memberName: p.memberName,
@@ -103,41 +114,56 @@ export class InsightsService {
 			highestStage
 		);
 
-		const requirements: OASRequirementStatus[] = [];
 		const stages = await this.oas.stageList();
-		for (const { stream, stage: stageNumber } of detail) {
+		const stageRequirements = async ({
+			stream,
+			stage: stageNumber
+		}: (typeof detail)[number]): Promise<OASRequirementStatus[]> => {
 			const stage = OASService.findStage(stages, stream, stageNumber);
-			if (!stage) continue;
+			if (!stage) return [];
 			try {
 				const rows = await this.oas.templateRows(stage.templateLink.replace('/latest.json', ''));
 				const records = await this.oas.unitRecords(unitId, stage);
 				const answers = worksheetAnswers(rows, records, members, (m) =>
 					this.members.displayName(m)
 				);
-				requirements.push(
-					...answers
-						.filter((a) => !a.awarded)
-						.map((a) => ({
-							stream,
-							stage: stageNumber,
-							inputGroup: a.inputTitle,
-							inputLabel: a.inputLabel,
-							inputDetail: rows.find((t) => t.inputId === a.inputId)?.inputDetail ?? '',
-							memberId: a.memberId,
-							answered: a.answered
-						}))
-				);
+				return answers
+					.filter((a) => !a.awarded)
+					.map((a) => ({
+						stream,
+						stage: stageNumber,
+						inputGroup: a.inputTitle,
+						inputLabel: a.inputLabel,
+						inputDetail: rows.find((t) => t.inputId === a.inputId)?.inputDetail ?? '',
+						memberId: a.memberId,
+						answered: a.answered
+					}));
 			} catch (error) {
 				// One stage failing shouldn't stop the rest of the analysis
 				console.warn(
 					`Insights: couldn't load OAS requirements for ${stream} ${stageNumber}`,
 					error
 				);
+				return [];
 			}
+		};
+		// A few stages at a time, as unit progress loads a few records at a time, keeping their order
+		const requirements: OASRequirementStatus[] = [];
+		for (let i = 0; i < detail.length; i += STAGES_AT_ONCE) {
+			const batch = await Promise.all(detail.slice(i, i + STAGES_AT_ONCE).map(stageRequirements));
+			requirements.push(...batch.flat());
 		}
 
 		this.last = { unitId, youth, requirements };
-		return buildInsights(section, youth, requirements, settings, today, focusIds);
+		const report = buildInsights(section, youth, requirements, settings, today, focusIds);
+		this.saved = { key, progress, report };
+		return report;
+	}
+
+	/** Forgets the last analysis, e.g. on logout */
+	clear(): void {
+		this.last = null;
+		this.saved = null;
 	}
 
 	/**
