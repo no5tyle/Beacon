@@ -3,6 +3,7 @@
 	Reached from Progress (every youth) or a youth's details (just them), with ?ids= naming who's ticked.
 -->
 <script lang="ts">
+	import { flushSync, onMount } from 'svelte';
 	import { page } from '$app/state';
 	import ChooseUnit from '#lib/components/ChooseUnit.svelte';
 	import Icon from '#lib/components/Icon.svelte';
@@ -58,6 +59,43 @@
 	let prepared = $state<Record<string, Prepared | 'failed'>>({});
 	// Notes typed on the reports. Not kept anywhere: they're about the youth
 	let notes = $state<Record<string, string>>({});
+	// Printing double-sided, the youth whose report takes an odd number of pages, to follow with a blank one
+	let blankAfter = $state<string[]>([]);
+	let reportsElement = $state<HTMLElement>();
+
+	// Ctrl+P as well as the Print button: the blank pages go in just before the browser lays out the print
+	onMount(() => {
+		const before = () => flushSync(() => (blankAfter = options.doubleSided ? oddReports() : []));
+		addEventListener('beforeprint', before);
+		return () => removeEventListener('beforeprint', before);
+	});
+
+	// The printed page's height, A4 less the 12mm margins set below, in CSS pixels; less a little for what keeping headings and stages together pushes over to the next page
+	const PAGE_HEIGHT = (273 / 25.4) * 96 - 40;
+	const pagesFor = (height: number) => Math.max(1, Math.ceil((height - 2) / PAGE_HEIGHT));
+
+	/**
+	 * Browsers don't support starting each report on a right-hand page, so measure each one laid out as
+	 * it prints: its front page and its statements, which start a page of their own
+	 */
+	function oddReports(): string[] {
+		if (!reportsElement) return [];
+		reportsElement.classList.add('measuring');
+		// Nothing follows the last report, so it needs no blank page
+		const odd = [...reportsElement.querySelectorAll<HTMLElement>('.report')]
+			.slice(0, -1)
+			.filter((report) => {
+				const statements = report.querySelector<HTMLElement>('.statements-page');
+				const total = report.getBoundingClientRect().height;
+				const statementsHeight = statements?.getBoundingClientRect().height ?? 0;
+				const pages =
+					pagesFor(total - statementsHeight) + (statements ? pagesFor(statementsHeight) : 0);
+				return pages % 2 === 1;
+			})
+			.map((report) => report.dataset.member ?? '');
+		reportsElement.classList.remove('measuring');
+		return odd;
+	}
 	const settings = readInsightsSettings();
 	const printedOn = shortDate(today());
 
@@ -229,6 +267,11 @@
 					{part.label}
 				</label>
 			{/each}
+			<h3 class="printing">Printing</h3>
+			<label class="check">
+				<input type="checkbox" class="form-check-input" bind:checked={options.doubleSided} />
+				Double-sided: each report starts on a new sheet
+			</label>
 		</section>
 
 		{#if youth.length > 0}
@@ -262,264 +305,269 @@
 	{/if}
 </div>
 
-{#each youth.filter((y) => chosen.includes(y.id)) as member (member.id)}
-	{@const data = prepared[member.id]}
-	{#if data === 'failed'}
-		<div class="alert alert-danger no-print">
-			Couldn't load {nameOf(member)}'s progress from Terrain.
-		</div>
-	{:else if data}
-		{@const { details, report, stages } = data}
-		<article class="report">
-			<header class="report-head">
-				<div>
-					<div class="report-kicker">{app.unitName} · Progress report</div>
-					<h2 class="report-name">{nameOf(member)}</h2>
-					<div class="muted">
-						{[member.patrolName && `${member.patrolName} Patrol`, member.patrolDuty]
-							.filter(Boolean)
-							.join(' · ')}
+<div class="reports" bind:this={reportsElement}>
+	{#each youth.filter((y) => chosen.includes(y.id)) as member (member.id)}
+		{@const data = prepared[member.id]}
+		{#if data === 'failed'}
+			<div class="alert alert-danger no-print">
+				Couldn't load {nameOf(member)}'s progress from Terrain.
+			</div>
+		{:else if data}
+			{@const { details, report, stages } = data}
+			<article class="report" data-member={member.id}>
+				<header class="report-head">
+					<div>
+						<div class="report-kicker">{app.unitName} · Progress report</div>
+						<h2 class="report-name">{nameOf(member)}</h2>
+						<div class="muted">
+							{[member.patrolName && `${member.patrolName} Patrol`, member.patrolDuty]
+								.filter(Boolean)
+								.join(' · ')}
+						</div>
 					</div>
-				</div>
-				<div class="report-date muted">{printedOn}</div>
-			</header>
+					<div class="report-date muted">{printedOn}</div>
+				</header>
 
-			{#if options.summary}
-				<div class="summary">
-					{#if report}
+				{#if options.summary}
+					<div class="summary">
+						{#if report}
+							<div class="tile">
+								<div class="tile-label">{report.rules.peakAwardName}</div>
+								<div class="tile-value">{Math.round(peakAwardPercent(report))}%</div>
+							</div>
+						{/if}
 						<div class="tile">
-							<div class="tile-label">{report.rules.peakAwardName}</div>
-							<div class="tile-value">{Math.round(peakAwardPercent(report))}%</div>
+							<div class="tile-label">
+								{report?.milestone && !milestonesComplete(details)
+									? `Milestone ${report.milestone.number}`
+									: 'Milestones'}
+							</div>
+							<div class="tile-value">
+								{#if milestonesComplete(details)}
+									Completed
+								{:else if report?.milestone}
+									{milestoneTotal(report.milestone) - milestoneRemaining(report.milestone)} of {milestoneTotal(
+										report.milestone
+									)}
+								{:else}
+									{details.milestones.filter((m) => m.awarded).length} done
+								{/if}
+							</div>
 						</div>
-					{/if}
-					<div class="tile">
-						<div class="tile-label">
-							{report?.milestone && !milestonesComplete(details)
-								? `Milestone ${report.milestone.number}`
-								: 'Milestones'}
+						<div class="tile">
+							<div class="tile-label">OAS stages</div>
+							<div class="tile-value">{details.stats.oasProgressions}</div>
 						</div>
-						<div class="tile-value">
-							{#if milestonesComplete(details)}
-								Completed
-							{:else if report?.milestone}
-								{milestoneTotal(report.milestone) - milestoneRemaining(report.milestone)} of {milestoneTotal(
-									report.milestone
-								)}
-							{:else}
-								{details.milestones.filter((m) => m.awarded).length} done
+						<div class="tile">
+							<div class="tile-label">Nights camped</div>
+							<div class="tile-value">{details.stats.nightsCamped}</div>
+						</div>
+						<div class="tile">
+							<div class="tile-label">Km hiked</div>
+							<div class="tile-value">{details.stats.kmsHiked}</div>
+						</div>
+					</div>
+				{/if}
+
+				{#if options.nextSteps && report && report.highlights.length > 0}
+					<section class="part">
+						<h3>Next steps</h3>
+						<ul>
+							{#each report.highlights as highlight, i (i)}<li>{highlight}</li>{/each}
+						</ul>
+					</section>
+				{/if}
+
+				{#if options.milestones}
+					<section class="part">
+						<h3>Milestones</h3>
+						{#if milestonesComplete(details)}
+							<p>All three milestones completed.</p>
+						{:else}
+							<ul class="plain">
+								{#each details.milestones as milestone (milestone.milestone)}
+									<li>
+										<strong>Milestone {milestone.milestone}</strong>
+										{milestone.awarded
+											? `awarded ${shortDate(milestone.awarded)}`
+											: milestone.status.toLowerCase()}
+									</li>
+								{/each}
+							</ul>
+							{#if report?.milestone}
+								<div class="needs muted">
+									{[...report.milestone.participates, report.milestone.leadAssist]
+										.map(
+											(need) =>
+												`${AREAS[need.challengeArea] ?? need.challengeArea} ${Math.min(need.have, need.need)} of ${need.need}`
+										)
+										.join(' · ')}
+								</div>
 							{/if}
-						</div>
-					</div>
-					<div class="tile">
-						<div class="tile-label">OAS stages</div>
-						<div class="tile-value">{details.stats.oasProgressions}</div>
-					</div>
-					<div class="tile">
-						<div class="tile-label">Nights camped</div>
-						<div class="tile-value">{details.stats.nightsCamped}</div>
-					</div>
-					<div class="tile">
-						<div class="tile-label">Km hiked</div>
-						<div class="tile-value">{details.stats.kmsHiked}</div>
-					</div>
-				</div>
-			{/if}
-
-			{#if options.nextSteps && report && report.highlights.length > 0}
-				<section class="part">
-					<h3>Next steps</h3>
-					<ul>
-						{#each report.highlights as highlight, i (i)}<li>{highlight}</li>{/each}
-					</ul>
-				</section>
-			{/if}
-
-			{#if options.milestones}
-				<section class="part">
-					<h3>Milestones</h3>
-					{#if milestonesComplete(details)}
-						<p>All three milestones completed.</p>
-					{:else}
-						<ul class="plain">
-							{#each details.milestones as milestone (milestone.milestone)}
-								<li>
-									<strong>Milestone {milestone.milestone}</strong>
-									{milestone.awarded
-										? `awarded ${shortDate(milestone.awarded)}`
-										: milestone.status.toLowerCase()}
-								</li>
-							{/each}
-						</ul>
-						{#if report?.milestone}
-							<div class="needs muted">
-								{[...report.milestone.participates, report.milestone.leadAssist]
-									.map(
-										(need) =>
-											`${AREAS[need.challengeArea] ?? need.challengeArea} ${Math.min(need.have, need.need)} of ${need.need}`
-									)
-									.join(' · ')}
-							</div>
 						{/if}
-					{/if}
-				</section>
-			{/if}
+					</section>
+				{/if}
 
-			{#if options.award && report}
-				<section class="part">
-					<h3>{report.rules.peakAwardName} · {Math.round(peakAwardPercent(report))}%</h3>
-					<ul class="plain checklist">
-						{#each report.peakAwardTasks.filter((t) => !t.key.startsWith('intro:')) as task (task.key)}
-							{@const progress = taskProgress(task, details, report)}
-							<li class:done={task.done}>
-								<span class="mark">{task.done ? '✓' : '○'}</span>
-								<span>
-									{task.title}
-									{#if progress}<span class="task-progress muted">{progress}</span>{/if}
-								</span>
-							</li>
-						{/each}
-					</ul>
-				</section>
-			{/if}
-
-			{#if options.oas}
-				<section class="part">
-					<h3>Outdoor Adventure Skills</h3>
-					{#if stages.length === 0}
-						<p class="muted">No stages started yet.</p>
-					{:else}
-						<table class="oas">
-							<thead>
-								<tr><th>Stream</th><th>Completed</th><th>Working on</th></tr>
-							</thead>
-							<tbody>
-								{#each groupBy(stages, (s) => s.streamDisplay) as group (group.key)}
-									{@const done = group.items.filter((s) => s.status !== 'started').at(-1)}
-									<tr>
-										<td>{group.key}</td>
-										<td>
-											{#if done}
-												Stage {done.stage}
-												<span class="muted">{dateText(done.awarded)}</span>
-											{:else}
-												<span class="muted">–</span>
-											{/if}
-										</td>
-										<td>
-											{#each group.items.filter((s) => s.status === 'started') as stage, i (stage.stage)}
-												{i > 0 ? ', ' : ''}Stage {stage.stage}
-												<span class="muted"
-													>{stage.statements.filter((s) => s.achieved).length} of {stage.statements
-														.length}</span
-												>
-											{:else}
-												<span class="muted">–</span>
-											{/each}
-										</td>
-									</tr>
-								{/each}
-							</tbody>
-						</table>
-					{/if}
-				</section>
-			{/if}
-
-			{#if options.sia}
-				<section class="part">
-					<h3>Special interest areas</h3>
-					{#if details.siaSummaries.length === 0}
-						<p class="muted">None yet.</p>
-					{:else}
-						<ul class="plain">
-							{#each details.siaSummaries as sia, i (i)}
-								<li>
-									<strong>{sia.area}</strong>{sia.project ? `: ${sia.project}` : ''}
-									<span class="muted"
-										>· {sia.status}{sia.updated ? ` ${shortDate(sia.updated)}` : ''}</span
-									>
+				{#if options.award && report}
+					<section class="part">
+						<h3>{report.rules.peakAwardName} · {Math.round(peakAwardPercent(report))}%</h3>
+						<ul class="plain checklist">
+							{#each report.peakAwardTasks.filter((t) => !t.key.startsWith('intro:')) as task (task.key)}
+								{@const progress = taskProgress(task, details, report)}
+								<li class:done={task.done}>
+									<span class="mark">{task.done ? '✓' : '○'}</span>
+									<span>
+										{task.title}
+										{#if progress}<span class="task-progress muted">{progress}</span>{/if}
+									</span>
 								</li>
 							{/each}
 						</ul>
-					{/if}
-				</section>
-			{/if}
+					</section>
+				{/if}
 
-			{#if options.logbook && !options.summary}
-				<section class="part">
-					<h3>Logbook</h3>
-					<p>
-						{details.stats.nightsCamped} nights camped and {details.stats.kmsHiked} km hiked.
-					</p>
-				</section>
-			{/if}
-
-			{#if options.note}
-				<section class="part">
-					<h3>From the leader</h3>
-					<textarea
-						class="form-control note no-print"
-						rows="3"
-						placeholder="A note for {member.firstName}'s parents (optional)"
-						bind:value={notes[member.id]}></textarea>
-					<p class="note-print">{notes[member.id] ?? ''}</p>
-				</section>
-			{/if}
-
-			{#if options.signatures}
-				<div class="signatures">
-					<div>Leader</div>
-					<div>Parent</div>
-				</div>
-			{/if}
-
-			{#if options.oas && stages.some((stage) => shownStatements(stage).length > 0)}
-				<section class="statements-page">
-					<header class="statements-head">
-						<h3>{nameOf(member)} · Outdoor Adventure Skills</h3>
-						<div class="muted small">
-							{options.achievedStatements && options.notYetStatements
-								? '✓ achieved · ○ still to do'
-								: options.achievedStatements
-									? '"I" statements achieved'
-									: '"I" statements still to do'}
-						</div>
-					</header>
-					{#each groupBy(stages, (s) => s.streamDisplay) as group (group.key)}
-						{#if group.items.some((stage) => shownStatements(stage).length > 0)}
-							<div class="stream">
-								<h4>{group.key}</h4>
-								{#each group.items.filter((stage) => shownStatements(stage).length > 0) as stage (stage.stage)}
-									<div class="stage">
-										<div class="stage-line">
-											<span>Stage {stage.stage}</span>
-											<span class="muted">
-												{STATUS_TEXT[stage.status]}{stage.awarded
-													? ` ${dateText(stage.awarded)}`
-													: ''}
-												{#if stage.status === 'started'}
-													· {stage.statements.filter((s) => s.achieved).length} of {stage.statements
-														.length}
+				{#if options.oas}
+					<section class="part">
+						<h3>Outdoor Adventure Skills</h3>
+						{#if stages.length === 0}
+							<p class="muted">No stages started yet.</p>
+						{:else}
+							<table class="oas">
+								<thead>
+									<tr><th>Stream</th><th>Completed</th><th>Working on</th></tr>
+								</thead>
+								<tbody>
+									{#each groupBy(stages, (s) => s.streamDisplay) as group (group.key)}
+										{@const done = group.items.filter((s) => s.status !== 'started').at(-1)}
+										<tr>
+											<td>{group.key}</td>
+											<td>
+												{#if done}
+													Stage {done.stage}
+													<span class="muted">{dateText(done.awarded)}</span>
+												{:else}
+													<span class="muted">–</span>
 												{/if}
-											</span>
-										</div>
-										<ul class="plain statements">
-											{#each shownStatements(stage) as statement, i (i)}
-												<li class:done={statement.achieved}>
-													<span class="mark">{statement.achieved ? '✓' : '○'}</span>
-													{statement.label}
-												</li>
-											{/each}
-										</ul>
-									</div>
-								{/each}
-							</div>
+											</td>
+											<td>
+												{#each group.items.filter((s) => s.status === 'started') as stage, i (stage.stage)}
+													{i > 0 ? ', ' : ''}Stage {stage.stage}
+													<span class="muted"
+														>{stage.statements.filter((s) => s.achieved).length} of {stage
+															.statements.length}</span
+													>
+												{:else}
+													<span class="muted">–</span>
+												{/each}
+											</td>
+										</tr>
+									{/each}
+								</tbody>
+							</table>
 						{/if}
-					{/each}
-				</section>
+					</section>
+				{/if}
+
+				{#if options.sia}
+					<section class="part">
+						<h3>Special interest areas</h3>
+						{#if details.siaSummaries.length === 0}
+							<p class="muted">None yet.</p>
+						{:else}
+							<ul class="plain">
+								{#each details.siaSummaries as sia, i (i)}
+									<li>
+										<strong>{sia.area}</strong>{sia.project ? `: ${sia.project}` : ''}
+										<span class="muted"
+											>· {sia.status}{sia.updated ? ` ${shortDate(sia.updated)}` : ''}</span
+										>
+									</li>
+								{/each}
+							</ul>
+						{/if}
+					</section>
+				{/if}
+
+				{#if options.logbook && !options.summary}
+					<section class="part">
+						<h3>Logbook</h3>
+						<p>
+							{details.stats.nightsCamped} nights camped and {details.stats.kmsHiked} km hiked.
+						</p>
+					</section>
+				{/if}
+
+				{#if options.note}
+					<section class="part">
+						<h3>From the leader</h3>
+						<textarea
+							class="form-control note no-print"
+							rows="3"
+							placeholder="A note for {member.firstName}'s parents (optional)"
+							bind:value={notes[member.id]}></textarea>
+						<p class="note-print">{notes[member.id] ?? ''}</p>
+					</section>
+				{/if}
+
+				{#if options.signatures}
+					<div class="signatures">
+						<div>Leader</div>
+						<div>Parent</div>
+					</div>
+				{/if}
+
+				{#if options.oas && stages.some((stage) => shownStatements(stage).length > 0)}
+					<section class="statements-page">
+						<header class="statements-head">
+							<h3>{nameOf(member)} · Outdoor Adventure Skills</h3>
+							<div class="muted small">
+								{options.achievedStatements && options.notYetStatements
+									? '✓ achieved · ○ still to do'
+									: options.achievedStatements
+										? '"I" statements achieved'
+										: '"I" statements still to do'}
+							</div>
+						</header>
+						{#each groupBy(stages, (s) => s.streamDisplay) as group (group.key)}
+							{#if group.items.some((stage) => shownStatements(stage).length > 0)}
+								<div class="stream">
+									<h4>{group.key}</h4>
+									{#each group.items.filter((stage) => shownStatements(stage).length > 0) as stage (stage.stage)}
+										<div class="stage">
+											<div class="stage-line">
+												<span>Stage {stage.stage}</span>
+												<span class="muted">
+													{STATUS_TEXT[stage.status]}{stage.awarded
+														? ` ${dateText(stage.awarded)}`
+														: ''}
+													{#if stage.status === 'started'}
+														· {stage.statements.filter((s) => s.achieved).length} of {stage
+															.statements.length}
+													{/if}
+												</span>
+											</div>
+											<ul class="plain statements">
+												{#each shownStatements(stage) as statement, i (i)}
+													<li class:done={statement.achieved}>
+														<span class="mark">{statement.achieved ? '✓' : '○'}</span>
+														{statement.label}
+													</li>
+												{/each}
+											</ul>
+										</div>
+									{/each}
+								</div>
+							{/if}
+						{/each}
+					</section>
+				{/if}
+			</article>
+			{#if blankAfter.includes(member.id)}
+				<div class="blank-page" aria-hidden="true"></div>
 			{/if}
-		</article>
-	{/if}
-{/each}
+		{/if}
+	{/each}
+</div>
 
 <style>
 	.back-link {
@@ -781,7 +829,48 @@
 		font-size: 0.85rem;
 	}
 
+	.printing {
+		margin-top: 0.75rem;
+	}
+
+	.blank-page {
+		display: none;
+	}
+
+	/* Laid out as printed, to count each report's pages; the same as the print rules below */
+	:global(.measuring) .report {
+		width: 186mm;
+		margin: 0;
+		padding: 0;
+		font-size: 0.94rem;
+	}
+
+	:global(.measuring) .statements-page {
+		margin-top: 0;
+		padding-top: 0;
+		border-top: 0;
+	}
+
+	:global(.measuring) .note {
+		display: none;
+	}
+
+	:global(.measuring) .note-print {
+		display: block;
+		min-height: 2em;
+	}
+
+	@page {
+		margin: 12mm;
+	}
+
 	@media print {
+		.blank-page {
+			display: block;
+			height: 1px;
+			break-after: page;
+		}
+
 		.report {
 			margin: 0;
 			padding: 0;

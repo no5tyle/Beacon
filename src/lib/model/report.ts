@@ -23,6 +23,8 @@ export interface ReportOptions {
 	note: boolean;
 	/** Lines for the leader's and a parent's signature */
 	signatures: boolean;
+	/** Printing on both sides: a blank page after a report with an odd number of pages, so each starts a new sheet */
+	doubleSided: boolean;
 }
 
 export const DEFAULT_REPORT_OPTIONS: ReportOptions = {
@@ -37,7 +39,8 @@ export const DEFAULT_REPORT_OPTIONS: ReportOptions = {
 	sia: true,
 	logbook: true,
 	note: true,
-	signatures: false
+	signatures: false,
+	doubleSided: false
 };
 
 /** Saved options, with anything missing or not a yes/no taken from the defaults */
