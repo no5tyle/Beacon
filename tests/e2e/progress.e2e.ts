@@ -121,3 +121,20 @@ test('a youth member sees their own progress, without recording', async ({ page 
 	await expect(page.locator('a[href$="/record-oas/"]')).toHaveCount(0);
 	await expect(page.getByRole('link', { name: 'Record statements' })).toHaveCount(0);
 });
+
+test("the list shows the same award progress as each youth's own page", async ({ page }) => {
+	await fakeTerrain(page);
+	await logIn(page);
+	await navigate(page, 'progress/');
+	const cards = page.locator('.youth');
+	// Mia's Milestones 1 and 2 aren't required of her, and count as done on both
+	await expect(cards.locator('.award')).toHaveCount(4);
+	const names = await cards.locator('.strong').allInnerTexts();
+	for (const name of names) {
+		const card = cards.filter({ hasText: name });
+		const listed = (await card.locator('.award').innerText()).match(/(\d+)%/)?.[1];
+		await card.click();
+		await expect(page.locator('.summary-value').first()).toHaveText(`${listed}%`);
+		await page.goBack();
+	}
+});
