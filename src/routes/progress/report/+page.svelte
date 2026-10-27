@@ -532,9 +532,15 @@
 		font-weight: 700;
 	}
 
+	/* Long parts (OAS with its statements) run on over pages; headings stay with what follows them */
 	.part {
 		margin-top: 0.9rem;
-		break-inside: avoid;
+	}
+
+	.part h3,
+	.stream h4,
+	.stage-line {
+		break-after: avoid;
 	}
 
 	.part h3 {
@@ -579,8 +585,16 @@
 		break-inside: avoid;
 	}
 
+	/* A tick or circle beside each item, wrapped lines indented to the text */
+	.checklist li,
+	.statements li {
+		display: flex;
+		gap: 0.15rem;
+	}
+
 	.mark {
 		display: inline-block;
+		flex-shrink: 0;
 		width: 1.1rem;
 		color: var(--muted);
 		font-weight: 700;
@@ -588,10 +602,6 @@
 
 	li.done .mark {
 		color: var(--success);
-	}
-
-	.stream {
-		break-inside: avoid;
 	}
 
 	.stream + .stream {
