@@ -131,6 +131,59 @@ describe('members', () => {
 });
 
 describe('unit progress', () => {
+	it('counts a milestone Terrain marks not required as done, as the progress page does', () => {
+		const empty = { oas: [], sia: [], introScouting: [], introSection: [], courseReflection: [] };
+		const progress = youthProgress(
+			toMemberSummary(member('m1', 'Ava', 'Nguyen')),
+			'Ava Nguyen',
+			{
+				...empty,
+				adventurousJourney: [],
+				personalReflection: [],
+				logbook: [],
+				milestones: [
+					record('milestone', {
+						achievement_meta: { stage: 1 },
+						status: 'not_required',
+						status_updated: '2025-02-01T00:00:00Z'
+					}),
+					// Without a date, it's still done
+					record('milestone', { achievement_meta: { stage: 2 }, status: 'not_required' }),
+					record('milestone', { achievement_meta: { stage: 3 }, status: 'in_progress' })
+				]
+			},
+			'scout'
+		);
+		expect(progress.milestone1Awarded).toBe('2025-02-01');
+		expect(progress.milestone2Awarded).not.toBeNull();
+		expect(progress.milestone3Awarded).toBeNull();
+	});
+
+	it('counts approved OAS stages as progressions, as the progress page does', () => {
+		const progress = youthProgress(
+			toMemberSummary(member('m1', 'Ava', 'Nguyen')),
+			'Ava Nguyen',
+			{
+				milestones: [],
+				oas: [
+					oasRecord('bushwalking', 1),
+					oasRecord('bushwalking', 2, { status: 'approved' }),
+					oasRecord('camping', 1, { status: 'in_progress' })
+				],
+				sia: [],
+				introScouting: [],
+				introSection: [],
+				courseReflection: [],
+				adventurousJourney: [],
+				personalReflection: [],
+				logbook: []
+			},
+			'scout'
+		);
+		expect(progress.oasStageProgressions).toBe(2);
+		expect(progress.oasBushwalkingStage, 'Only awarded stages set the stream stage').toBe(1);
+	});
+
 	it("builds a youth's progress from their Terrain records", () => {
 		const progress = youthProgress(
 			toMemberSummary(member('m1', 'Ava', 'Nguyen')),

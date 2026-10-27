@@ -200,6 +200,8 @@ function records(unitId: string): Fixture[] {
 	});
 	// Noah has every milestone
 	for (const stage of [1, 2, 3]) add(3, 'milestone', 'awarded', { achievement_meta: { stage } });
+	// Mia joined the section late, so Milestones 1 and 2 aren't required of her
+	for (const stage of [1, 2]) add(2, 'milestone', 'not_required', { achievement_meta: { stage } });
 	add(1, 'milestone', 'in_progress', {
 		achievement_meta: { stage: 1 },
 		event_log: events(['outdoors', 'creative', 'personal_growth'])

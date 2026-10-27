@@ -2,7 +2,7 @@
 // from Terrain one youth at a time. It's slow, so it is remembered per unit, and a load already under way
 // is shared rather than started twice. Ported from Beacon's C# WallchartService.
 
-import { toCalendarDate, type CalendarDate } from '#lib/model/dates.js';
+import { today, toCalendarDate, type CalendarDate } from '#lib/model/dates.js';
 import { emptyProgress, type YouthProgress } from '#lib/model/insights/progress.js';
 import { asc, sortBy } from '#lib/model/util.js';
 import type { TerrainAchievement } from '#lib/terrain/types.js';
@@ -90,7 +90,10 @@ export function youthProgress(
 		const participant = counts.participant ?? {};
 		// Assisting counts as leading towards a milestone, so assists are added to leads
 		const leads = total(counts.leader) + total(counts.assistant);
-		const awarded = milestone.status === 'awarded';
+		// A milestone Terrain marks not required (e.g. for a youth who joined the section late) counts as
+		// done, as it does on the youth's own progress page
+		const awarded = milestone.status === 'awarded' || milestone.status === 'not_required';
+		const awardedOn = dateOf(milestone.status_updated) ?? today();
 		const stage = milestone.achievement_meta?.stage;
 		const fromCounts = (n: 1 | 2 | 3) => {
 			p[`milestone${n}Community`] = Math.trunc(participant.community ?? 0);
@@ -107,7 +110,7 @@ export function youthProgress(
 			p[`milestone${n}PersonalGrowth`] = participate;
 			p[`milestone${n}Assist`] = 0;
 			p[`milestone${n}Lead`] = lead;
-			p[`milestone${n}Awarded`] = dateOf(milestone.status_updated);
+			p[`milestone${n}Awarded`] = awardedOn;
 		};
 		if (stage === 1) {
 			if (awarded) full(1, 6, 2);
@@ -117,7 +120,7 @@ export function youthProgress(
 			else fromCounts(2);
 		} else if (stage === 3) {
 			fromCounts(3);
-			p.milestone3Awarded = awarded ? dateOf(milestone.status_updated) : null;
+			p.milestone3Awarded = awarded ? awardedOn : null;
 		}
 	}
 
@@ -128,9 +131,13 @@ export function youthProgress(
 	}
 	const inSection = awardedOAS.filter((o) => o.section === section);
 	p.oasSectionStagesAwarded = inSection.map((o) => o.achievement_meta?.stage ?? 0);
-	// Stages 7 and above count as two progressions
+	// Approved stages count towards the award too, as on the youth's own progress page; stages 7 and
+	// above count as two progressions
+	const progressed = records.oas.filter(
+		(o) => (o.status === 'awarded' || o.status === 'approved') && o.section === section
+	);
 	p.oasStageProgressions =
-		inSection.length + inSection.filter((o) => (o.achievement_meta?.stage ?? 0) >= 7).length;
+		progressed.length + progressed.filter((o) => (o.achievement_meta?.stage ?? 0) >= 7).length;
 	p.oasStagesInProgress = [
 		...new Set(
 			records.oas
