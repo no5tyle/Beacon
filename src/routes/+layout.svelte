@@ -105,8 +105,10 @@
 			flex-direction: row;
 		}
 
+		/* Centred in the space beside the sidebar, so wide screens don't leave it all on the left */
 		main {
 			max-width: 1140px;
+			margin-inline: auto;
 			padding: 1.5rem 1.5rem 2rem 2rem;
 		}
 	}
