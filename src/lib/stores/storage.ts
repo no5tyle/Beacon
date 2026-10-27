@@ -3,6 +3,7 @@
 
 import { DEFAULT_TIMES, isDayTimes, type DayTimes } from '#lib/model/activity.js';
 import { restoreInsightsSettings, type InsightsSettings } from '#lib/model/insights/settings.js';
+import { restoreReportOptions, type ReportOptions } from '#lib/model/report.js';
 
 export const BRANCH_KEY = 'LoginBranch';
 export const UNIT_KEY = 'beacon-unit';
@@ -33,6 +34,21 @@ export function writeSetting(key: string, value: string): void {
 	} catch {
 		// Not remembered
 	}
+}
+
+// What the leader last chose to include in printed progress reports
+const REPORT_OPTIONS_KEY = 'beacon-report-options';
+
+export function readReportOptions(): ReportOptions {
+	try {
+		return restoreReportOptions(JSON.parse(readSetting(REPORT_OPTIONS_KEY) || 'null'));
+	} catch {
+		return restoreReportOptions(null);
+	}
+}
+
+export function writeReportOptions(options: ReportOptions): void {
+	writeSetting(REPORT_OPTIONS_KEY, JSON.stringify(options));
 }
 
 // The times of the last one-day activity logged, so the next one starts with them

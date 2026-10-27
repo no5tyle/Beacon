@@ -11,6 +11,7 @@ import { PreloadService } from './preload.js';
 import { ProgressService } from './progress.js';
 import { RecordingService } from './recording.js';
 import { ReferenceService } from './reference.js';
+import { ReportService } from './reports.js';
 import { UnitProgressService } from './unitProgress.js';
 
 export const app = new AppState();
@@ -25,6 +26,7 @@ export const preload = new PreloadService(app, unitProgress, oas);
 export const approvals = new ApprovalsService(app);
 export const approvalsBadge = new ApprovalsBadge(approvals);
 export const activities = new ActivitiesService(app);
+export const reports = new ReportService(app);
 
 // A different leader, or none, mustn't see the last one's youth
 app.onReset(() => {
