@@ -47,8 +47,8 @@ test('signs off statements from more than one stream together', async ({ page })
 
 	// Both stages stay picked, and each stream and stage shows how many
 	await expect(page.locator('.picked-row')).toHaveText([
-		/Camping Stage 2 · 1 statement/,
-		/Bushwalking Stage 4 · 2 statements/
+		/Bushwalking Stage 4 · 2 statements/,
+		/Camping Stage 2 · 1 statement/
 	]);
 	await expect(page.getByRole('button', { name: 'Camping 1 picked' })).toBeVisible();
 	await expect(page.getByRole('button', { name: 'Stage 4 2 picked' })).toBeVisible();
@@ -76,4 +76,23 @@ test('signs off statements from more than one stream together', async ({ page })
 	await expect(page.locator('.result-row', { hasText: 'Ava Nguyen' })).toContainText(
 		'Saved 1 statement'
 	);
+});
+
+test('picked statements can be cleared by stream, or all at once', async ({ page }) => {
+	await fakeTerrain(page);
+	await logIn(page);
+	await navigate(page, 'oas/sign-off/');
+	await page.getByRole('button', { name: 'Camping', exact: true }).click();
+	await page.getByRole('button', { name: 'Stage 2', exact: true }).click();
+	await page.getByLabel('I can tie a reef knot and a clove hitch.').check();
+	await page.getByRole('button', { name: /^Bushwalking/ }).click();
+	await page.getByRole('button', { name: 'Stage 4', exact: true }).click();
+	await page.getByLabel('I can tie a reef knot and a clove hitch.').check();
+
+	await page.getByRole('button', { name: 'Clear Camping' }).click();
+	await expect(page.locator('.picked-row')).toHaveText([/Bushwalking Stage 4/]);
+	await page.getByRole('button', { name: 'Clear all' }).click();
+	await expect(page.locator('.picked')).toHaveCount(0);
+	await expect(page.getByLabel('I can tie a reef knot and a clove hitch.')).not.toBeChecked();
+	await expect(page.getByRole('button', { name: 'Choose youth' })).toBeDisabled();
 });

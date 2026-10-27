@@ -7,6 +7,7 @@
 	import { page } from '$app/state';
 	import ChooseUnit from '#lib/components/ChooseUnit.svelte';
 	import Icon from '#lib/components/Icon.svelte';
+	import PickedStages from '#lib/components/PickedStages.svelte';
 	import RecordSwitch from '#lib/components/RecordSwitch.svelte';
 	import StepBar from '#lib/components/StepBar.svelte';
 	import { isCoreStream } from '#lib/model/insights/insightsCalculator.js';
@@ -192,8 +193,8 @@
 		await selectStage(option);
 	}
 
-	function unpick(option: OASStage) {
-		delete picked[option.templateLink];
+	function unpick(stages: OASStage[]) {
+		for (const option of stages) delete picked[option.templateLink];
 	}
 
 	async function goToYouth() {
@@ -497,33 +498,12 @@
 			{/each}
 		{/if}
 
-		{#if pickedStages.length > 0}
-			<div class="card picked">
-				<strong>Picked</strong>
-				{#each pickedStages as p (p.stage.templateLink)}
-					<div class="picked-row">
-						<button
-							type="button"
-							class="btn btn-link btn-sm grow"
-							disabled={loading}
-							onclick={() => openPicked(p.stage)}
-							>{nameOfStage(p.stage)} · {plural(p.inputIds.length, 'statement')}</button
-						>
-						<button
-							type="button"
-							class="btn btn-link btn-sm text-danger"
-							aria-label="Remove {nameOfStage(p.stage)}"
-							onclick={() => unpick(p.stage)}><Icon name="x" /></button
-						>
-					</div>
-				{/each}
-				{#if pickedStages.length === 1}
-					<div class="small muted">
-						Pick statements from other streams or stages too, if you like.
-					</div>
-				{/if}
-			</div>
-		{/if}
+		<PickedStages
+			picked={pickedStages.map((p) => ({ stage: p.stage, count: p.inputIds.length }))}
+			disabled={loading}
+			onopen={openPicked}
+			onclear={unpick}
+		/>
 
 		<div class="action-bar">
 			<span class="small muted">{plural(pickedCount, 'statement')}</span>
@@ -746,21 +726,6 @@
 		font-size: 0.75em;
 		font-weight: 600;
 		line-height: 1.4;
-	}
-
-	.picked {
-		margin: 1rem 0 0;
-	}
-
-	.picked-row {
-		display: flex;
-		align-items: center;
-	}
-
-	.picked-row .btn.grow {
-		justify-content: flex-start;
-		text-align: left;
-		padding-left: 0;
 	}
 
 	.chip-more {
