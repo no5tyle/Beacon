@@ -864,6 +864,23 @@
 		margin: 12mm;
 	}
 
+	/*
+		Phones can lay the printed page out narrower than a computer does: Safari on an iPhone counts a CSS
+		pixel as a printer's point, so A4 is about 530px across instead of 700. The report then wraps into
+		more lines and runs over the page, so scale it to the same size on paper as a computer prints it.
+	*/
+	@media print and (max-width: 640.98px) {
+		.report {
+			zoom: 0.75;
+		}
+	}
+
+	@media print and (max-width: 480px) {
+		.report {
+			zoom: 0.55;
+		}
+	}
+
 	@media print {
 		.blank-page {
 			display: block;
@@ -883,9 +900,9 @@
 			break-after: auto;
 		}
 
-		/* The page's margins are enough on paper */
+		/* The page's margins are enough on paper, and the room for the phone's tab bar isn't needed */
 		:global(main) {
-			padding: 0;
+			padding: 0 !important;
 		}
 
 		:global(.page) {

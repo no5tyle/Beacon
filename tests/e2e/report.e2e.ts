@@ -110,3 +110,19 @@ test('printed double-sided, each report starts on a new sheet', async ({ page })
 	await page.getByLabel('Outdoor Adventure Skills').uncheck();
 	expect(await print()).toBe(7);
 });
+
+test('the front page fits on one page when a phone lays the print out narrower', async ({
+	page
+}) => {
+	const pages = (pdf: Buffer) =>
+		(pdf.toString('latin1').match(/\/Type\s*\/Page[^s]/g) ?? []).length;
+	await fakeTerrain(page);
+	await logIn(page);
+	await navigate(page, 'progress/report/?ids=unit-1-m0');
+	await expect(page.locator('.report table.oas')).toBeVisible();
+	expect(pages(await page.pdf({ format: 'A4' }))).toBe(1);
+	// A4 as Safari on an iPhone lays it out, a CSS pixel to a point: about 530px across
+	expect(pages(await page.pdf({ width: '163mm', height: '230mm' }))).toBe(1);
+	// Narrower still
+	expect(pages(await page.pdf({ width: '125mm', height: '177mm' }))).toBe(1);
+});
