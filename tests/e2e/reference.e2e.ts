@@ -59,7 +59,7 @@ test('the Reference app keeps its filters behind the menu', async ({ page }) => 
 });
 
 test("signed in, each statement shows how many of the unit's youth have it", async ({ page }) => {
-	const terrain = await fakeTerrain(page);
+	await fakeTerrain(page);
 	await logIn(page);
 	await navigate(page, 'oas-reference/?stream=bushwalking&stage=4');
 	// Counted when the stage comes into view
@@ -75,11 +75,26 @@ test("signed in, each statement shows how many of the unit's youth have it", asy
 	await expect(statement('I can tie a reef knot')).toHaveAccessibleName(
 		"0 youth have this, 4 don't yet"
 	);
+});
+
+test("a stage's counts are asked of Terrain once", async ({ page }) => {
+	const terrain = await fakeTerrain(page);
+	await logIn(page);
+	// A stage Insights doesn't look at, so its requests are only the Reference's
+	await navigate(page, 'oas-reference/?stream=bushwalking&stage=9');
+	await page.locator('.stage-group').first().scrollIntoViewIfNeeded();
+	await expect(page.locator('.count-key')).toBeVisible();
+	await page
+		.locator('.stage-group')
+		.first()
+		.evaluate((el) => el.scrollIntoView());
+	await page.evaluate(() => window.scrollTo(0, 0));
+	await page.locator('.stage-group').first().scrollIntoViewIfNeeded();
 	expect(
 		terrain.requests.filter(
 			(r) =>
 				r.includes('units/unit-1/achievements') &&
-				r.includes('stream=bushwalking&branch=bushwalking&stage=4')
+				r.includes('stream=bushwalking&branch=bushwalking&stage=9')
 		)
 	).toHaveLength(1);
 });
