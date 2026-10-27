@@ -14,6 +14,16 @@ test('progress reports for the unit, with the parts the leader ticks', async ({ 
 	const ava = reports.filter({ hasText: 'Ava Nguyen' });
 	await expect(ava.locator('.report-kicker')).toHaveText('Mt Example Scouts · Progress report');
 	await expect(ava).toContainText('Australian Scout Award · 48%');
+	// How far through each award item, without the introductions everyone has done
+	const award = ava.locator('.checklist');
+	await expect(award.locator('li', { hasText: 'OAS stage progressions' })).toContainText(
+		'9 of 10 done'
+	);
+	await expect(award.locator('li', { hasText: 'SIA projects' })).toContainText(
+		'1 of 6 completed, 1 in progress, 1 of 3 areas'
+	);
+	await expect(award.locator('li', { hasText: 'Milestone 3' })).toContainText('1 of 3 done');
+	await expect(award).not.toContainText('Introduction to');
 	// The front page sums up each OAS stream
 	await expect(ava.locator('table.oas tr', { hasText: 'Bushwalking' })).toHaveText(
 		/Bushwalking\s*Stage 3 \d\d\/\d\d\/\d\d\s*Stage 4\s*4 of 6/

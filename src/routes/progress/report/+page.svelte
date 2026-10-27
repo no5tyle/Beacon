@@ -13,6 +13,7 @@
 		peakAwardPercent,
 		type MemberInsightsReport
 	} from '#lib/model/insights/memberModels.js';
+	import type { PriorityTask } from '#lib/model/insights/models.js';
 	import type { ReportOptions } from '#lib/model/report.js';
 	import { asc, groupBy, sortBy } from '#lib/model/util.js';
 	import { pagePath } from '#lib/paths.js';
@@ -140,6 +141,49 @@
 		stage.statements.filter((s) =>
 			s.achieved ? options.achievedStatements : options.notYetStatements
 		);
+	/**
+		How far through each award item they are, for parents: counts for stage progressions and projects,
+		where each core stream is up to, and when one-off items were done. The introductions aren't shown:
+		every youth has done them by the time a report goes home.
+	*/
+	function taskProgress(
+		task: PriorityTask,
+		details: ProgressDetails,
+		report: MemberInsightsReport
+	) {
+		const rules = report.rules;
+		switch (task.key) {
+			case 'milestone':
+				return `${details.milestones.filter((m) => m.awarded).length} of 3 done`;
+			case 'oas':
+				return `${Math.min(details.stats.oasProgressions, rules.oasStageProgressionsRequired)} of ${rules.oasStageProgressionsRequired} done`;
+			case 'oas:high':
+				return task.detail ? `${task.detail} done` : '';
+			case 'oas:core':
+				return task.done ? '' : task.detail.replace(/^Below Stage \d+: /, 'Now at ');
+			case 'sia': {
+				const completed = details.siaSummaries.filter((s) => s.status === 'Awarded').length;
+				const inProgress = details.siaSummaries.length - completed;
+				const areas = /(\d+ of \d+ areas)/.exec(task.detail)?.[1];
+				return [
+					`${completed} of ${rules.siaProjectsRequired} completed`,
+					inProgress > 0 ? `${inProgress} in progress` : '',
+					rules.siaAreasRequired > 1 && areas ? areas : ''
+				]
+					.filter(Boolean)
+					.join(', ');
+			}
+			case 'peak:course':
+				return shortDate(details.peakAward.personalDevelopmentCourse);
+			case 'peak:aj':
+				return shortDate(details.peakAward.adventurousJourney);
+			case 'peak:reflection':
+				return shortDate(details.peakAward.personalReflection);
+			default:
+				return task.done ? '' : task.detail;
+		}
+	}
+
 	const milestonesComplete = (details: ProgressDetails) =>
 		details.milestones.filter((m) => m.awarded).length >= 3;
 </script>
@@ -324,10 +368,14 @@
 				<section class="part">
 					<h3>{report.rules.peakAwardName} · {Math.round(peakAwardPercent(report))}%</h3>
 					<ul class="plain checklist">
-						{#each report.peakAwardTasks as task (task.key)}
+						{#each report.peakAwardTasks.filter((t) => !t.key.startsWith('intro:')) as task (task.key)}
+							{@const progress = taskProgress(task, details, report)}
 							<li class:done={task.done}>
 								<span class="mark">{task.done ? '✓' : '○'}</span>
-								{task.title}
+								<span>
+									{task.title}
+									{#if progress}<span class="task-progress muted">{progress}</span>{/if}
+								</span>
 							</li>
 						{/each}
 					</ul>
@@ -627,6 +675,12 @@
 		break-inside: avoid;
 	}
 
+	/* How far through an award item they are, under its name */
+	.task-progress {
+		display: block;
+		font-size: 0.82rem;
+	}
+
 	/* A tick or circle beside each item, wrapped lines indented to the text */
 	.checklist li,
 	.statements li {
@@ -716,7 +770,7 @@
 		display: grid;
 		grid-template-columns: 1fr 1fr;
 		gap: 2rem;
-		margin-top: 2rem;
+		margin-top: 1.5rem;
 		break-inside: avoid;
 	}
 
@@ -731,11 +785,22 @@
 		.report {
 			margin: 0;
 			padding: 0;
+			/* A touch smaller on paper, so the front page holds everything */
+			font-size: 0.94rem;
 			break-after: page;
 		}
 
 		.report:last-of-type {
 			break-after: auto;
+		}
+
+		/* The page's margins are enough on paper */
+		:global(main) {
+			padding: 0;
+		}
+
+		:global(.page) {
+			min-height: 0;
 		}
 
 		.statements-page {
@@ -747,7 +812,7 @@
 
 		.note-print {
 			display: block;
-			min-height: 2.5em;
+			min-height: 2em;
 		}
 	}
 </style>
