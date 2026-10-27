@@ -38,8 +38,8 @@
 		{ key: 'milestones', label: 'Milestones' },
 		{ key: 'award', label: 'Award checklist' },
 		{ key: 'oas', label: 'Outdoor Adventure Skills' },
-		{ key: 'achievedStatements', label: 'Achieved "I can" statements', under: 'oas' },
-		{ key: 'notYetStatements', label: 'Statements still to do', under: 'oas' },
+		{ key: 'achievedStatements', label: 'Achieved "I" statements', under: 'oas' },
+		{ key: 'notYetStatements', label: '"I" statements still to do', under: 'oas' },
 		{ key: 'nonCoreOAS', label: 'Non-core streams', under: 'oas' },
 		{ key: 'sia', label: 'Special interest areas' },
 		{ key: 'logbook', label: 'Logbook (the summary has it too)' },
@@ -432,8 +432,8 @@
 							{options.achievedStatements && options.notYetStatements
 								? '✓ achieved · ○ still to do'
 								: options.achievedStatements
-									? '"I can" statements achieved'
-									: '"I can" statements still to do'}
+									? '"I" statements achieved'
+									: '"I" statements still to do'}
 						</div>
 					</header>
 					{#each groupBy(stages, (s) => s.streamDisplay) as group (group.key)}
