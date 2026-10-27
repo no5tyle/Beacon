@@ -42,7 +42,7 @@
 		{ key: 'notYetStatements', label: 'Statements still to do', under: 'oas' },
 		{ key: 'nonCoreOAS', label: 'Non-core streams', under: 'oas' },
 		{ key: 'sia', label: 'Special interest areas' },
-		{ key: 'logbook', label: 'Logbook' },
+		{ key: 'logbook', label: 'Logbook (the summary has it too)' },
 		{ key: 'note', label: "Leader's note" },
 		{ key: 'signatures', label: 'Signature lines' }
 	];
@@ -307,16 +307,14 @@
 							{/each}
 						</ul>
 						{#if report?.milestone}
-							<table class="needs">
-								<tbody>
-									{#each [...report.milestone.participates, report.milestone.leadAssist] as need (need.challengeArea)}
-										<tr>
-											<td>{AREAS[need.challengeArea] ?? need.challengeArea}</td>
-											<td class="num">{Math.min(need.have, need.need)} of {need.need}</td>
-										</tr>
-									{/each}
-								</tbody>
-							</table>
+							<div class="needs muted">
+								{[...report.milestone.participates, report.milestone.leadAssist]
+									.map(
+										(need) =>
+											`${AREAS[need.challengeArea] ?? need.challengeArea} ${Math.min(need.have, need.need)} of ${need.need}`
+									)
+									.join(' · ')}
+							</div>
 						{/if}
 					{/if}
 				</section>
@@ -341,38 +339,40 @@
 					<h3>Outdoor Adventure Skills</h3>
 					{#if stages.length === 0}
 						<p class="muted">No stages started yet.</p>
-					{/if}
-					{#each groupBy(stages, (s) => s.streamDisplay) as group (group.key)}
-						<div class="stream">
-							<h4>{group.key}</h4>
-							{#each group.items as stage (stage.stage)}
-								<div class="stage">
-									<div class="stage-line">
-										<span>Stage {stage.stage}</span>
-										<span class="muted">
-											{STATUS_TEXT[stage.status]}{stage.awarded
-												? ` ${dateText(stage.awarded)}`
-												: ''}
-											{#if stage.status === 'started'}
-												· {stage.statements.filter((s) => s.achieved).length} of {stage.statements
-													.length}
+					{:else}
+						<table class="oas">
+							<thead>
+								<tr><th>Stream</th><th>Completed</th><th>Working on</th></tr>
+							</thead>
+							<tbody>
+								{#each groupBy(stages, (s) => s.streamDisplay) as group (group.key)}
+									{@const done = group.items.filter((s) => s.status !== 'started').at(-1)}
+									<tr>
+										<td>{group.key}</td>
+										<td>
+											{#if done}
+												Stage {done.stage}
+												<span class="muted">{dateText(done.awarded)}</span>
+											{:else}
+												<span class="muted">–</span>
 											{/if}
-										</span>
-									</div>
-									{#if shownStatements(stage).length > 0}
-										<ul class="plain statements">
-											{#each shownStatements(stage) as statement, i (i)}
-												<li class:done={statement.achieved}>
-													<span class="mark">{statement.achieved ? '✓' : '○'}</span>
-													{statement.label}
-												</li>
+										</td>
+										<td>
+											{#each group.items.filter((s) => s.status === 'started') as stage, i (stage.stage)}
+												{i > 0 ? ', ' : ''}Stage {stage.stage}
+												<span class="muted"
+													>{stage.statements.filter((s) => s.achieved).length} of {stage.statements
+														.length}</span
+												>
+											{:else}
+												<span class="muted">–</span>
 											{/each}
-										</ul>
-									{/if}
-								</div>
-							{/each}
-						</div>
-					{/each}
+										</td>
+									</tr>
+								{/each}
+							</tbody>
+						</table>
+					{/if}
 				</section>
 			{/if}
 
@@ -396,7 +396,7 @@
 				</section>
 			{/if}
 
-			{#if options.logbook}
+			{#if options.logbook && !options.summary}
 				<section class="part">
 					<h3>Logbook</h3>
 					<p>
@@ -422,6 +422,52 @@
 					<div>Leader</div>
 					<div>Parent</div>
 				</div>
+			{/if}
+
+			{#if options.oas && stages.some((stage) => shownStatements(stage).length > 0)}
+				<section class="statements-page">
+					<header class="statements-head">
+						<h3>{nameOf(member)} · Outdoor Adventure Skills</h3>
+						<div class="muted small">
+							{options.achievedStatements && options.notYetStatements
+								? '✓ achieved · ○ still to do'
+								: options.achievedStatements
+									? '"I can" statements achieved'
+									: '"I can" statements still to do'}
+						</div>
+					</header>
+					{#each groupBy(stages, (s) => s.streamDisplay) as group (group.key)}
+						{#if group.items.some((stage) => shownStatements(stage).length > 0)}
+							<div class="stream">
+								<h4>{group.key}</h4>
+								{#each group.items.filter((stage) => shownStatements(stage).length > 0) as stage (stage.stage)}
+									<div class="stage">
+										<div class="stage-line">
+											<span>Stage {stage.stage}</span>
+											<span class="muted">
+												{STATUS_TEXT[stage.status]}{stage.awarded
+													? ` ${dateText(stage.awarded)}`
+													: ''}
+												{#if stage.status === 'started'}
+													· {stage.statements.filter((s) => s.achieved).length} of {stage.statements
+														.length}
+												{/if}
+											</span>
+										</div>
+										<ul class="plain statements">
+											{#each shownStatements(stage) as statement, i (i)}
+												<li class:done={statement.achieved}>
+													<span class="mark">{statement.achieved ? '✓' : '○'}</span>
+													{statement.label}
+												</li>
+											{/each}
+										</ul>
+									</div>
+								{/each}
+							</div>
+						{/if}
+					{/each}
+				</section>
 			{/if}
 		</article>
 	{/if}
@@ -534,7 +580,7 @@
 
 	/* Long parts (OAS with its statements) run on over pages; headings stay with what follows them */
 	.part {
-		margin-top: 0.9rem;
+		margin-top: 0.75rem;
 	}
 
 	.part h3,
@@ -563,12 +609,8 @@
 	}
 
 	.needs {
-		margin-top: 0.4rem;
+		margin-top: 0.15rem;
 		font-size: 0.9rem;
-	}
-
-	.needs td {
-		padding: 0.05rem 1.5rem 0.05rem 0;
 	}
 
 	.checklist,
@@ -628,6 +670,43 @@
 		break-inside: avoid;
 	}
 
+	.oas {
+		font-size: 0.92rem;
+		border-collapse: collapse;
+	}
+
+	.oas th {
+		padding: 0 1.5rem 0.15rem 0;
+		color: var(--muted);
+		font-size: 0.78rem;
+		font-weight: 600;
+		text-align: left;
+	}
+
+	.oas td {
+		padding: 0.1rem 1.5rem 0.1rem 0;
+		vertical-align: top;
+	}
+
+	/* The statements start a page of their own, headed so it makes sense on its own */
+	.statements-page {
+		margin-top: 1.5rem;
+		padding-top: 1rem;
+		border-top: 1px dashed var(--border);
+	}
+
+	.statements-head {
+		margin-bottom: 0.6rem;
+		padding-bottom: 0.4rem;
+		border-bottom: 2px solid var(--brand);
+		break-after: avoid;
+	}
+
+	.statements-head h3 {
+		margin: 0;
+		font-size: 1.15rem;
+	}
+
 	.note-print {
 		display: none;
 		white-space: pre-wrap;
@@ -637,7 +716,8 @@
 		display: grid;
 		grid-template-columns: 1fr 1fr;
 		gap: 2rem;
-		margin-top: 2.5rem;
+		margin-top: 2rem;
+		break-inside: avoid;
 	}
 
 	.signatures div {
@@ -658,9 +738,16 @@
 			break-after: auto;
 		}
 
+		.statements-page {
+			margin-top: 0;
+			padding-top: 0;
+			border-top: 0;
+			break-before: page;
+		}
+
 		.note-print {
 			display: block;
-			min-height: 4.5em;
+			min-height: 2.5em;
 		}
 	}
 </style>
