@@ -44,6 +44,10 @@
 	const PRINT_NAMES_KEY = 'beacon-reference-print-names';
 	let printNames = $state(readSetting(PRINT_NAMES_KEY) === 'true');
 	$effect(() => writeSetting(PRINT_NAMES_KEY, String(printNames)));
+	// Printed, each statement can have its longer explanation under it, opened or not
+	const PRINT_DETAIL_KEY = 'beacon-reference-print-detail';
+	let printDetail = $state(readSetting(PRINT_DETAIL_KEY) === 'true');
+	$effect(() => writeSetting(PRINT_DETAIL_KEY, String(printDetail)));
 	const countsKey = (stage: OASReferenceStage) => `${app.unitId}|${stagePath(stage)}`;
 	const stageCounts = (stage: OASReferenceStage) => {
 		const found = counts[countsKey(stage)];
@@ -417,12 +421,16 @@
 	<button type="button" class="btn btn-outline-secondary btn-sm" onclick={print}
 		><Icon name="print" /> Print</button
 	>
-	{@render printNamesOption()}
+	{@render printOptions()}
 {/snippet}
 
-{#snippet printNamesOption()}
+{#snippet printOptions()}
+	<label class="print-option small">
+		<input type="checkbox" class="form-check-input" bind:checked={printDetail} />
+		Print the longer explanations
+	</label>
 	{#if showCounts}
-		<label class="print-names-option small">
+		<label class="print-option small">
 			<input type="checkbox" class="form-check-input" bind:checked={printNames} />
 			Print the names of youth without each statement
 		</label>
@@ -514,7 +522,7 @@
 					<button type="button" class="btn btn-outline-secondary btn-sm" onclick={shareStarred}
 						><Icon name="share-boxed" /> Share list</button
 					>
-					{@render printNamesOption()}
+					{@render printOptions()}
 					<button type="button" class="btn btn-link btn-sm text-danger" onclick={clearStarred}
 						>Clear starred</button
 					>
@@ -625,8 +633,9 @@
 								{without.length > 0 ? `Not yet: ${without.join(', ')}` : 'Everyone has this'}
 							</div>
 						{/if}
-						{#if open}
-							<div class="statement-detail">
+						{#if open || (printDetail && statement.detail)}
+							<!-- Opened on screen, or kept for the printout when the longer explanations are asked for -->
+							<div class="statement-detail" class:print-only-detail={!open}>
 								{#if statement.detail}
 									<em>{statement.detail}</em>
 								{:else}
@@ -736,29 +745,33 @@
 	</div>
 {:else}
 	<h2>OAS reference</h2>
-	<p class="muted intro">
-		Every Outdoor Adventure Skills I statement, with the fuller explanation Terrain gives. Click a
-		statement to expand it.
-		<!-- Only in a browser: inside the installed Beacon app this would open in the same window, which can't be installed -->
-		{#if !install.isInstalledApp}
-			<a href={pagePath('reference/')} data-sveltekit-reload>Open as the Beacon Reference app</a> to add
-			it to your phone's home screen.
-		{/if}
-	</p>
+	<!-- The filters are for the screen; a printout is just the statements -->
+	<div class="no-print">
+		<p class="muted intro">
+			Every Outdoor Adventure Skills I statement, with the fuller explanation Terrain gives. Click a
+			statement to expand it.
+			<!-- Only in a browser: inside the installed Beacon app this would open in the same window, which can't be installed -->
+			{#if !install.isInstalledApp}
+				<a href={pagePath('reference/')} data-sveltekit-reload>Open as the Beacon Reference app</a> to
+				add it to your phone's home screen.
+			{/if}
+		</p>
 
-	{@render filterControls()}
-	<div class="search-row">
-		<div class="field">
-			<label class="form-label small" for="search">Search</label>
-			<input
-				id="search"
-				type="search"
-				class="form-control"
-				placeholder="Words in the statement or its explanation, e.g. compass"
-				bind:value={search}
-			/>
+		{@render filterControls()}
+		<div class="search-row">
+			<div class="field">
+				<label class="form-label small" for="search">Search</label>
+				<input
+					id="search"
+					type="search"
+					class="form-control"
+					placeholder="Words in the statement or its explanation, e.g. compass"
+					bind:value={search}
+				/>
+			</div>
+			<button type="button" class="btn btn-link btn-sm" onclick={clearFilters}>Clear filters</button
+			>
 		</div>
-		<button type="button" class="btn btn-link btn-sm" onclick={clearFilters}>Clear filters</button>
 	</div>
 	<div class="button-row no-print">
 		{@render starredButton()}
@@ -1184,11 +1197,16 @@
 		display: none;
 	}
 
-	.print-names-option {
+	.print-option {
 		display: inline-flex;
 		align-items: center;
 		gap: 0.4rem;
 		min-height: 36px;
+	}
+
+	/* A longer explanation kept only for the printout */
+	.statement-detail.print-only-detail {
+		display: none;
 	}
 
 	/* Who doesn't have a statement yet: only on paper */
@@ -1211,6 +1229,11 @@
 
 		.lacking-names {
 			display: block;
+		}
+
+		.statement-detail.print-only-detail {
+			display: block;
+			margin: 0.15rem 0 0 1.4rem;
 		}
 
 		.app-content {
