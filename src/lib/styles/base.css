@@ -654,10 +654,11 @@ html:has(.tab-bar) {
 
 /* Beside the sidebar on wider screens */
 @media (min-width: 641px) {
+	/* Its ends line up with the page's content, which is centred once the screen is wider than it */
 	.action-bar {
 		left: 250px;
-		padding-left: 2rem;
-		padding-right: 1.5rem;
+		padding-left: max(2rem, calc((100vw - 250px - 1140px) / 2 + 2rem));
+		padding-right: max(1.5rem, calc((100vw - 250px - 1140px) / 2 + 1.5rem));
 	}
 }
 

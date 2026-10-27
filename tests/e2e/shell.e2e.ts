@@ -234,3 +234,21 @@ test('the tabs shrink while scrolling down and come back on a tap', async ({ pag
 	await expect(tabs).not.toHaveClass(/minimized/);
 	await expect(page).toHaveURL(/oas\/sign-off/);
 });
+
+test('on a wide screen the page sits in the middle beside the sidebar', async ({
+	page
+}, testInfo) => {
+	test.skip(testInfo.project.name !== 'desktop', 'Only wide screens have room either side');
+	await page.setViewportSize({ width: 2560, height: 1000 });
+	await logIn(page);
+	await navigate(page, 'record/activity/');
+	const main = (await page.locator('main').boundingBox())!;
+	const sidebar = (await page.locator('.sidebar').boundingBox())!;
+	const left = main.x - sidebar.width;
+	const right = 2560 - (main.x + main.width);
+	expect(Math.abs(left - right)).toBeLessThan(20);
+	// The action bar's contents line up with the page's
+	const field = (await page.locator('main input').first().boundingBox())!;
+	const next = (await page.locator('.action-bar .btn').boundingBox())!;
+	expect(Math.abs(field.x + field.width - (next.x + next.width))).toBeLessThan(20);
+});
