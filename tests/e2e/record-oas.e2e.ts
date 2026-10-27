@@ -51,6 +51,7 @@ test('starts a stage a youth has no record for', async ({ page }) => {
 	await logIn(page);
 	await navigate(page, 'progress/');
 	await page.locator('.youth', { hasText: 'Noah Jones' }).click();
+	await page.getByRole('tab', { name: 'Records' }).click();
 	await page.locator('a[href$="/record-oas/"]').click();
 	await page.selectOption('#stage', { label: 'Camping 1' });
 	await expect(page.getByText('0 of 7 done in Terrain')).toBeVisible();

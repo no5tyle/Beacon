@@ -45,11 +45,14 @@ test('printing stays light when the phone is in dark mode', async ({ page }) => 
 	await page.emulateMedia({ colorScheme: 'dark' });
 	await logIn(page);
 	await navigate(page, 'progress/unit-1-m0/');
-	const chip = page.locator('.task-chip.done').first();
-	await expect(chip).toHaveCSS('background-color', 'rgb(22, 48, 31)');
+	await page.getByRole('tab', { name: 'Awards' }).click();
+	const mark = page.locator('.task.done .task-mark').first();
+	await expect(mark).toHaveCSS('background-color', 'rgba(48, 209, 88, 0.16)');
 	await page.emulateMedia({ colorScheme: 'dark', media: 'print' });
 	await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
-	await expect(chip).toHaveCSS('background-color', 'rgb(232, 245, 238)');
+	await expect(mark).toHaveCSS('background-color', 'rgba(52, 199, 89, 0.14)');
+	// Printed, every tab shows
+	await expect(page.getByRole('heading', { name: 'Outdoor Adventure Skills' })).toBeVisible();
 });
 
 test('removes youth details an older version left on the device', async ({ page }) => {
