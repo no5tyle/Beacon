@@ -24,6 +24,20 @@ test('Progress lists the youth, and each opens their details', async ({ page }) 
 	await expect(page).toHaveURL(/\/progress\/unit-1-m0\/$/);
 });
 
+test("each youth's award progress shows once the unit's progress has loaded", async ({ page }) => {
+	await fakeTerrain(page);
+	await logIn(page);
+	// Insights loads the unit's progress; the list then has it without asking Terrain again
+	await navigate(page, 'insights/');
+	await expect(page.locator('.stat-tile').first()).toContainText('Youth analysed 4');
+	await navigate(page, 'progress/');
+	const ava = page.locator('.youth', { hasText: 'Ava Nguyen' });
+	await expect(ava.locator('.award')).toHaveText('Australian Scout Award 48%');
+	// The same as on her details
+	await ava.click();
+	await expect(page.locator('.summary-tile').first()).toContainText('48%');
+});
+
 test('youth details: who they are, next steps, awards and records', async ({ page }) => {
 	await fakeTerrain(page);
 	await logIn(page);
