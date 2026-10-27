@@ -4,7 +4,8 @@
 	Shown as a Beacon page, and as the installable Beacon Reference app with its filters behind a menu.
 -->
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
+	import { SvelteMap } from 'svelte/reactivity';
 	import { replaceState } from '$app/navigation';
 	import { page } from '$app/state';
 	import Icon from './Icon.svelte';
@@ -16,21 +17,78 @@
 		parseReferenceLink,
 		PARTS,
 		referenceLinkToQuery,
+		stagePath,
 		stageTitle,
 		statementKey,
 		streamOfKey,
 		type OASReferenceLink,
+		type OASReferenceStage,
 		type OASReferenceStatement,
 		type OASReferenceWhere
 	} from '#lib/model/oas/reference.js';
 	import { compareText, distinct, groupBy } from '#lib/model/util.js';
 	import { pagePath } from '#lib/paths.js';
-	import { reference } from '#lib/services/index.js';
+	import { app, reference, statementCounts } from '#lib/services/index.js';
+	import type { StageCounts } from '#lib/services/statementCounts.js';
 	import { share as shareText } from '#lib/share.js';
 	import { install } from '#lib/stores/install.svelte.js';
 	import { readSetting, writeSetting } from '#lib/stores/storage.js';
 
 	let { appMode = false }: { appMode?: boolean } = $props();
+
+	// Signed in as a leader with a unit chosen, each statement shows how many of the unit's youth have it.
+	// A stage's counts load when it comes into view, and are kept only while the page is open
+	const showCounts = $derived(app.isSignedIn && !app.isYouth && !!app.unitId);
+	let counts = $state<Record<string, StageCounts | 'loading' | 'failed'>>({});
+	const countsKey = (stage: OASReferenceStage) => `${app.unitId}|${stagePath(stage)}`;
+	const stageCounts = (stage: OASReferenceStage) => {
+		const found = counts[countsKey(stage)];
+		return typeof found === 'object' ? found : null;
+	};
+
+	function loadCounts(stage: OASReferenceStage) {
+		const key = countsKey(stage);
+		if (!showCounts || counts[key]) return;
+		counts[key] = 'loading';
+		statementCounts
+			.stageCounts(app.unitId, stage)
+			.then((found) => (counts[key] = found))
+			.catch(() => (counts[key] = 'failed'));
+	}
+
+	// The stages on screen, so choosing another unit can count them straight away
+	const inView = new SvelteMap<HTMLElement, OASReferenceStage>();
+
+	/** Loads a stage's counts once it scrolls into view */
+	function countWhenSeen(node: HTMLElement, stage: OASReferenceStage) {
+		let current = stage;
+		const observer = new IntersectionObserver((entries) => {
+			if (entries.some((e) => e.isIntersecting)) {
+				inView.set(node, current);
+				loadCounts(current);
+			} else inView.delete(node);
+		});
+		observer.observe(node);
+		return {
+			update(next: OASReferenceStage) {
+				current = next;
+				if (inView.has(node)) inView.set(node, next);
+			},
+			destroy() {
+				observer.disconnect();
+				inView.delete(node);
+			}
+		};
+	}
+
+	// Choosing another unit, or signing in, while the page is open counts the stages in view afresh
+	$effect(() => {
+		void [showCounts, app.unitId];
+		untrack(() => {
+			counts = {};
+			for (const stage of inView.values()) loadCounts(stage);
+		});
+	});
 
 	const CORE_STREAMS = 'core';
 	const ALL_STREAMS = 'all';
@@ -449,8 +507,18 @@
 	</div>
 
 	{#each groupBy(shown, (s) => s.stage.templateLink) as stageGroup (stageGroup.key)}
-		<section class="stage-group" class:as-cards={appMode}>
+		{@const groupCounts = showCounts ? stageCounts(stageGroup.items[0].stage) : null}
+		<section
+			class="stage-group"
+			class:as-cards={appMode}
+			use:countWhenSeen={stageGroup.items[0].stage}
+		>
 			<h3 class="stage-title">{stageTitle(stageGroup.items[0].stage)}</h3>
+			{#if groupCounts}
+				<div class="count-key small muted no-print">
+					Of the {groupCounts.youth} youth in {app.unitName}: ✓ have it · ○ don't yet
+				</div>
+			{/if}
 			<ul>
 				{#each stageGroup.items as statement (statementKey(statement))}
 					{@const key = statementKey(statement)}
@@ -471,6 +539,18 @@
 								{statement.label}
 							</button>
 							<span class="statement-meta">
+								{#if groupCounts}
+									{@const have = Math.min(
+										groupCounts.youth,
+										groupCounts.completed + (groupCounts.ticked[statement.inputId] ?? 0)
+									)}
+									<span
+										class="unit-count no-print"
+										title="{have} of {groupCounts.youth} youth have this"
+										aria-label="{have} youth have this, {groupCounts.youth - have} don't yet"
+										>✓ {have} · ○ {groupCounts.youth - have}</span
+									>
+								{/if}
 								<span class="badge badge-info">{statement.theme}</span>
 								<span class="badge {statement.unitNightSuitable ? 'badge-success' : 'badge-muted'}"
 									>{statement.unitNightSuitable ? 'unit night' : 'outing'}</span
@@ -726,6 +806,19 @@
 		border-radius: var(--radius);
 		background: var(--surface);
 		overflow: hidden;
+	}
+
+	/* How many of the unit's youth have each statement, for a signed in leader */
+	.count-key {
+		padding: 0.35rem 1rem;
+		border-bottom: 1px solid var(--border-soft);
+	}
+
+	.unit-count {
+		color: var(--muted);
+		font-size: 0.8rem;
+		font-variant-numeric: tabular-nums;
+		white-space: nowrap;
 	}
 
 	.stage-title {

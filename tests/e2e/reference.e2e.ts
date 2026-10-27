@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { fakeTerrain } from './terrain.js';
+import { fakeTerrain, logIn, navigate } from './terrain.js';
 
 test('the Reference works signed out, and filters and expands statements', async ({ page }) => {
 	await fakeTerrain(page);
@@ -56,4 +56,31 @@ test('the Reference app keeps its filters behind the menu', async ({ page }) => 
 	await page.getByRole('button', { name: 'Done' }).click();
 	await expect(page.locator('.app-filter-count')).toHaveText('1');
 	await expect(page.locator('.statement .badge-success').first()).toHaveText('unit night');
+});
+
+test("signed in, each statement shows how many of the unit's youth have it", async ({ page }) => {
+	const terrain = await fakeTerrain(page);
+	await logIn(page);
+	await navigate(page, 'oas-reference/?stream=bushwalking&stage=4');
+	// Counted when the stage comes into view
+	await page.locator('.stage-group').first().scrollIntoViewIfNeeded();
+	await expect(page.locator('.count-key')).toHaveText(
+		/Of the 4 youth in Mt Example Scouts: ✓ have it · ○ don't yet/
+	);
+	const statement = (text: string) =>
+		page.locator('.statement', { hasText: text }).locator('.unit-count');
+	// Ava has Bushwalking 4 started, with all but these two ticked
+	await expect(statement('I can use a map and compass')).toHaveText('✓ 1 · ○ 3');
+	await expect(statement('I can tie a reef knot')).toHaveText('✓ 0 · ○ 4');
+	await expect(statement('I can tie a reef knot')).toHaveAccessibleName(
+		"0 youth have this, 4 don't yet"
+	);
+	expect(terrain.requests.filter((r) => r.includes('units/unit-1/achievements'))).toHaveLength(1);
+});
+
+test('signed out, the Reference shows no counts', async ({ page }) => {
+	await fakeTerrain(page);
+	await page.goto('oas-reference/?stream=bushwalking&stage=4');
+	await expect(page.locator('.statement').first()).toBeVisible();
+	await expect(page.locator('.unit-count, .count-key')).toHaveCount(0);
 });

@@ -12,6 +12,7 @@ import { ProgressService } from './progress.js';
 import { RecordingService } from './recording.js';
 import { ReferenceService } from './reference.js';
 import { ReportService } from './reports.js';
+import { StatementCountsService } from './statementCounts.js';
 import { UnitProgressService } from './unitProgress.js';
 
 export const app = new AppState();
@@ -27,6 +28,7 @@ export const approvals = new ApprovalsService(app);
 export const approvalsBadge = new ApprovalsBadge(approvals);
 export const activities = new ActivitiesService(app);
 export const reports = new ReportService(app);
+export const statementCounts = new StatementCountsService(app, members);
 
 // A different leader, or none, mustn't see the last one's youth
 app.onReset(() => {
