@@ -24,7 +24,9 @@ test('Progress lists the youth, and each opens their details', async ({ page }) 
 	await expect(page).toHaveURL(/\/progress\/unit-1-m0\/$/);
 });
 
-test("each youth's award progress shows once the unit's progress has loaded", async ({ page }) => {
+test("each youth's award progress and logbook show once the unit's progress has loaded", async ({
+	page
+}) => {
 	await fakeTerrain(page);
 	await logIn(page);
 	// Insights loads the unit's progress; the list then has it without asking Terrain again
@@ -32,7 +34,9 @@ test("each youth's award progress shows once the unit's progress has loaded", as
 	await expect(page.locator('.stat-tile').first()).toContainText('Youth analysed 4');
 	await navigate(page, 'progress/');
 	const ava = page.locator('.youth', { hasText: 'Ava Nguyen' });
-	await expect(ava.locator('.award')).toHaveText('Australian Scout Award 48%');
+	await expect(ava.getByLabel('Australian Scout Award 48%')).toBeVisible();
+	await expect(ava.getByLabel('9 nights camped')).toBeVisible();
+	await expect(ava.getByLabel('42 km hiked')).toBeVisible();
 	// The same as on her details
 	await ava.click();
 	await expect(page.locator('.summary-tile').first()).toContainText('48%');
