@@ -31,7 +31,10 @@
 	const sidebar = $derived(
 		options.signedIn ? [...mainPages(options), ...morePages(options)] : signedOutPages()
 	);
-	const tabs = $derived(options.signedIn ? phoneTabs(options, path) : { main: [], more: [] });
+	// Signed out, the tabs are just Login and the Reference, with no More
+	const tabs = $derived(
+		options.signedIn ? phoneTabs(options, path) : { main: signedOutPages(), more: [] }
+	);
 	const main = $derived(tabs.main);
 	const more = $derived(tabs.more);
 	const onLogging = $derived(path.startsWith(`/${LOGGING_HREF}`));
@@ -67,7 +70,7 @@
 		const max = document.documentElement.scrollHeight - window.innerHeight;
 		// The page bouncing past its top or bottom isn't the leader scrolling, so it counts as staying put
 		const y = Math.min(Math.max(window.scrollY, 0), max);
-		if (moreOpen || y < MINIMIZE_AFTER) {
+		if (moreOpen || y < MINIMIZE_AFTER || !options.signedIn) {
 			if (y < MINIMIZE_AFTER) minimized = false;
 			lastY = runFrom = y;
 			return;
@@ -132,22 +135,6 @@
 	</nav>
 </aside>
 
-{#if !options.signedIn}
-	<header class="top-bar no-print">
-		<a class="brand" href={pagePath('')}>
-			<img src={asset('beacon-64.png')} width="22" height="22" alt="" />
-			Beacon
-		</a>
-		<a
-			class="top-action"
-			class:active={path.startsWith('/oas-reference')}
-			href={pagePath('oas-reference/')}
-		>
-			<Icon name="book" /> Reference
-		</a>
-	</header>
-{/if}
-
 {#if moreOpen}
 	<button class="more-backdrop" aria-label="Close menu" onclick={() => (moreOpen = false)}></button>
 	<div class="more-menu glass">
@@ -168,24 +155,29 @@
 	</div>
 {/if}
 
-{#if options.signedIn}
-	<nav class="tab-bar glass no-print" class:minimized aria-label="Main">
-		{#each main as item (item.href)}
-			<a
-				class="tab"
-				class:active={isActive(item, path) && !moreOpen}
-				class:current={isActive(item, path) && !onMorePage}
-				href={href(item)}
-				aria-label={item.badge ? `${item.shortTitle}, ${item.badge} waiting` : undefined}
-				onclick={expandOnTap}
-			>
-				<span class="tab-icon">
-					<Icon name={item.icon} />
-					{#if item.badge}<span class="badge tab-badge" aria-hidden="true">{item.badge}</span>{/if}
-				</span>
-				<span class="tab-label">{item.shortTitle}</span>
-			</a>
-		{/each}
+<nav
+	class="tab-bar glass no-print"
+	class:minimized
+	class:compact={!options.signedIn}
+	aria-label="Main"
+>
+	{#each main as item (item.href)}
+		<a
+			class="tab"
+			class:active={isActive(item, path) && !moreOpen}
+			class:current={isActive(item, path) && !onMorePage}
+			href={href(item)}
+			aria-label={item.badge ? `${item.shortTitle}, ${item.badge} waiting` : undefined}
+			onclick={expandOnTap}
+		>
+			<span class="tab-icon">
+				<Icon name={item.icon} />
+				{#if item.badge}<span class="badge tab-badge" aria-hidden="true">{item.badge}</span>{/if}
+			</span>
+			<span class="tab-label">{item.shortTitle}</span>
+		</a>
+	{/each}
+	{#if options.signedIn}
 		<button
 			type="button"
 			class="tab"
@@ -204,8 +196,8 @@
 			</span>
 			<span class="tab-label">More</span>
 		</button>
-	</nav>
-{/if}
+	{/if}
+</nav>
 
 <style>
 	/* Desktop sidebar */
@@ -286,42 +278,6 @@
 		color: rgba(255, 255, 255, 0.8);
 	}
 
-	/* Phone header when signed out: Beacon and a way to the Reference */
-	.top-bar {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		height: 3.5rem;
-		padding-right: 0.75rem;
-		background-image: linear-gradient(180deg, var(--brand) 0%, var(--brand-deep) 95%);
-	}
-
-	.top-bar .brand {
-		background: none;
-	}
-
-	.top-action {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.4rem;
-		min-height: 44px;
-		padding: 0 0.5rem;
-		color: #d7d7d7;
-		font-size: 0.9rem;
-		text-decoration: none;
-	}
-
-	.top-action.active,
-	.top-action:hover {
-		color: #fff;
-	}
-
-	@media (min-width: 641px) {
-		.top-bar {
-			display: none;
-		}
-	}
-
 	/* Phone tab bar: a glass pill floating above the bottom of the screen */
 	.tab-bar {
 		position: fixed;
@@ -337,6 +293,14 @@
 		transition:
 			right var(--glass-motion),
 			width var(--glass-motion);
+	}
+
+	/* Signed out there are only two tabs, so the pill is narrower, in the middle */
+	.tab-bar.compact {
+		left: 50%;
+		right: auto;
+		width: min(16rem, calc(100% - 1.5rem));
+		transform: translateX(-50%);
 	}
 
 	/* Scrolled down: the bar shrinks to a circle holding only the current tab, out of the content's way,
