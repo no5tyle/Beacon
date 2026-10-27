@@ -99,9 +99,13 @@
 		};
 	}
 
-	// Choosing another unit, or signing in, while the page is open counts the stages in view afresh
+	// Choosing another unit, or signing in, while the page is open counts the stages in view afresh.
+	// Only on a real change: on opening the page the stages in view are already being counted
+	let countedFor = untrack(() => `${showCounts}|${app.unitId}`);
 	$effect(() => {
-		void [showCounts, app.unitId];
+		const now = `${showCounts}|${app.unitId}`;
+		if (now === countedFor) return;
+		countedFor = now;
 		untrack(() => {
 			counts = {};
 			counting.clear();
