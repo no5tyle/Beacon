@@ -396,8 +396,11 @@ small {
 	justify-content: center;
 }
 
-/* A count beside a tab's name, centred on the text rather than sitting on its baseline */
+/* A count beside a tab's name, centred on its capitals rather than sitting on the baseline. Middle
+   centres on the lower case, so it's lifted a little more */
 .tabs .badge {
+	position: relative;
+	top: -0.1em;
 	vertical-align: middle;
 }
 
