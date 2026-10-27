@@ -2,6 +2,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import ChooseUnit from '#lib/components/ChooseUnit.svelte';
+	import Icon from '#lib/components/Icon.svelte';
 	import { pullToRefresh } from '#lib/actions/pullToRefresh.js';
 	import { asc, sortBy } from '#lib/model/util.js';
 	import { pagePath } from '#lib/paths.js';
@@ -14,32 +15,38 @@
 	let youth = $state<MemberSummary[]>([]);
 	let loading = $state(false);
 	let message = $state('');
-	// Each youth's award progress, once the unit's progress is loaded (by Insights, or in the background).
-	// Nothing is loaded just for this
-	let percents = $state<Record<string, number>>({});
+	// Each youth's award progress and logbook, once the unit's progress is loaded (by Insights, or in the
+	// background). Nothing is loaded just for this
+	let loaded = $state<Record<string, { percent: number; nights: number; kms: number }>>({});
 	const rules = $derived(rulesFor(readInsightsSettings(), app.section));
 
-	async function loadPercents(unitId: string) {
-		const loaded = unitProgress.loadProgress(unitId);
-		const finished = loaded.total > 0 && loaded.done === loaded.total;
+	async function loadSummaries(unitId: string) {
+		const load = unitProgress.loadProgress(unitId);
+		const finished = load.total > 0 && load.done === load.total;
 		if (!unitProgress.isCached(unitId) && !finished) return;
 		const all = await unitProgress.get(unitId);
 		if (unitId !== app.unitId) return;
-		percents = Object.fromEntries(
+		loaded = Object.fromEntries(
 			all.map((p) => [
 				p.memberId,
-				Math.round(peakAwardBreakdown(p, rules).reduce((total, c) => total + c.earned, 0))
+				{
+					percent: Math.round(
+						peakAwardBreakdown(p, rules).reduce((total, c) => total + c.earned, 0)
+					),
+					nights: p.nightsCamped,
+					kms: p.kMsHiked
+				}
 			])
 		);
 	}
 
 	$effect(() => {
-		percents = {};
-		if (app.unitId) loadPercents(app.unitId);
+		loaded = {};
+		if (app.unitId) loadSummaries(app.unitId);
 	});
 
 	// The background load may finish while the list is open
-	onMount(() => unitProgress.onProgress(() => app.unitId && loadPercents(app.unitId)));
+	onMount(() => unitProgress.onProgress(() => app.unitId && loadSummaries(app.unitId)));
 
 	async function load(unitId: string) {
 		loading = true;
@@ -96,11 +103,25 @@
 					<a class="card row-link youth" href={pagePath(`progress/${member.id}/`)}>
 						<div class="grow">
 							<div class="strong">{member.firstName} {members.lastName(member)}</div>
-							{#if percents[member.id] !== undefined}
-								<div class="award">
-									<span class="award-track"><span style:width="{percents[member.id]}%"></span></span
+							{#if loaded[member.id]}
+								{@const summary = loaded[member.id]}
+								<div class="award small muted">
+									<span
+										class="logbook"
+										title={rules.peakAwardName}
+										aria-label="{rules.peakAwardName} {summary.percent}%"
+										><span class="award-track"><span style:width="{summary.percent}%"></span></span>
+										{summary.percent}%</span
 									>
-									<span class="small muted">{rules.peakAwardName} {percents[member.id]}%</span>
+									<span
+										class="logbook"
+										title="Nights camped"
+										aria-label="{summary.nights} nights camped"
+										><Icon name="tent" /> {summary.nights}</span
+									>
+									<span class="logbook" title="Kilometres hiked" aria-label="{summary.kms} km hiked"
+										><Icon name="boot" /> {summary.kms} km</span
+									>
 								</div>
 							{/if}
 							<dl>
@@ -168,8 +189,15 @@
 	.award {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
+		gap: 0.75rem;
 		margin-top: 0.15rem;
+	}
+
+	.logbook {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		white-space: nowrap;
 	}
 
 	.award-track {
