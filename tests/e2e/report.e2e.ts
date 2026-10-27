@@ -26,6 +26,14 @@ test('progress reports for the unit, with the parts the leader ticks', async ({ 
 	await expect(ava.locator('.stage', { hasText: 'Stage 4' }).locator('.statements li')).toHaveCount(
 		6
 	);
+	// Printed, a long part runs on over pages rather than leaving its heading alone on one
+	await page.emulateMedia({ media: 'print' });
+	await expect(ava.locator('.part', { hasText: 'Outdoor Adventure Skills' })).toHaveCSS(
+		'break-inside',
+		'auto'
+	);
+	await expect(ava.locator('.stream').first()).toHaveCSS('break-inside', 'auto');
+	await page.emulateMedia({ media: 'screen' });
 
 	// Parts can be left out, and the choice is remembered
 	await page.getByLabel('Special interest areas').uncheck();
