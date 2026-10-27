@@ -642,7 +642,7 @@
 				aria-selected={tab === 'waiting'}
 				onclick={() => showTab('waiting')}
 				>Waiting{#if pending.length > 0}
-					<span class="badge">{pending.length}</span>{/if}</button
+					&nbsp;<span class="badge">{pending.length}</span>{/if}</button
 			>
 			<button
 				type="button"
