@@ -51,7 +51,7 @@ export function mainPages({ isYouth }: NavOptions): NavPage[] {
 
 /** Less used pages: the bottom of the sidebar on desktop, and under More on phones (see phoneTabs) */
 export function morePages({ isYouth, approvalsWaiting = 0 }: NavOptions): NavPage[] {
-	const pages: NavPage[] = [{ href: 'info/', icon: 'info', title: 'Info', shortTitle: 'Info' }];
+	const pages: NavPage[] = [];
 	if (!isYouth)
 		pages.push({
 			href: 'approvals/',
@@ -62,6 +62,7 @@ export function morePages({ isYouth, approvalsWaiting = 0 }: NavOptions): NavPag
 		});
 	return [
 		...pages,
+		{ href: 'info/', icon: 'info', title: 'Info', shortTitle: 'Info' },
 		{ href: 'logout/', icon: 'account-logout', title: 'Logout', shortTitle: 'Logout' }
 	];
 }

@@ -134,8 +134,8 @@ test.describe('phone', () => {
 		await page.locator('.tab-bar button', { hasText: 'More' }).click();
 		await expect(page.locator('.more-item')).toHaveText([
 			/^\s*Reference\s*$/,
-			/^\s*Info\s*$/,
 			/^\s*Approvals 3 waiting for you\s*$/,
+			/^\s*Info\s*$/,
 			/^\s*Logout\s*$/
 		]);
 		await page.locator('.more-item', { hasText: 'Approvals' }).click();
@@ -152,8 +152,8 @@ test.describe('phone', () => {
 		await page.locator('.tab-bar button', { hasText: 'More' }).click();
 		await expect(page.locator('.more-item')).toHaveText([
 			/^\s*Progress\s*$/,
-			/^\s*Info\s*$/,
 			/^\s*Approvals 3 waiting for you\s*$/,
+			/^\s*Info\s*$/,
 			/^\s*Logout\s*$/
 		]);
 		// Logging has no item of its own: the version opens it
@@ -185,8 +185,8 @@ test.describe('desktop', () => {
 				'Record',
 				'Progress',
 				'Reference',
-				'Info',
 				'Approvals 3 waiting for you',
+				'Info',
 				'Logout'
 			].map((name) => new RegExp(`^\\s*${name}\\s*$`))
 		);
