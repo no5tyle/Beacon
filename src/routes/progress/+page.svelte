@@ -2,7 +2,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import ChooseUnit from '#lib/components/ChooseUnit.svelte';
-	import Icon from '#lib/components/Icon.svelte';
 	import { pullToRefresh } from '#lib/actions/pullToRefresh.js';
 	import { asc, sortBy } from '#lib/model/util.js';
 	import { pagePath } from '#lib/paths.js';
@@ -110,15 +109,14 @@
 								</div>
 								<div class="award small muted">
 									<span>{rules.peakAwardName} {summary.percent}%</span>
-									<span
-										class="logbook"
-										title="Nights camped"
-										aria-label="{summary.nights} nights camped"
-										><Icon name="tent" /> {summary.nights}</span
-									>
-									<span class="logbook" title="Kilometres hiked" aria-label="{summary.kms} km hiked"
-										><Icon name="boot" /> {summary.kms} km</span
-									>
+									<span class="logbook">
+										<span title="Nights camped" aria-label="{summary.nights} nights camped"
+											><span aria-hidden="true">⛺</span> {summary.nights}</span
+										>
+										<span title="Kilometres hiked" aria-label="{summary.kms} km hiked"
+											><span aria-hidden="true">🥾</span> {summary.kms} km</span
+										>
+									</span>
 								</div>
 							{/if}
 							<dl>
@@ -203,14 +201,15 @@
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: 0.2rem 0.75rem;
+		gap: 0.2rem 0.6rem;
 		margin-bottom: 0.2rem;
 	}
 
+	/* Nights and km stay together, moving to the next line as a pair when there isn't room */
 	.logbook {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.25rem;
+		gap: 0.6rem;
 		white-space: nowrap;
 	}
 
