@@ -11,7 +11,7 @@ export interface ReportOptions {
 	award: boolean;
 	/** Their OAS stages */
 	oas: boolean;
-	/** Under each OAS stage, the "I can" statements they've achieved */
+	/** Under each OAS stage, the "I" statements they've achieved */
 	achievedStatements: boolean;
 	/** Under each OAS stage, the statements still to do */
 	notYetStatements: boolean;

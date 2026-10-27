@@ -1,5 +1,5 @@
 // What a youth's printed progress report needs beyond their progress details: each OAS stage they have a
-// record for, with its "I can" statements and which they've achieved.
+// record for, with its "I" statements and which they've achieved.
 
 import { isCoreStream, streamDisplay } from '#lib/model/insights/insightsCalculator.js';
 import type { Answers } from '#lib/model/oas/answers.js';

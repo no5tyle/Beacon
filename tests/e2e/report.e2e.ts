@@ -20,7 +20,7 @@ test('progress reports for the unit, with the parts the leader ticks', async ({ 
 	);
 	// Statements only when asked for, on a page of their own
 	await expect(ava.locator('.statements-page')).toHaveCount(0);
-	await page.getByLabel('Statements still to do').check();
+	await page.getByLabel('"I" statements still to do').check();
 	const statements = ava.locator('.statements-page');
 	await expect(statements.locator('.statements-head')).toContainText(
 		'Ava Nguyen · Outdoor Adventure Skills'
@@ -29,7 +29,7 @@ test('progress reports for the unit, with the parts the leader ticks', async ({ 
 		/I can tie a reef knot and a clove hitch\./,
 		/I can talk about what went well/
 	]);
-	await page.getByLabel('Achieved "I can" statements').check();
+	await page.getByLabel('Achieved "I" statements').check();
 	await expect(statements.locator('.stage', { hasText: 'Stage 4' }).locator('li')).toHaveCount(6);
 	// Printed, the statements start a new page and run on over as many as they need
 	await page.emulateMedia({ media: 'print' });
