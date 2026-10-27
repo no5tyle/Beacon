@@ -245,6 +245,12 @@
 				<Icon name="list" />
 				{#if filterCount > 0}<span class="filter-count" aria-hidden="true">{filterCount}</span>{/if}
 			</button>
+			<a
+				class="btn icon-btn btn-outline-primary"
+				href={pagePath(`progress/report/?ids=${memberId}`)}
+				title="Progress report to print"
+				aria-label="Progress report to print"><Icon name="print" /></a
+			>
 		</div>
 	{/if}
 </div>

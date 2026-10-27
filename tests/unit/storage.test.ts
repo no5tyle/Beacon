@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { readActivityTimes, removeOldYouthData, writeActivityTimes } from '#lib/stores/storage.js';
+import { DEFAULT_REPORT_OPTIONS, restoreReportOptions } from '#lib/model/report.js';
 
 function fakeStorage(entries: Record<string, string>) {
 	const store = new Map(Object.entries(entries));
@@ -65,5 +66,14 @@ describe('the times of the last one-day activity', () => {
 		vi.stubGlobal('localStorage', undefined);
 		writeActivityTimes({ start: '18:30', end: '20:00' });
 		expect(readActivityTimes()).toEqual({ start: '19:00', end: '21:00' });
+	});
+});
+
+describe('report options', () => {
+	it('keeps the saved yes/no choices and takes the rest from the defaults', () => {
+		expect(
+			restoreReportOptions({ sia: false, achievedStatements: true, note: 'yes', extra: 1 })
+		).toEqual({ ...DEFAULT_REPORT_OPTIONS, sia: false, achievedStatements: true });
+		expect(restoreReportOptions(null)).toEqual(DEFAULT_REPORT_OPTIONS);
 	});
 });

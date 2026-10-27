@@ -15,6 +15,7 @@ const pages = [
 	'progress/',
 	'progress/unit-1-m0/',
 	'progress/unit-1-m0/record-oas/',
+	'progress/report/',
 	'oas-reference/',
 	'approvals/',
 	'logging/',

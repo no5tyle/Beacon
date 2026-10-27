@@ -2,6 +2,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import ChooseUnit from '#lib/components/ChooseUnit.svelte';
+	import Icon from '#lib/components/Icon.svelte';
 	import { pullToRefresh } from '#lib/actions/pullToRefresh.js';
 	import { asc, sortBy } from '#lib/model/util.js';
 	import { pagePath } from '#lib/paths.js';
@@ -83,7 +84,14 @@
 </svelte:head>
 
 <div use:pullToRefresh={refresh}>
-	<h2>Progress{app.unitName ? ` (${app.unitName})` : ''}</h2>
+	<div class="page-head">
+		<h2>Progress{app.unitName ? ` (${app.unitName})` : ''}</h2>
+		{#if youth.length > 0}
+			<a class="btn btn-outline-primary btn-sm" href={pagePath('progress/report/')}
+				><Icon name="print" /> Reports</a
+			>
+		{/if}
+	</div>
 
 	{#if !app.unitId}
 		<ChooseUnit />
@@ -153,6 +161,18 @@
 </div>
 
 <style>
+	.page-head {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 0.75rem;
+	}
+
+	.page-head .btn {
+		flex-shrink: 0;
+		margin-top: 0.4rem;
+	}
+
 	.youth {
 		padding: 0.7rem 0.9rem;
 	}
