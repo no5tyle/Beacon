@@ -157,3 +157,23 @@ test('printed with names, each statement lists the youth without it', async ({ p
 		'true'
 	);
 });
+
+test('printed, just the statements: no filters, with longer explanations if asked', async ({
+	page
+}) => {
+	await fakeTerrain(page);
+	await page.goto('oas-reference/?stream=bushwalking&stage=4');
+	await expect(page.locator('.statement').first()).toBeVisible();
+	const explanation = page
+		.locator('.statement', { hasText: 'I can use a map and compass' })
+		.locator('.statement-detail');
+	await expect(explanation).toHaveCount(0);
+	await page.getByLabel('Print the longer explanations').check();
+	// Kept for paper, not shown on screen
+	await expect(explanation).toBeHidden();
+	await page.emulateMedia({ media: 'print' });
+	await expect(explanation).toHaveText('Show the youth can orient the map and take a bearing.');
+	await expect(page.getByLabel('Search')).toBeHidden();
+	await expect(page.locator('#stream')).toBeHidden();
+	await expect(page.getByRole('heading', { name: 'OAS reference' })).toBeVisible();
+});
