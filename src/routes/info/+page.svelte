@@ -8,7 +8,8 @@
 	<title>Beacon / Info</title>
 </svelte:head>
 
-<h2>Welcome {app.memberName}</h2>
+<h2>About Beacon</h2>
+<p class="muted">Signed in as {app.memberName}</p>
 
 {#if app.isYouth}
 	<p>

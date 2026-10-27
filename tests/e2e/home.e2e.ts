@@ -67,11 +67,12 @@ test('the unit can be changed from the navigation on any page', async ({ page, i
 	await expect(page.locator('main h2')).toHaveText('Progress (Mt Example Cubs)');
 });
 
-test('Info says who is signed in and what each page is for', async ({ page }) => {
+test('Info says what each page is for and who is signed in', async ({ page }) => {
 	await fakeTerrain(page);
 	await logIn(page);
 	await navigate(page, 'info/');
-	await expect(page.locator('h2')).toHaveText('Welcome Sam Leader');
+	await expect(page.locator('h2')).toHaveText('About Beacon');
+	await expect(page.locator('main')).toContainText('Signed in as Sam Leader');
 	await expect(page.locator('main')).toContainText('Use Insights to see');
 });
 
@@ -86,5 +87,5 @@ test('a youth member opens at their Progress and sees only their own pages', asy
 	await expect(links.filter({ hasText: 'Insights' })).toHaveCount(0);
 	await expect(links.filter({ hasText: /^Record/ })).toHaveCount(0);
 	await navigate(page, 'info/');
-	await expect(page.locator('h2')).toHaveText('Welcome Ava Nguyen');
+	await expect(page.locator('main')).toContainText('Signed in as Ava Nguyen');
 });
