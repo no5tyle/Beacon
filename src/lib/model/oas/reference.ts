@@ -176,6 +176,8 @@ export interface OASReferenceLink {
 	search: string;
 	statement: string;
 	starred: boolean;
+	/** A list of statements shared from someone's starred list, by key */
+	list: string[];
 }
 
 export function emptyReferenceLink(): OASReferenceLink {
@@ -187,7 +189,8 @@ export function emptyReferenceLink(): OASReferenceLink {
 		where: 'Any',
 		search: '',
 		statement: '',
-		starred: false
+		starred: false,
+		list: []
 	};
 }
 
@@ -219,6 +222,32 @@ function parseWholeNumber(text: string): number {
 	return /^\s*[+-]?\d+\s*$/.test(text) ? Number(text) : 0;
 }
 
+/**
+ * A list of statements, short enough for a link: grouped by stage, each stage's statements after a colon
+ * and separated by dots, stages separated by "~", e.g. "bushwalking/3:plan_menu.pack_gear~camping/1:knots"
+ */
+export function encodeStatementList(keys: readonly string[]): string {
+	return groupBy(
+		keys.filter((k) => k.includes(':')),
+		(k) => k.slice(0, k.indexOf(':'))
+	)
+		.map((g) => `${g.key}:${g.items.map((k) => k.slice(k.indexOf(':') + 1)).join('.')}`)
+		.join('~');
+}
+
+export function decodeStatementList(value: string): string[] {
+	return value.split('~').flatMap((group) => {
+		const split = group.indexOf(':');
+		if (split <= 0) return [];
+		const stage = group.slice(0, split);
+		return group
+			.slice(split + 1)
+			.split('.')
+			.filter(Boolean)
+			.map((id) => `${stage}:${id}`);
+	});
+}
+
 export function referenceLinkToQuery(link: OASReferenceLink): string {
 	const parts: string[] = [];
 	const add = (name: string, value: string) => {
@@ -232,6 +261,7 @@ export function referenceLinkToQuery(link: OASReferenceLink): string {
 	add('where', link.where === 'Any' ? '' : link.where);
 	add('q', link.search);
 	add('view', link.starred ? 'starred' : '');
+	add('list', encodeStatementList(link.list));
 	return parts.length > 0 ? '?' + parts.join('&') : '';
 }
 
@@ -278,6 +308,9 @@ export function parseReferenceLink(query: string): OASReferenceLink {
 				break;
 			case 'view':
 				link.starred = value === 'starred';
+				break;
+			case 'list':
+				link.list = decodeStatementList(value);
 				break;
 		}
 	}

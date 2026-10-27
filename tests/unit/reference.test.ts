@@ -2,7 +2,9 @@
 import { describe, expect, it } from 'vitest';
 import {
 	checklistText,
+	decodeStatementList,
 	emptyReferenceLink,
+	encodeStatementList,
 	filterStatements,
 	parseReferenceLink,
 	PARTS,
@@ -122,6 +124,18 @@ describe('OAS reference', () => {
 			'bushwalking/3:abc'
 		);
 		expect(parseReferenceLink('?stage=x,0').stages.length, 'Bad stage numbers are ignored').toBe(0);
+	});
+
+	it('carries a list of statements in a link, grouped by stage', () => {
+		const list = ['bushwalking/3:map', 'bushwalking/3:compass', 'alpine/snow/2:shelter'];
+		expect(encodeStatementList(list)).toBe('bushwalking/3:map.compass~alpine/snow/2:shelter');
+		expect(decodeStatementList(encodeStatementList(list)).sort()).toEqual([...list].sort());
+
+		const query = referenceLinkToQuery({ ...emptyReferenceLink(), list });
+		expect(parseReferenceLink(query).list.sort()).toEqual([...list].sort());
+		expect(decodeStatementList('~nonsense~:x~bushwalking/3:'), 'Bad groups are ignored').toEqual(
+			[]
+		);
 	});
 
 	it('groups the checklist text by stage', () => {

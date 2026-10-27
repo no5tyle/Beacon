@@ -137,6 +137,9 @@
 	let filtersOpen = $state(false);
 	let starred = $state<string[]>(readJson<string[]>(STARRED_KEY) ?? []);
 	let starredOnly = $state(false);
+	// Statements someone shared from their starred list, shown as they sent them. Not starred here unless
+	// added
+	let sharedList = $state<string[]>([]);
 	let toast = $state('');
 	let offlineSupported = $state(false);
 	let online = $state(true);
@@ -169,16 +172,18 @@
 
 	// The starred list ignores the other filters, so nothing starred is hidden by mistake
 	const results = $derived(
-		starredOnly
-			? filterStatements(statements, { keys: new Set(starred) })
-			: filterStatements(statements, {
-					streams: new Set(chosenStreams),
-					stages: new Set(stages),
-					part,
-					theme,
-					where,
-					search
-				})
+		sharedList.length > 0
+			? filterStatements(statements, { keys: new Set(sharedList) })
+			: starredOnly
+				? filterStatements(statements, { keys: new Set(starred) })
+				: filterStatements(statements, {
+						streams: new Set(chosenStreams),
+						stages: new Set(stages),
+						part,
+						theme,
+						where,
+						search
+					})
 	);
 	const shown = $derived(results.slice(0, DISPLAY_LIMIT));
 	const inChosenStreams = $derived(
@@ -208,7 +213,8 @@
 		where,
 		search,
 		statement: '',
-		starred: starredOnly
+		starred: starredOnly && sharedList.length === 0,
+		list: sharedList
 	});
 
 	// Keep the address bar matching the filters, so it can be bookmarked or shared
@@ -223,6 +229,7 @@
 		(async () => {
 			await loadStreams(chosenStreams);
 			await loadStreams(distinct(starred.map(streamOfKey)));
+			await loadStreams(distinct(sharedList.map(streamOfKey)));
 			if (shared) openSharedStatement(shared);
 			ready = true;
 		})();
@@ -263,7 +270,8 @@
 		theme = link.theme;
 		where = link.where;
 		search = link.search;
-		starredOnly = link.starred;
+		sharedList = link.list;
+		starredOnly = link.starred && link.list.length === 0;
 		return '';
 	}
 
@@ -316,6 +324,7 @@
 	}
 
 	async function showStarred(show: boolean) {
+		sharedList = [];
 		starredOnly = show;
 		filtersOpen = false;
 		if (show) await loadStreams(distinct(starred.map(streamOfKey)));
@@ -340,15 +349,25 @@
 		share(`${statement.label}\n${stageTitle(statement.stage)} · ${statement.part}`, appUrl(query));
 	}
 
+	// Starred statements are only on this device, so a link to them carries the list itself
+	const starredLink = () =>
+		appUrl(referenceLinkToQuery({ ...emptyReferenceLink(), list: starred }));
+
 	function shareView() {
 		share(
 			`${plural(results.length, 'OAS statement')} in Beacon Reference`,
-			appUrl(referenceLinkToQuery(currentLink))
+			starredOnly ? starredLink() : appUrl(referenceLinkToQuery(currentLink))
 		);
 	}
 
 	function shareStarred() {
-		share(checklistText(results, 'Starred OAS statements, from Beacon Reference'), '');
+		share(checklistText(results, 'Starred OAS statements, from Beacon Reference'), starredLink());
+	}
+
+	function addSharedToStarred() {
+		starred = distinct([...starred, ...sharedList]);
+		writeSetting(STARRED_KEY, JSON.stringify(starred));
+		showToast(`${plural(sharedList.length, 'statement')} starred`);
 	}
 
 	async function share(text: string, url: string) {
@@ -504,7 +523,24 @@
 		<p class="muted">{loadingMessage}...</p>
 	{/if}
 
-	{#if starredOnly}
+	{#if sharedList.length > 0}
+		<div class="starred-banner">
+			<div class="banner-head">
+				<strong>★ Shared statements</strong>
+				<button type="button" class="btn btn-link btn-sm no-print" onclick={() => (sharedList = [])}
+					>Back to all statements</button
+				>
+			</div>
+			<div class="button-row no-print">
+				<button type="button" class="btn btn-outline-primary btn-sm" onclick={addSharedToStarred}
+					>☆ Add to my starred</button
+				>
+				<button type="button" class="btn btn-outline-secondary btn-sm" onclick={print}
+					><Icon name="print" /> Print checklist</button
+				>
+			</div>
+		</div>
+	{:else if starredOnly}
 		<div class="starred-banner">
 			<div class="banner-head">
 				<strong>★ Starred statements</strong>
@@ -649,7 +685,7 @@
 		</section>
 	{/each}
 
-	{#if results.length === 0 && !loadingMessage && !starredOnly}
+	{#if results.length === 0 && !loadingMessage && !starredOnly && sharedList.length === 0}
 		<p class="muted">No statements match these filters.</p>
 	{/if}
 {/snippet}

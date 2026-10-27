@@ -36,6 +36,39 @@ test('starred statements are kept, and listed on their own', async ({ page }) =>
 	await expect(page.locator('.statement')).toHaveCount(1);
 });
 
+test('a starred list can be shared, and opens on another device', async ({ page, browser }) => {
+	await fakeTerrain(page);
+	await page.addInitScript(() => {
+		Object.defineProperty(navigator, 'share', {
+			value: async (data: ShareData) => {
+				(window as unknown as { shared: ShareData }).shared = data;
+			}
+		});
+	});
+	await page.goto('oas-reference/?stream=camping&stage=1');
+	await expect(page.getByText('6 statements')).toBeVisible();
+	await page.locator('.statement').nth(0).getByRole('button', { name: 'Star' }).click();
+	await page.locator('.statement').nth(2).getByRole('button', { name: 'Star' }).click();
+	await page.getByRole('button', { name: '★ Starred (2)' }).click();
+	await page.getByRole('button', { name: 'Share list' }).click();
+	const url = await page.waitForFunction(
+		() => (window as unknown as { shared?: ShareData }).shared?.url
+	);
+	const link = String(await url.jsonValue());
+	expect(link).toContain('list=');
+
+	const other = await browser.newPage();
+	await fakeTerrain(other);
+	await other.goto(link);
+	await expect(other.locator('.starred-banner')).toContainText('Shared statements');
+	await expect(other.locator('.statement')).toHaveCount(2);
+	await other.getByRole('button', { name: '☆ Add to my starred' }).click();
+	await expect(other.getByText('2 statements starred')).toBeVisible();
+	await other.getByRole('button', { name: 'Back to all statements' }).click();
+	await expect(other.getByRole('button', { name: 'Starred statements' })).toContainText('2');
+	await other.close();
+});
+
 test('a shared statement opens on its stage, expanded', async ({ page }) => {
 	await fakeTerrain(page);
 	await page.goto('reference/?s=bushwalking%2F3%3Abushwalking_3_map');
