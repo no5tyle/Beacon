@@ -198,6 +198,8 @@ function records(unitId: string): Fixture[] {
 			...events(['personal_growth', 'creative'], 'leader')
 		]
 	});
+	// Noah has every milestone
+	for (const stage of [1, 2, 3]) add(3, 'milestone', 'awarded', { achievement_meta: { stage } });
 	add(1, 'milestone', 'in_progress', {
 		achievement_meta: { stage: 1 },
 		event_log: events(['outdoors', 'creative', 'personal_growth'])

@@ -95,6 +95,17 @@ test('youth details: who they are, next steps, awards and records', async ({ pag
 	await expect(page.locator('h2')).toHaveText('Progress (Mt Example Scouts)');
 });
 
+test('milestones just say Completed once all three are awarded', async ({ page }) => {
+	await fakeTerrain(page);
+	await logIn(page);
+	await navigate(page, 'progress/unit-1-m3/');
+	await expect(page.locator('.summary-tile').nth(1)).toHaveText(/Milestones\s*Completed/);
+	await page.getByRole('tab', { name: 'Awards' }).click();
+	const milestones = page.locator('.tab-panel.shown section').first();
+	await expect(milestones).toHaveText(/^\s*Completed\s*$/);
+	await expect(page.locator('.milestone')).toHaveCount(0);
+});
+
 test('a youth member sees their own progress, without recording', async ({ page }) => {
 	await fakeTerrain(page, { youth: true });
 	await logIn(page);

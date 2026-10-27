@@ -205,6 +205,12 @@
 			: []
 	);
 
+	// Every section's award needs three milestones; once they're done there's nothing more to show
+	const MILESTONES_REQUIRED = 3;
+	const milestonesComplete = $derived(
+		(details?.milestones.filter((m) => m.awarded).length ?? 0) >= MILESTONES_REQUIRED
+	);
+
 	const byArea = (logs: MilestoneLog[], area: string) =>
 		logs.filter((l) => l.challengeArea === area);
 	const activityCount = (m: MilestoneSummary) => m.participateLogs.length + m.leadLogs.length;
@@ -279,7 +285,9 @@
 				{report?.milestone ? `Milestone ${report.milestone.number}` : 'Milestones'}
 			</div>
 			<div class="summary-value">
-				{#if report?.milestone}
+				{#if milestonesComplete}
+					Completed
+				{:else if report?.milestone}
 					{milestoneTotal(report.milestone) - milestoneRemaining(report.milestone)}<span
 						class="summary-of">/{milestoneTotal(report.milestone)}</span
 					>
@@ -430,68 +438,77 @@
 	</div>
 	<div class="tab-panel" class:shown={tab === 'awards'}>
 		<h3>Milestones</h3>
-		<section class="card list">
-			{#each details.milestones as milestone (milestone.milestone)}
-				{@const current =
-					report?.milestone?.number === milestone.milestone ? report.milestone : null}
-				<div class="milestone">
-					<div class="row">
-						<div class="row-main strong">Milestone {milestone.milestone}</div>
-						<div class="row-value muted">
-							{milestone.awarded ? `Awarded ${shortDate(milestone.awarded)}` : milestone.status}
+		{#if milestonesComplete}
+			<section class="card list">
+				<div class="row task done">
+					<span class="task-mark"><Icon name="check" /></span>
+					<div class="row-main">Completed</div>
+				</div>
+			</section>
+		{:else}
+			<section class="card list">
+				{#each details.milestones as milestone (milestone.milestone)}
+					{@const current =
+						report?.milestone?.number === milestone.milestone ? report.milestone : null}
+					<div class="milestone">
+						<div class="row">
+							<div class="row-main strong">Milestone {milestone.milestone}</div>
+							<div class="row-value muted">
+								{milestone.awarded ? `Awarded ${shortDate(milestone.awarded)}` : milestone.status}
+							</div>
 						</div>
-					</div>
-					{#if current}
-						<div class="needs">
-							{#each [...current.participates, current.leadAssist] as need (need.challengeArea)}
-								<div class="need-row">
-									<div class="need-label">{need.challengeArea}</div>
-									<div class="need-track">
-										<div
-											class="need-fill"
-											class:need-done={needRemaining(need) === 0}
-											style:width="{needWidth(need)}%"
-										></div>
+						{#if current}
+							<div class="needs">
+								{#each [...current.participates, current.leadAssist] as need (need.challengeArea)}
+									<div class="need-row">
+										<div class="need-label">{need.challengeArea}</div>
+										<div class="need-track">
+											<div
+												class="need-fill"
+												class:need-done={needRemaining(need) === 0}
+												style:width="{needWidth(need)}%"
+											></div>
+										</div>
+										<div class="need-value">{Math.min(need.have, need.need)}/{need.need}</div>
 									</div>
-									<div class="need-value">{Math.min(need.have, need.need)}/{need.need}</div>
-								</div>
-							{/each}
-						</div>
-					{/if}
-					{#if activityCount(milestone) > 0}
-						<details class="activities-fold">
-							<summary class="small">Activities ({activityCount(milestone)})</summary>
-							{#each AREAS as area (area.key)}
-								{#if byArea(milestone.participateLogs, area.key).length > 0}
-									<div class="small strong area-name">{area.name}</div>
+								{/each}
+							</div>
+						{/if}
+						{#if activityCount(milestone) > 0}
+							<details class="activities-fold">
+								<summary class="small">Activities ({activityCount(milestone)})</summary>
+								{#each AREAS as area (area.key)}
+									{#if byArea(milestone.participateLogs, area.key).length > 0}
+										<div class="small strong area-name">{area.name}</div>
+										<ul class="small events">
+											{#each byArea(milestone.participateLogs, area.key) as event, i (i)}
+												<li>
+													{event.eventName} <span class="muted">{shortDate(event.eventDate)}</span>
+												</li>
+											{/each}
+										</ul>
+									{/if}
+								{/each}
+								{#if milestone.leadLogs.length > 0}
+									<div class="small strong area-name">Led</div>
 									<ul class="small events">
-										{#each byArea(milestone.participateLogs, area.key) as event, i (i)}
+										{#each milestone.leadLogs as event, i (i)}
 											<li>
-												{event.eventName} <span class="muted">{shortDate(event.eventDate)}</span>
+												{event.eventName}
+												<span class="muted"
+													>{shortDate(event.eventDate)} · {AREA_NAMES[event.challengeArea] ??
+														event.challengeArea}</span
+												>
 											</li>
 										{/each}
 									</ul>
 								{/if}
-							{/each}
-							{#if milestone.leadLogs.length > 0}
-								<div class="small strong area-name">Led</div>
-								<ul class="small events">
-									{#each milestone.leadLogs as event, i (i)}
-										<li>
-											{event.eventName}
-											<span class="muted"
-												>{shortDate(event.eventDate)} · {AREA_NAMES[event.challengeArea] ??
-													event.challengeArea}</span
-											>
-										</li>
-									{/each}
-								</ul>
-							{/if}
-						</details>
-					{/if}
-				</div>
-			{/each}
-		</section>
+							</details>
+						{/if}
+					</div>
+				{/each}
+			</section>
+		{/if}
 
 		{#if report}
 			<h3>
