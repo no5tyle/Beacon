@@ -78,3 +78,36 @@ export function latestByMember(
 	}
 	return latest;
 }
+
+/** Where a youth stands across several stages: something to add on any of them makes them pickable */
+export function forYouthAcrossStages(stages: readonly YouthSignOff[]): YouthSignOff {
+	const toAdd = stages.filter((s) => s.state === 'ToAdd');
+	if (toAdd.length > 0)
+		return { state: 'ToAdd', status: '', toAddCount: toAdd.reduce((n, s) => n + s.toAddCount, 0) };
+	const locked = stages.find((s) => s.state === 'Locked');
+	if (locked && stages.every((s) => s.state === 'Locked')) return locked;
+	return {
+		state: stages.length === 0 ? 'Locked' : 'AlreadyDone',
+		status: locked?.status ?? '',
+		toAddCount: 0
+	};
+}
+
+/** One youth's outcome from saving several stages: any failure shows, naming its stage when there are several */
+export function combineOutcomes(
+	results: readonly { name: string; outcome: SignOffOutcome }[]
+): SignOffOutcome {
+	if (results.length === 1) return results[0].outcome;
+	const savedCount = results.reduce((n, r) => n + r.outcome.savedCount, 0);
+	const failed = results.filter((r) => r.outcome.state === 'Failed');
+	if (failed.length > 0) {
+		const saved = savedCount > 0 ? `Saved ${savedCount}, but ` : '';
+		return {
+			state: 'Failed',
+			savedCount,
+			message: saved + failed.map((r) => `${r.name}: ${r.outcome.message}`).join(' ')
+		};
+	}
+	if (savedCount > 0) return { state: 'Saved', savedCount, message: '' };
+	return { state: 'Skipped', savedCount: 0, message: results[0]?.outcome.message ?? '' };
+}
