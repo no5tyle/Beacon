@@ -14,25 +14,27 @@ test('progress reports for the unit, with the parts the leader ticks', async ({ 
 	const ava = reports.filter({ hasText: 'Ava Nguyen' });
 	await expect(ava.locator('.report-kicker')).toHaveText('Mt Example Scouts · Progress report');
 	await expect(ava).toContainText('Australian Scout Award · 48%');
-	await expect(ava.locator('.stage', { hasText: 'Stage 4' })).toContainText('In progress · 4 of 6');
-	// Statements only when asked for
-	await expect(ava.locator('.statements')).toHaveCount(0);
+	// The front page sums up each OAS stream
+	await expect(ava.locator('table.oas tr', { hasText: 'Bushwalking' })).toHaveText(
+		/Bushwalking\s*Stage 3 \d\d\/\d\d\/\d\d\s*Stage 4\s*4 of 6/
+	);
+	// Statements only when asked for, on a page of their own
+	await expect(ava.locator('.statements-page')).toHaveCount(0);
 	await page.getByLabel('Statements still to do').check();
-	await expect(ava.locator('.stage', { hasText: 'Stage 4' }).locator('.statements li')).toHaveText([
+	const statements = ava.locator('.statements-page');
+	await expect(statements.locator('.statements-head')).toContainText(
+		'Ava Nguyen · Outdoor Adventure Skills'
+	);
+	await expect(statements.locator('.stage', { hasText: 'Stage 4' }).locator('li')).toHaveText([
 		/I can tie a reef knot and a clove hitch\./,
 		/I can talk about what went well/
 	]);
 	await page.getByLabel('Achieved "I can" statements').check();
-	await expect(ava.locator('.stage', { hasText: 'Stage 4' }).locator('.statements li')).toHaveCount(
-		6
-	);
-	// Printed, a long part runs on over pages rather than leaving its heading alone on one
+	await expect(statements.locator('.stage', { hasText: 'Stage 4' }).locator('li')).toHaveCount(6);
+	// Printed, the statements start a new page and run on over as many as they need
 	await page.emulateMedia({ media: 'print' });
-	await expect(ava.locator('.part', { hasText: 'Outdoor Adventure Skills' })).toHaveCSS(
-		'break-inside',
-		'auto'
-	);
-	await expect(ava.locator('.stream').first()).toHaveCSS('break-inside', 'auto');
+	await expect(statements).toHaveCSS('break-before', 'page');
+	await expect(statements.locator('.stream').first()).toHaveCSS('break-inside', 'auto');
 	await page.emulateMedia({ media: 'screen' });
 
 	// Parts can be left out, and the choice is remembered
