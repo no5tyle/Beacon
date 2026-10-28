@@ -360,7 +360,7 @@
 
 			{#if report.closeToComplete.length > 0}
 				<h3>Close to completing</h3>
-				<div class="activities">
+				<div class="activities card-grid">
 					{#each report.closeToComplete as activity, i (i)}
 						<div class="card activity-card">
 							<div class="activity-title">
@@ -870,9 +870,7 @@
 	}
 
 	.activities {
-		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr));
-		gap: 0 0.75rem;
 	}
 
 	.activity-card ul {

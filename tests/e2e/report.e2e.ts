@@ -126,3 +126,19 @@ test('the front page fits on one page when a phone lays the print out narrower',
 	// Narrower still
 	expect(pages(await page.pdf({ width: '125mm', height: '177mm' }))).toBe(1);
 });
+
+test('the option cards side by side line up, the same height', async ({ page, isMobile }) => {
+	test.skip(isMobile, 'side by side on wider screens only');
+	await fakeTerrain(page);
+	await logIn(page);
+	await navigate(page, 'progress/report/');
+	const cards = page.locator('.choices > .card');
+	await expect(cards).toHaveCount(2);
+	const [a, b] = await cards.evaluateAll((els) =>
+		els.map((e) => {
+			const r = e.getBoundingClientRect();
+			return { top: Math.round(r.top), height: Math.round(r.height) };
+		})
+	);
+	expect(b).toEqual(a);
+});
