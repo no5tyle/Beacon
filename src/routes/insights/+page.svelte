@@ -6,6 +6,7 @@
 	import { onMount } from 'svelte';
 	import ChooseUnit from '#lib/components/ChooseUnit.svelte';
 	import Icon from '#lib/components/Icon.svelte';
+	import SectionFlow from '#lib/components/SectionFlow.svelte';
 	import { pullToRefresh } from '#lib/actions/pullToRefresh.js';
 	import { pagePath } from '#lib/paths.js';
 	import { monthYear } from '#lib/model/dates.js';
@@ -25,6 +26,7 @@
 	import { rulesFor, type SectionRules } from '#lib/model/insights/settings.js';
 	import { asc, compareText, desc, formatOneDecimal, sortBy } from '#lib/model/util.js';
 	import { app, insights, members, unitProgress } from '#lib/services/index.js';
+	import type { SectionFlowReport } from '#lib/services/insights.js';
 	import {
 		focusKey,
 		readFocusIds,
@@ -33,7 +35,7 @@
 		writeSetting
 	} from '#lib/stores/storage.js';
 
-	type Tab = 'gaps' | 'moving-up' | 'programme';
+	type Tab = 'gaps' | 'moving-up' | 'programme' | 'flow';
 
 	// How many of the most needed requirements each missing requirements table shows
 	const MOST_COMMON_LIMIT = 20;
@@ -54,6 +56,10 @@
 	let focusIds = $state<string[]>([]);
 	let suppressLastName = $state(app.suppressLastName);
 	let loadProgress = $state({ done: 0, total: 0 });
+	// Who's moving in and out over the coming terms, loaded when its tab is first opened
+	let flowReport = $state<SectionFlowReport | null>(null);
+	let flowError = $state('');
+	let flowLoading = $state(false);
 
 	const unitId = $derived(app.unitId);
 	const sectionRules: SectionRules = $derived(rulesFor(settings, app.section));
@@ -69,6 +75,7 @@
 	$effect(() => {
 		const id = unitId;
 		report = null;
+		flowReport = null;
 		if (!id) return;
 		loadFocusYouth(id).then(() => analyse());
 	});
@@ -131,6 +138,24 @@
 		if (analysing || !unitId) return;
 		unitProgress.clear(unitId);
 		await analyse();
+	}
+
+	$effect(() => {
+		if (tab === 'flow' && report && !flowReport && !flowLoading) loadFlow();
+	});
+
+	async function loadFlow() {
+		const id = unitId;
+		flowLoading = true;
+		flowError = '';
+		try {
+			const loaded = await insights.sectionFlow(id, $state.snapshot(settings));
+			if (id === unitId) flowReport = loaded;
+		} catch (error) {
+			console.error('Insights: section flow failed', error);
+			flowError = "Couldn't load the unit's youth from Terrain.";
+		}
+		flowLoading = false;
 	}
 
 	function applyFilters() {
@@ -470,7 +495,11 @@
 				type="button"
 				role="tab"
 				aria-selected={tab === 'programme'}
-				onclick={() => (tab = 'programme')}>Programming</button
+				aria-label="Programming"
+				onclick={() => (tab = 'programme')}>Program<span class="wide-only">ming</span></button
+			>
+			<button type="button" role="tab" aria-selected={tab === 'flow'} onclick={() => (tab = 'flow')}
+				>Flow</button
 			>
 		</div>
 
@@ -724,6 +753,17 @@
 						</div>
 					{/each}
 				</div>
+			{/if}
+		{/if}
+
+		{#if tab === 'flow'}
+			<h3>Moving in and out</h3>
+			{#if flowReport}
+				<SectionFlow report={flowReport} />
+			{:else if flowError}
+				<div class="alert alert-danger">{flowError}</div>
+			{:else}
+				<p class="muted">Loading the units' youth...</p>
 			{/if}
 		{/if}
 

@@ -80,3 +80,49 @@ test('refresh loads every youth from Terrain again', async ({ page }) => {
 		.poll(() => terrain.requests.filter((r) => r.includes('type=milestone')).length)
 		.toBe(before + 4);
 });
+
+test('Flow shows who moves up into and out of the unit each term, and the patrols that shrink', async ({
+	page
+}) => {
+	const units = [
+		{ id: 'unit-1', name: 'Mt Example Scouts', section: 'scout' },
+		{ id: 'cub-1', name: 'Mt Example Cubs', section: 'cub' }
+	];
+	await fakeTerrain(page, { units });
+	await logIn(page);
+	await page.selectOption('#page-unit', 'unit-1');
+	await page.getByRole('tab', { name: 'Flow' }).click();
+	const terms = page.locator('.chart > li');
+	await expect(terms).toHaveCount(4);
+	// Ava moves up to Venturers and Oscar and Ella come up from Cubs over the year; Jack isn't due yet
+	const first = terms.first();
+	await first.locator('summary').click();
+	await expect(first.locator('.moves')).toBeVisible();
+	await expect(page.locator('.chart')).toContainText('Ava Nguyen · Kookaburra');
+	await expect(page.locator('.chart')).toContainText('Oscar Lee · Mt Example Cubs');
+	await expect(page.locator('.chart')).toContainText('Ella Park');
+	await expect(page.locator('.chart')).not.toContainText('Jack Wu');
+	// Noah is in both units, so he isn't coming in
+	await expect(page.locator('.chart')).not.toContainText('Noah Jones · Mt Example Cubs');
+	await expect(page.locator('.notes')).toContainText(
+		'1 youth in the Cubs is already in this unit too'
+	);
+	// Kookaburra loses Ava, so it's left smallest and listed first
+	await expect(page.locator('table.patrols tbody tr').first()).toContainText(
+		/Kookaburra\s*−1\s*2\s*Ava Nguyen/
+	);
+});
+
+test('Flow without a leader role in the section below shows only youth moving up out', async ({
+	page
+}) => {
+	await fakeTerrain(page);
+	await logIn(page);
+	await navigate(page, 'insights/');
+	await page.getByRole('tab', { name: 'Flow' }).click();
+	await expect(page.locator('.alert-info')).toContainText(
+		'Youth coming up from the Cubs show once you have a leader role in a Cub unit'
+	);
+	await expect(page.locator('.chart')).toContainText('Ava Nguyen');
+	await expect(page.locator('.bar.in[style*="width: 0%"]')).toHaveCount(4);
+});
