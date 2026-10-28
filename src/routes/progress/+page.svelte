@@ -6,7 +6,8 @@
 	import { pullToRefresh } from '#lib/actions/pullToRefresh.js';
 	import { asc, sortBy } from '#lib/model/util.js';
 	import { pagePath } from '#lib/paths.js';
-	import { peakAwardBreakdown } from '#lib/model/insights/insightsCalculator.js';
+	import { today } from '#lib/model/dates.js';
+	import { moveUpBadge, peakAwardBreakdown } from '#lib/model/insights/insightsCalculator.js';
 	import { rulesFor } from '#lib/model/insights/settings.js';
 	import { app, members, unitProgress } from '#lib/services/index.js';
 	import type { MemberSummary } from '#lib/services/members.js';
@@ -18,7 +19,10 @@
 	// Each youth's award progress and logbook, once the unit's progress is loaded (by Insights, or in the
 	// background). Nothing is loaded just for this
 	let loaded = $state<Record<string, { percent: number; nights: number; kms: number }>>({});
-	const rules = $derived(rulesFor(readInsightsSettings(), app.section));
+	const settings = readInsightsSettings();
+	const now = today();
+	const rules = $derived(rulesFor(settings, app.section));
+	const badgeClass = { High: '', Medium: 'badge-warning', Low: 'badge-info', None: 'badge-plain' };
 
 	async function loadSummaries(unitId: string) {
 		const load = unitProgress.loadProgress(unitId);
@@ -106,10 +110,16 @@
 	{:else if youth.length > 0}
 		<ul class="row-list">
 			{#each youth as member (member.id)}
+				{@const moveUp = moveUpBadge(member.dateOfBirth, rules, settings, now)}
 				<li>
 					<a class="card row-link youth" href={pagePath(`progress/${member.id}/`)}>
 						<div class="grow">
-							<div class="strong">{member.firstName} {members.lastName(member)}</div>
+							<div class="name-row">
+								<span class="strong">{member.firstName} {members.lastName(member)}</span>
+								{#if moveUp}
+									<span class="badge move-up {badgeClass[moveUp.urgency]}">{moveUp.text}</span>
+								{/if}
+							</div>
 							{#if loaded[member.id]}
 								{@const summary = loaded[member.id]}
 								<div class="award-track" aria-hidden="true">
@@ -161,6 +171,24 @@
 </div>
 
 <style>
+	.name-row {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.25rem 0.5rem;
+	}
+
+	.move-up {
+		font-size: 0.72rem;
+		font-weight: 600;
+	}
+
+	.badge-plain {
+		background: var(--surface-2);
+		color: var(--muted);
+	}
+
 	.page-head {
 		display: flex;
 		align-items: flex-start;

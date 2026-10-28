@@ -154,3 +154,17 @@ test('every milestone in progress shows what it still needs', async ({ page }) =
 	await expect(second.locator('.need-row', { hasText: 'Community' })).toContainText('2/5');
 	await expect(second.locator('.need-row', { hasText: 'Lead / Assist' })).toContainText('1/4');
 });
+
+test('each youth shows how long until they move up', async ({ page }) => {
+	await fakeTerrain(page);
+	await logIn(page);
+	await navigate(page, 'progress/');
+	// Ava is 14 years 10 months: two months to go, so it stands out
+	const ava = page.locator('.youth', { hasText: 'Ava Nguyen' }).locator('.move-up');
+	await expect(ava).toHaveText(/^Moves up in (1|2) mo$/);
+	await expect(ava).not.toHaveClass(/badge-plain|badge-warning|badge-info/);
+	// Further off, it's quieter
+	await expect(page.locator('.youth', { hasText: 'Noah Jones' }).locator('.move-up')).toHaveClass(
+		/badge-plain/
+	);
+});

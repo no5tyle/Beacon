@@ -6,6 +6,7 @@ import {
 	isCoreStream,
 	isEligible,
 	MAX_STAGE,
+	moveUpBadge,
 	moveUpCandidates,
 	nextStageDemand,
 	peakAwardBreakdown,
@@ -599,5 +600,31 @@ describe('insights calculator', () => {
 		);
 		// The challenge area balance night is included because nobody in the made-up unit has milestone progress
 		expect(report.suggestedNights.some((n) => n.title.endsWith('challenge night'))).toBe(true);
+	});
+});
+
+describe('move up badge', () => {
+	const settings = defaultInsightsSettings();
+	const scouts = rulesFor(settings, 'scout');
+	// Scouts move up at 15
+	const badge = (dob: string | null) => moveUpBadge(dob, scouts, settings, TODAY);
+
+	it('says how long until the youth moves up, and how soon that is', () => {
+		expect(badge(yearsAgo(15, 2))).toEqual({ text: 'Moves up in 2 mo', urgency: 'High' });
+		expect(badge(yearsAgo(15, 5))).toEqual({ text: 'Moves up in 5 mo', urgency: 'Medium' });
+		expect(badge(yearsAgo(14, 3))).toEqual({ text: 'Moves up in 1 yr 3 mo', urgency: 'None' });
+		expect(badge(yearsAgo(13))?.text).toBe('Moves up in 2 yr');
+		expect(badge(addMonths(yearsAgo(15), 0))?.text).toBe('Moves up in under a month');
+		expect(badge(yearsAgo(16))).toEqual({ text: 'Due to move up', urgency: 'High' });
+	});
+
+	it('the move up window sets which further off youth stand out', () => {
+		const wide = defaultInsightsSettings({ moveUpWindowMonths: 12 });
+		expect(moveUpBadge(yearsAgo(15, 8), scouts, wide, TODAY)?.urgency).toBe('Low');
+	});
+
+	it('has nothing without a date of birth or a known section', () => {
+		expect(badge(null)).toBeNull();
+		expect(moveUpBadge(yearsAgo(10), rulesFor(settings, 'unknown'), settings, TODAY)).toBeNull();
 	});
 });
