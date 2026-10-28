@@ -308,6 +308,26 @@ small {
 	background: var(--surface);
 }
 
+/* Back, top left as on iOS: a chevron and where it goes. See BackLink */
+.back-link {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.2rem;
+	min-height: 44px;
+	margin: -0.6rem 0 -0.2rem -0.2rem;
+	padding: 0 0.2rem;
+	border: 0;
+	background: none;
+	color: var(--tint);
+	font: inherit;
+	text-decoration: none;
+	cursor: pointer;
+}
+
+.back-link:disabled {
+	opacity: 0.4;
+}
+
 .card + .card {
 	margin-top: 0.75rem;
 }

@@ -5,6 +5,7 @@
 -->
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import BackLink from '#lib/components/BackLink.svelte';
 	import ChooseUnit from '#lib/components/ChooseUnit.svelte';
 	import RecordSwitch from '#lib/components/RecordSwitch.svelte';
 	import StepBar from '#lib/components/StepBar.svelte';
@@ -175,7 +176,12 @@
 </svelte:head>
 
 <div class="activity has-action-bar">
-	<RecordSwitch />
+	<!-- Moving between OAS, activities and SIAs is for the start; within the flow, back is top left -->
+	{#if index > 0 && !saved}
+		<BackLink label={stepNames[steps[index - 1]]} disabled={saving} onclick={back} />
+	{:else}
+		<RecordSwitch />
+	{/if}
 	<h2>Log an Activity</h2>
 	<StepBar steps={steps.map((s) => stepNames[s])} current={index} />
 
@@ -453,13 +459,7 @@
 
 	{#if unitId && !saved}
 		<div class="action-bar">
-			{#if index > 0}
-				<button type="button" class="btn btn-outline-secondary" disabled={saving} onclick={back}
-					>Back</button
-				>
-			{:else}
-				<span class="small muted">{draft.multiDay ? 'Over more than one day' : 'One day'}</span>
-			{/if}
+			<span class="small muted">{draft.multiDay ? 'Over more than one day' : 'One day'}</span>
 			{#if step === 'save'}
 				<button
 					type="button"

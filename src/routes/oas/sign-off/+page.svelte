@@ -5,6 +5,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
+	import BackLink from '#lib/components/BackLink.svelte';
 	import ChooseUnit from '#lib/components/ChooseUnit.svelte';
 	import Icon from '#lib/components/Icon.svelte';
 	import PickedStages from '#lib/components/PickedStages.svelte';
@@ -405,7 +406,18 @@
 {/snippet}
 
 <div class="sign-off has-action-bar">
-	<RecordSwitch />
+	<!-- Moving between OAS, activities and SIAs is for the start; within the flow, back is top left -->
+	{#if step === 'statements'}
+		<RecordSwitch />
+	{:else if outcomeList.length === 0}
+		<BackLink
+			label={step === 'youth' ? 'Statements' : 'Youth'}
+			onclick={() => {
+				step = step === 'youth' ? 'statements' : 'youth';
+				message = '';
+			}}
+		/>
+	{/if}
 	<h2>Record OAS</h2>
 	<StepBar
 		steps={['Statements', 'Youth', 'Save']}
@@ -577,14 +589,7 @@
 		{/if}
 
 		<div class="action-bar">
-			<button
-				type="button"
-				class="btn btn-outline-secondary"
-				onclick={() => {
-					step = 'statements';
-					message = '';
-				}}>Back</button
-			>
+			<span class="small muted">{selectedYouth.length} youth picked</span>
 			<button
 				type="button"
 				class="btn btn-primary"
@@ -629,14 +634,7 @@
 		</p>
 
 		<div class="action-bar">
-			<button
-				type="button"
-				class="btn btn-outline-secondary"
-				onclick={() => {
-					step = 'youth';
-					message = '';
-				}}>Back</button
-			>
+			<span class="small muted">{plural(pickedCount, 'statement')}</span>
 			<button type="button" class="btn btn-success" disabled={!verifierValid} onclick={saveAll}
 				>Sign off {selectedYouth.length} youth</button
 			>

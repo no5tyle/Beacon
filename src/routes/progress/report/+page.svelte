@@ -6,6 +6,7 @@
 	import { flushSync, onMount } from 'svelte';
 	import { page } from '$app/state';
 	import ChooseUnit from '#lib/components/ChooseUnit.svelte';
+	import BackLink from '#lib/components/BackLink.svelte';
 	import Icon from '#lib/components/Icon.svelte';
 	import { shortDate, today, toCalendarDate } from '#lib/model/dates.js';
 	import {
@@ -231,7 +232,7 @@
 </svelte:head>
 
 <div class="no-print">
-	<a class="back-link" href={pagePath('progress/')}><Icon name="chevron-left" /> Progress</a>
+	<BackLink href={pagePath('progress/')} label="Progress" />
 	<div class="head">
 		<h2>Progress reports</h2>
 		<button
@@ -570,16 +571,6 @@
 </div>
 
 <style>
-	.back-link {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.2rem;
-		min-height: 44px;
-		margin: -0.6rem 0 -0.2rem -0.2rem;
-		color: var(--tint);
-		text-decoration: none;
-	}
-
 	.head {
 		display: flex;
 		align-items: center;

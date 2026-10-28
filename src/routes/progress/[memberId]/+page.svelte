@@ -5,6 +5,7 @@
 -->
 <script lang="ts">
 	import { page } from '$app/state';
+	import BackLink from '#lib/components/BackLink.svelte';
 	import Icon from '#lib/components/Icon.svelte';
 	import { monthYear, shortDate } from '#lib/model/dates.js';
 	import {
@@ -231,7 +232,7 @@
 	<title>Beacon / {name || 'Progress'}</title>
 </svelte:head>
 
-<a class="back-link" href={pagePath('progress/')}><Icon name="chevron-left" /> Progress</a>
+<BackLink href={pagePath('progress/')} label="Progress" />
 
 <div class="person-head">
 	<div class="person-name">
@@ -684,16 +685,6 @@
 		.toolbar {
 			display: none;
 		}
-	}
-
-	.back-link {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.2rem;
-		min-height: 44px;
-		margin: -0.6rem 0 -0.2rem -0.2rem;
-		color: var(--tint);
-		text-decoration: none;
 	}
 
 	.person-head {
