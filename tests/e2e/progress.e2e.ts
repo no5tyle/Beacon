@@ -161,7 +161,7 @@ test('each youth shows how long until they move up', async ({ page }) => {
 	await navigate(page, 'progress/');
 	// Ava is 14 years 10 months: two months to go, so it stands out
 	const ava = page.locator('.youth', { hasText: 'Ava Nguyen' }).locator('.move-up');
-	await expect(ava).toHaveText(/^Moves up in (1|2) mo$/);
+	await expect(ava).toHaveText(/^Moves up in (1|2)m$/);
 	await expect(ava).not.toHaveClass(/badge-plain|badge-warning|badge-info/);
 	// Further off, it's quieter
 	await expect(page.locator('.youth', { hasText: 'Noah Jones' }).locator('.move-up')).toHaveClass(

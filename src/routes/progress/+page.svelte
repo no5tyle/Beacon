@@ -179,9 +179,11 @@
 		gap: 0.25rem 0.5rem;
 	}
 
+	/* Kept on one line: with a long name it goes under the name rather than breaking */
 	.move-up {
 		font-size: 0.72rem;
 		font-weight: 600;
+		white-space: nowrap;
 	}
 
 	.badge-plain {

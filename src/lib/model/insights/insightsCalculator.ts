@@ -412,13 +412,7 @@ export function moveUpBadge(
 	const years = Math.floor(whole / 12);
 	const rest = whole % 12;
 	const time =
-		whole < 1
-			? 'under a month'
-			: years === 0
-				? `${rest} mo`
-				: rest === 0
-					? `${years} yr`
-					: `${years} yr ${rest} mo`;
+		whole < 1 ? '<1m' : years === 0 ? `${rest}m` : rest === 0 ? `${years}y` : `${years}y ${rest}m`;
 	const urgency: MoveUpBadge['urgency'] =
 		months <= 3
 			? 'High'
