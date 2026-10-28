@@ -5,7 +5,7 @@
 -->
 <script lang="ts">
 	import { monthYear } from '#lib/model/dates.js';
-	import type { FlowMove, Term } from '#lib/model/insights/sectionFlow.js';
+	import { SECTION_ORDER, type FlowMove, type Term } from '#lib/model/insights/sectionFlow.js';
 	import type { SectionFlowReport } from '#lib/services/insights.js';
 	import { titleCase } from '#lib/model/util.js';
 
@@ -24,6 +24,15 @@
 		flow.terms.find((t) => m.overdue || (m.date >= t.start && m.date < t.end))!;
 	const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? '' : 's'}`;
 	const last = $derived(flow.terms[flow.terms.length - 1]);
+	// Joeys, and leaders without a role in the section below: there's nothing to show coming in, so the
+	// chart has only the side moving up out
+	const outOnly = $derived(!report.belowRules);
+	const leaving = $derived(flow.terms.reduce((n, t) => n + t.departures.length, 0));
+	// Rovers move on to adult roles rather than another section
+	const nextSection = $derived.by(() => {
+		const next = SECTION_ORDER[SECTION_ORDER.indexOf(report.section) + 1];
+		return next ? sectionName(next) : 'adult roles';
+	});
 </script>
 
 <p class="muted">
@@ -35,7 +44,8 @@
 
 {#if !report.belowSection}
 	<div class="alert alert-info small">
-		Joeys have no section below, so only youth moving up show.
+		New Joeys join from outside Scouts rather than moving up from a section below, so only Joeys
+		moving up to Cubs show.
 	</div>
 {:else if !report.belowRules}
 	<div class="alert alert-info small">
@@ -62,24 +72,31 @@
 			<div class="small muted">After {termName(last)}</div>
 			<div class="big">{last.sizeAfter}</div>
 		</div>
+		<div class="leaving">
+			<div class="small muted">Moving up to {nextSection}</div>
+			<div class="big">{leaving}</div>
+		</div>
 	</div>
 
-	<div class="legend small" aria-hidden="true">
-		<span><i class="key out"></i> Moving up out</span>
-		<span
-			><i class="key in"></i> Coming up from {report.belowRules
-				? sectionName(report.belowSection)
-				: 'below'}</span
-		>
-	</div>
+	{#if !outOnly}
+		<div class="legend small" aria-hidden="true">
+			<span><i class="key out"></i> Moving up out</span>
+			<span><i class="key in"></i> Coming up from {sectionName(report.belowSection)}</span>
+		</div>
+	{/if}
 
-	<ul class="chart" aria-label="Youth moving in and out each term">
+	<ul
+		class="chart"
+		class:out-only={outOnly}
+		aria-label={outOnly ? 'Youth moving up out each term' : 'Youth moving in and out each term'}
+	>
 		{#each flow.terms as term (term.start)}
 			<li>
 				<details>
 					<summary
-						aria-label="{termName(term)}: {term.arrivals.length} in, {term.departures
-							.length} out, {term.sizeAfter} youth after"
+						aria-label={outOnly
+							? `${termName(term)}: ${term.departures.length} moving up, ${term.sizeAfter} youth after`
+							: `${termName(term)}: ${term.arrivals.length} in, ${term.departures.length} out, ${term.sizeAfter} youth after`}
 					>
 						<span class="term"
 							><span class="wide-only">{termName(term)}</span><span class="narrow-only"
@@ -96,15 +113,16 @@
 								title={term.departures.map((m) => m.name).join(', ')}
 							></span>
 						</span>
-						<span class="side in-side">
-							<span
-								class="bar in"
-								style:width={width(term.arrivals.length)}
-								title={term.arrivals.map((m) => m.name).join(', ')}
-							></span>
-							<span class="count">{term.arrivals.length > 0 ? `+${term.arrivals.length}` : ''}</span
-							>
-						</span>
+						{#if !outOnly}<span class="side in-side">
+								<span
+									class="bar in"
+									style:width={width(term.arrivals.length)}
+									title={term.arrivals.map((m) => m.name).join(', ')}
+								></span>
+								<span class="count"
+									>{term.arrivals.length > 0 ? `+${term.arrivals.length}` : ''}</span
+								>
+							</span>{/if}
 						<span class="size">{term.sizeAfter}</span>
 					</summary>
 					<div class="moves small">
@@ -219,6 +237,11 @@
 		gap: 1rem;
 	}
 
+	.leaving {
+		margin-left: auto;
+		text-align: right;
+	}
+
 	.big {
 		font-size: 1.6rem;
 		font-weight: 700;
@@ -274,6 +297,27 @@
 		min-height: 44px;
 		cursor: pointer;
 		list-style: none;
+	}
+
+	/* Only moving up out: one bar per term, growing right from the term */
+	.out-only summary {
+		grid-template-columns: 6.5rem 1fr 2rem;
+	}
+
+	.out-only .out-side {
+		flex-direction: row-reverse;
+		justify-content: flex-end;
+		border-right: 0;
+		border-left: 1px solid var(--border);
+		padding: 0 0 0 1px;
+	}
+
+	.out-only .bar.out {
+		border-radius: 0 4px 4px 0;
+	}
+
+	.out-only .out-side .count {
+		text-align: left;
 	}
 
 	summary::-webkit-details-marker {
@@ -358,6 +402,10 @@
 	@media (max-width: 575.98px) {
 		summary {
 			grid-template-columns: 3rem 1fr 1fr 1.75rem;
+		}
+
+		.out-only summary {
+			grid-template-columns: 3rem 1fr 1.75rem;
 		}
 
 		.wide-only {

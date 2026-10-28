@@ -124,5 +124,18 @@ test('Flow without a leader role in the section below shows only youth moving up
 		'Youth coming up from the Cubs show once you have a leader role in a Cub unit'
 	);
 	await expect(page.locator('.chart')).toContainText('Ava Nguyen');
-	await expect(page.locator('.bar.in[style*="width: 0%"]')).toHaveCount(4);
+	await expect(page.locator('.chart .bar.in')).toHaveCount(0);
+});
+
+test('Flow for Joeys shows only those moving up to Cubs', async ({ page }) => {
+	await fakeTerrain(page, { units: [{ id: 'joey-1', name: 'Mt Example Joeys', section: 'joey' }] });
+	await logIn(page);
+	await navigate(page, 'insights/');
+	await page.getByRole('tab', { name: 'Flow' }).click();
+	await expect(page.locator('.alert-info')).toContainText('New Joeys join from outside Scouts');
+	await expect(page.locator('.leaving')).toContainText(/Moving up to Cubs\s*1/);
+	await expect(page.locator('.chart')).toContainText('Ruby Tan');
+	// No side for youth coming in
+	await expect(page.locator('.chart .bar.in')).toHaveCount(0);
+	await expect(page.locator('.legend')).toHaveCount(0);
 });
