@@ -253,7 +253,7 @@
 		<div class="alert alert-danger">{loadError}</div>
 	{/if}
 
-	<div class="choices">
+	<div class="choices card-grid">
 		<section class="card">
 			<h3>Include</h3>
 			{#each PARTS as part (part.key)}
@@ -588,9 +588,7 @@
 	}
 
 	.choices {
-		display: grid;
 		grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
-		gap: 0 0.75rem;
 	}
 
 	.choices h3 {

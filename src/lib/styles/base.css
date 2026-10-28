@@ -312,6 +312,17 @@ small {
 	margin-top: 0.75rem;
 }
 
+/* Cards side by side in a grid: the grid's gap spaces them, so they line up and each row's cards are
+   the same height. The page sets the columns */
+.card-grid {
+	display: grid;
+	gap: 0.75rem;
+}
+
+.card-grid > .card + .card {
+	margin-top: 0;
+}
+
 .badge {
 	display: inline-block;
 	min-width: 1.4em;

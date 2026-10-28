@@ -674,7 +674,7 @@
 				</div>
 
 				<h3>Priority youth</h3>
-				<div class="candidate-grid section-gap">
+				<div class="candidate-grid card-grid section-gap">
 					{#each report.moveUpCandidates as candidate (candidate.memberId)}
 						<div class="card candidate-card">
 							<div class="candidate-head">
