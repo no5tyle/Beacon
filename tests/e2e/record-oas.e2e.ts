@@ -152,3 +152,11 @@ test('ticks can be cleared for a stage, a stream, or all of them', async ({ page
 	await page.getByRole('button', { name: 'Clear all' }).click();
 	await expect(page.getByRole('button', { name: 'Save 0 to Terrain' })).toBeDisabled();
 });
+
+test("back goes to the youth's progress, top left", async ({ page }) => {
+	await fakeTerrain(page);
+	await logIn(page);
+	await navigate(page, 'progress/unit-1-m0/record-oas/');
+	await page.locator('.back-link', { hasText: 'Ava' }).click();
+	await expect(page).toHaveURL(/\/progress\/unit-1-m0\/$/);
+});

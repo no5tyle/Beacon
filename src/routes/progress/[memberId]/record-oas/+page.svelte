@@ -5,6 +5,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import BackLink from '#lib/components/BackLink.svelte';
 	import { page } from '$app/state';
 	import { dayMonthYear, today } from '#lib/model/dates.js';
 	import { isCoreStream } from '#lib/model/insights/insightsCalculator.js';
@@ -277,6 +278,7 @@
 	<title>Beacon / Record OAS</title>
 </svelte:head>
 
+<BackLink href={pagePath(`progress/${memberId}/`)} label={member?.firstName || 'Progress'} />
 <h2>Record OAS for {member ? `${member.firstName} ${members.lastName(member)}` : ''}</h2>
 <p class="muted intro">
 	Tick the "I" statements this youth has done and save them to Terrain on their behalf, then submit
@@ -303,7 +305,6 @@
 		><input type="checkbox" class="form-check-input" bind:checked={showNonCoreOAS} /> Include non-core
 		OAS</label
 	>
-	<a href={pagePath(`progress/${memberId}/`)} class="btn btn-outline-secondary">Back to progress</a>
 </div>
 
 {#if message}

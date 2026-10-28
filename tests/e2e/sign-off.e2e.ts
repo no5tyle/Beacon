@@ -96,3 +96,27 @@ test('picked statements can be cleared by stream, or all at once', async ({ page
 	await expect(page.getByLabel('I can tie a reef knot and a clove hitch.')).not.toBeChecked();
 	await expect(page.getByRole('button', { name: 'Choose youth' })).toBeDisabled();
 });
+
+test('back is top left, naming the step it goes back to; the action bar only moves forward', async ({
+	page
+}) => {
+	await fakeTerrain(page);
+	await logIn(page);
+	await navigate(page, 'oas/sign-off/');
+	await expect(page.locator('.back-link')).toHaveCount(0);
+	await expect(page.locator('.record-switch')).toBeVisible();
+	await page.getByRole('button', { name: 'Camping', exact: true }).click();
+	await page.getByRole('button', { name: 'Stage 2', exact: true }).click();
+	await page.getByLabel('I can tie a reef knot and a clove hitch.').check();
+	await page.getByRole('button', { name: 'Choose youth' }).click();
+
+	await expect(page.locator('.record-switch')).toHaveCount(0);
+	await expect(page.locator('.action-bar button')).toHaveText([/Review/]);
+	await page.locator('.pick-row', { hasText: 'Noah Jones' }).locator('input').check();
+	await page.getByRole('button', { name: 'Review 1 youth' }).click();
+	await page.locator('.back-link', { hasText: 'Youth' }).click();
+	await expect(page.locator('.pick-row', { hasText: 'Noah Jones' }).locator('input')).toBeChecked();
+	await page.locator('.back-link', { hasText: 'Statements' }).click();
+	await expect(page.getByLabel('I can tie a reef knot and a clove hitch.')).toBeChecked();
+	await expect(page.locator('.record-switch')).toBeVisible();
+});
