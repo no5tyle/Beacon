@@ -42,6 +42,12 @@ const cubs = [
 	{ name: 'Noah Jones', months: 11 * 12 + 6, patrol: 'Blue Six', duty: 'member', id: 'unit-1-m3' }
 ];
 
+// Made-up Joeys, for a Joey unit when a test adds one: Ruby moves up to Cubs next month
+const joeys = [
+	{ name: 'Ruby Tan', months: 7 * 12 + 11, patrol: '', duty: 'member', id: '' },
+	{ name: 'Leo Ford', months: 6 * 12 + 4, patrol: '', duty: 'member', id: '' }
+];
+
 const STREAMS: Record<string, string> = {
 	bushcraft: 'Bushcraft',
 	bushwalking: 'Bushwalking',
@@ -458,7 +464,12 @@ export async function fakeTerrain(page: Page, options: FakeOptions = {}): Promis
 		const unitMembers = url.pathname.match(/^\/units\/([^/]+)\/members$/);
 		if (unitMembers) {
 			const section = units.find((u) => u.id === unitMembers[1])?.section ?? 'scout';
-			const list = section === 'cub' ? cubs : youth.map((y) => ({ ...y, id: '' }));
+			const list =
+				section === 'cub'
+					? cubs
+					: section === 'joey'
+						? joeys
+						: youth.map((y) => ({ ...y, id: '' }));
 			return json(route, {
 				results: list.map((member, i) => ({
 					id: member.id || `${unitMembers[1]}-m${i}`,
