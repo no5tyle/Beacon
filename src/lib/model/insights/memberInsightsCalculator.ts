@@ -143,6 +143,18 @@ export function buildMemberInsights(
 export function milestoneProgressFor(youth: YouthRecord): MilestoneProgress | null {
 	if (youth.progress.milestone3Awarded !== null) return null;
 	const { number, counts, leadAssist } = currentMilestone(youth.progress);
+	return milestoneNeeds(number, counts, leadAssist);
+}
+
+/**
+ * What a milestone still needs, from the participates in each challenge area (in CHALLENGE_AREAS
+ * order) and the leads and assists so far
+ */
+export function milestoneNeeds(
+	number: number,
+	counts: readonly number[],
+	leadAssist: number
+): MilestoneProgress {
 	const need = MILESTONE_REQUIREMENTS[number];
 	const progress: MilestoneProgress = {
 		number,

@@ -16,6 +16,7 @@
 		type ChallengeAreaNeed,
 		type MemberInsightsReport
 	} from '#lib/model/insights/memberModels.js';
+	import { milestoneNeeds } from '#lib/model/insights/memberInsightsCalculator.js';
 	import { readInsightsSettings } from '#lib/stores/storage.js';
 	import { asc, desc, formatOneDecimal, sortBy } from '#lib/model/util.js';
 	import { pagePath } from '#lib/paths.js';
@@ -214,6 +215,16 @@
 	const byArea = (logs: MilestoneLog[], area: string) =>
 		logs.filter((l) => l.challengeArea === area);
 	const activityCount = (m: MilestoneSummary) => m.participateLogs.length + m.leadLogs.length;
+	// Every milestone being worked on shows what it still needs, not only the lowest: a youth can log
+	// towards Milestone 2 before Milestone 1 is awarded
+	const AREA_KEYS = ['community', 'outdoors', 'creative', 'personal_growth'];
+	const inProgress = (m: MilestoneSummary) => !m.awarded && m.status !== 'Not Required';
+	const needsOf = (m: MilestoneSummary) =>
+		milestoneNeeds(
+			m.milestone,
+			AREA_KEYS.map((area) => byArea(m.participateLogs, area).length),
+			m.leadLogs.length + m.assistLogs.length
+		);
 </script>
 
 <svelte:head>
@@ -453,8 +464,7 @@
 		{:else}
 			<section class="card list">
 				{#each details.milestones as milestone (milestone.milestone)}
-					{@const current =
-						report?.milestone?.number === milestone.milestone ? report.milestone : null}
+					{@const current = inProgress(milestone) ? needsOf(milestone) : null}
 					<div class="milestone">
 						<div class="row">
 							<div class="row-main strong">Milestone {milestone.milestone}</div>
