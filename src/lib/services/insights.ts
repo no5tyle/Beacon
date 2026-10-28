@@ -14,6 +14,12 @@ import {
 } from '#lib/model/insights/insightsCalculator.js';
 import { buildMemberInsights } from '#lib/model/insights/memberInsightsCalculator.js';
 import {
+	sectionBelow,
+	sectionFlow,
+	type FlowYouth,
+	type SectionFlow
+} from '#lib/model/insights/sectionFlow.js';
+import {
 	stageStatements,
 	type StageCandidate,
 	type StageStatement
@@ -30,7 +36,8 @@ import {
 	maximumStage,
 	minimumStage,
 	rulesFor,
-	type InsightsSettings
+	type InsightsSettings,
+	type SectionRules
 } from '#lib/model/insights/settings.js';
 import type { BeaconContext } from './context.js';
 import type { MembersService } from './members.js';
@@ -248,6 +255,64 @@ export class InsightsService {
 	}
 
 	/** Insights for one youth on the Progress details page */
+	/**
+	 * Who's expected to move up into the unit from the section below over the coming terms, and out of
+	 * it. The section below is every unit of it in the same group that the leader can see in Terrain
+	 */
+	async sectionFlow(unitId: string, settings: InsightsSettings): Promise<SectionFlowReport> {
+		const section = this.context.sectionOf(unitId);
+		const belowSection = sectionBelow(section);
+		const profiles = this.context.profiles?.profiles ?? [];
+		const groupId = profiles.find((p) => p.unit?.id === unitId)?.group?.id;
+		const belowUnits = [
+			...new Map(
+				profiles
+					.filter(
+						(p) => belowSection && p.unit?.section === belowSection && p.group?.id === groupId
+					)
+					.map((p) => [p.unit!.id, p.unit!.name])
+			)
+		].map(([id, name]) => ({ id, name }));
+
+		const here: FlowYouth[] = (await this.members.youth(unitId)).map((m) => ({
+			id: m.id,
+			name: this.members.displayName(m),
+			dateOfBirth: m.dateOfBirth,
+			group: m.patrolName
+		}));
+		const below: FlowYouth[] = [];
+		const unreadable: string[] = [];
+		for (const unit of belowUnits) {
+			try {
+				for (const m of await this.members.youth(unit.id))
+					below.push({
+						id: m.id,
+						name: this.members.displayName(m),
+						dateOfBirth: m.dateOfBirth,
+						group: unit.name
+					});
+			} catch {
+				unreadable.push(unit.name);
+			}
+		}
+		const readable = belowUnits.length > unreadable.length;
+		return {
+			section,
+			belowSection,
+			belowUnits: belowUnits.map((u) => u.name).filter((name) => !unreadable.includes(name)),
+			unreadable,
+			hereRules: rulesFor(settings, section),
+			belowRules: readable ? rulesFor(settings, belowSection) : null,
+			flow: sectionFlow(
+				here,
+				rulesFor(settings, section),
+				below,
+				readable ? rulesFor(settings, belowSection) : null,
+				todayDate()
+			)
+		};
+	}
+
 	async memberReport(
 		unitId: string,
 		details: ProgressDetails,
@@ -334,4 +399,17 @@ export class InsightsService {
 			highestStage
 		});
 	}
+}
+
+export interface SectionFlowReport {
+	section: string;
+	/** "" for Joeys, who have no section below */
+	belowSection: string;
+	/** The units of the section below whose youth are counted */
+	belowUnits: string[];
+	/** Units of the section below Terrain wouldn't list the members of */
+	unreadable: string[];
+	hereRules: SectionRules;
+	belowRules: SectionRules | null;
+	flow: SectionFlow;
 }

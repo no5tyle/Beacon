@@ -33,6 +33,15 @@ const youth = [
 	{ name: 'Noah Jones', months: 11 * 12 + 6, patrol: 'Wombat', duty: 'member' }
 ];
 
+// Made-up Cubs, for a Cub unit when a test adds one. Oscar moves up next month, Ella in about half a
+// year, and Jack not for a couple of years. Noah is linking across, so he's in the Scout unit too
+const cubs = [
+	{ name: 'Oscar Lee', months: 10 * 12 + 11, patrol: 'Red Six', duty: 'member', id: '' },
+	{ name: 'Ella Park', months: 10 * 12 + 6, patrol: 'Blue Six', duty: 'member', id: '' },
+	{ name: 'Jack Wu', months: 9 * 12 + 2, patrol: 'Red Six', duty: 'member', id: '' },
+	{ name: 'Noah Jones', months: 11 * 12 + 6, patrol: 'Blue Six', duty: 'member', id: 'unit-1-m3' }
+];
+
 const STREAMS: Record<string, string> = {
 	bushcraft: 'Bushcraft',
 	bushwalking: 'Bushwalking',
@@ -447,19 +456,22 @@ export async function fakeTerrain(page: Page, options: FakeOptions = {}): Promis
 				}))
 			});
 		const unitMembers = url.pathname.match(/^\/units\/([^/]+)\/members$/);
-		if (unitMembers)
+		if (unitMembers) {
+			const section = units.find((u) => u.id === unitMembers[1])?.section ?? 'scout';
+			const list = section === 'cub' ? cubs : youth.map((y) => ({ ...y, id: '' }));
 			return json(route, {
-				results: youth.map((member, i) => ({
-					id: `${unitMembers[1]}-m${i}`,
+				results: list.map((member, i) => ({
+					id: member.id || `${unitMembers[1]}-m${i}`,
 					member_number: `10${i}`,
 					first_name: member.name.split(' ')[0],
 					last_name: member.name.split(' ')[1],
 					status: 'active',
 					date_of_birth: isoDate(member.months, 10),
-					unit: { id: unitMembers[1], section: 'scout', duty: 'member', unit_council: i === 0 },
+					unit: { id: unitMembers[1], section, duty: 'member', unit_council: i === 0 },
 					patrol: { id: member.patrol, name: member.patrol, duty: member.duty }
 				}))
 			});
+		}
 		if (
 			url.pathname.endsWith('assume-profiles') ||
 			url.pathname.endsWith('revoke-assumed-profiles')
