@@ -206,6 +206,11 @@ function records(unitId: string): Fixture[] {
 		achievement_meta: { stage: 1 },
 		event_log: events(['outdoors', 'creative', 'personal_growth'])
 	});
+	// Liam is logging towards Milestone 2 before Milestone 1 is awarded
+	add(1, 'milestone', 'in_progress', {
+		achievement_meta: { stage: 2 },
+		event_log: [...events(['community', 'community']), ...events(['outdoors'], 'leader')]
+	});
 	add(0, 'special_interest_area', 'awarded', {
 		answers: {
 			special_interest_area_selection: 'sia_adventure_sport',

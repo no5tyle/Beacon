@@ -138,3 +138,19 @@ test("the list shows the same award progress as each youth's own page", async ({
 		await page.goBack();
 	}
 });
+
+test('every milestone in progress shows what it still needs', async ({ page }) => {
+	await fakeTerrain(page);
+	await logIn(page);
+	await navigate(page, 'progress/unit-1-m1/');
+	await page.getByRole('tab', { name: 'Awards' }).click();
+	const milestones = page.locator('.milestone');
+	await expect(milestones).toHaveCount(2);
+	const first = milestones.filter({ hasText: 'Milestone 1' });
+	const second = milestones.filter({ hasText: 'Milestone 2' });
+	await expect(first.locator('.need-row')).toHaveCount(5);
+	await expect(first.locator('.need-row', { hasText: 'Outdoors' })).toContainText('1/6');
+	await expect(second.locator('.need-row')).toHaveCount(5);
+	await expect(second.locator('.need-row', { hasText: 'Community' })).toContainText('2/5');
+	await expect(second.locator('.need-row', { hasText: 'Lead / Assist' })).toContainText('1/4');
+});
