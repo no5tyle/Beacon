@@ -17,6 +17,8 @@ export interface FakeOptions {
 	moreAwards?: boolean;
 	/** After a vote or award, this many reads of the approvals list still show it as it was, as Terrain can */
 	staleReads?: number;
+	/** Turn submitting an achievement for review away with a 400 and this message */
+	refuseSubmit?: string;
 }
 
 export interface FakeTerrain {
@@ -559,6 +561,8 @@ export async function fakeTerrain(page: Page, options: FakeOptions = {}): Promis
 				/^\/members\/[^/]+\/achievements\/([^/]+)(\/submit-on-behalf)?$/
 			);
 			const record = store.find((r) => r.id === existing?.[1]);
+			if (record && existing?.[2] && options.refuseSubmit)
+				return json(route, { message: options.refuseSubmit }, 400);
 			if (record && existing?.[2]) {
 				record.status = 'pending_review';
 				return json(route, {}, 204);

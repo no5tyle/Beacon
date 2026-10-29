@@ -528,3 +528,20 @@ test('ready milestones are ticked and submitted for review together, as the yout
 	expect(writes[1].body).toMatchObject({ type: 'review', unit_id: 'unit-1' });
 	expect(terrain.requests).toContain('POST members/members/unit-1-m2/assume-profiles');
 });
+
+test("a milestone Terrain won't submit says which step failed and Terrain's reason", async ({
+	page
+}) => {
+	await fakeTerrain(page, { refuseSubmit: 'Milestone 2 must be awarded first' });
+	await logIn(page);
+	await navigate(page, 'approvals/');
+	const ready = page.locator('section[aria-label="Milestones ready to submit"]');
+	await ready.getByLabel('Submit Milestone 3 for Mia Brown').check();
+	await ready.getByRole('button', { name: 'Submit 1' }).click();
+	await ready.getByRole('button', { name: 'Yes, submit' }).click();
+	await expect(page.locator('.alert-danger')).toHaveText(
+		"Milestone 3 for Mia Brown: Terrain didn't accept submitting it (response 400): Milestone 2 must be awarded first"
+	);
+	// Still there to try again
+	await expect(ready.locator('.approval-card')).toHaveCount(1);
+});
