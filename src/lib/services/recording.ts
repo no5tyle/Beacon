@@ -21,7 +21,8 @@ import {
 import {
 	milestoneReviewBody,
 	milestoneToSubmit,
-	requirementsComplete
+	requirementsComplete,
+	terrainReason
 } from '#lib/model/oas/milestoneReview.js';
 import { latestByMember, type SignOffOutcome, type UnitOASRecord } from '#lib/model/oas/signOff.js';
 import type { OASStage, OASTemplate } from '#lib/model/oas/templates.js';
@@ -287,16 +288,24 @@ export class RecordingService {
 		try {
 			const outcome = await this.context.terrain.actAsYouth(memberId, async (youth) => {
 				const saved = await youth.updateAchievement(memberId, record.id, body);
-				if (!saved.success) return saved;
-				return youth.submitOnBehalf(memberId, record.id, submitBody(unitId, this.leaderMemberId()));
+				if (!saved.success) return { step: 'saving the lead reviews', result: saved };
+				const submitted = await youth.submitOnBehalf(
+					memberId,
+					record.id,
+					submitBody(unitId, this.leaderMemberId())
+				);
+				return { step: 'submitting it', result: submitted };
 			});
 			if (!outcome.acted) return failed(couldNotActAsYouth(outcome.result).body);
-			if (!outcome.value.success)
+			const { step, result } = outcome.value;
+			if (!result.success) {
+				const reason = terrainReason(result.body);
 				return failed(
-					outcome.value.status > 0
-						? `Terrain didn't accept it (response ${outcome.value.status}).`
-						: outcome.value.body
+					result.status > 0
+						? `Terrain didn't accept ${step} (response ${result.status})${reason ? `: ${reason}` : '.'}`
+						: result.body
 				);
+			}
 			this.unitProgress.clear(unitId);
 			return { state: 'Saved', savedCount: 0, message: '' };
 		} catch (error) {

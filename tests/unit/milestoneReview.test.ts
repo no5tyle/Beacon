@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
 	milestoneReviewBody,
 	milestoneToSubmit,
-	requirementsComplete
+	requirementsComplete,
+	terrainReason
 } from '#lib/model/oas/milestoneReview.js';
 import type { TerrainAchievement } from '#lib/terrain/types.js';
 
@@ -25,7 +26,7 @@ const record = (extra: Partial<TerrainAchievement> = {}): TerrainAchievement => 
 });
 
 describe('submitting a milestone', () => {
-	it('reviews each lead, against the review template, as Terrain sends it', () => {
+	it('reviews each lead, not assists, against the review template, as Terrain sends it', () => {
 		expect(
 			milestoneReviewBody(record(), { template: 'milestone/cub/review/1', version: 3 })
 		).toEqual({
@@ -36,7 +37,6 @@ describe('submitting a milestone', () => {
 			answers: {
 				leader_review_e2: ' ',
 				leader_review_e3: ' ',
-				leader_review_e4: ' ',
 				supporting_files: []
 			},
 			uploads: [],
@@ -65,5 +65,17 @@ describe('submitting a milestone', () => {
 			false
 		);
 		expect(requirementsComplete(record({ milestone_requirement_status: undefined }))).toBe(true);
+	});
+
+	it("quotes Terrain's own explanation when it refuses", () => {
+		expect(terrainReason('{"message": "Milestone 1 must be awarded first"}')).toBe(
+			'Milestone 1 must be awarded first'
+		);
+		expect(terrainReason('{"errors": {"answers": ["unexpected key"]}}')).toBe(
+			'{"answers":["unexpected key"]}'
+		);
+		expect(terrainReason('Bad Request')).toBe('Bad Request');
+		expect(terrainReason('')).toBe('');
+		expect(terrainReason('x'.repeat(300))).toHaveLength(203);
 	});
 });

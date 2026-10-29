@@ -1,12 +1,15 @@
 // Submitting a milestone for the Unit Council's review on a youth's behalf, as Terrain's own Milestones
-// page does: each lead (or assist, which now counts as a lead) gets a leader review answer, saved to the
-// youth's record against the milestone's review template, then the record is submitted.
+// page does: each lead gets a leader review answer, saved to the youth's record against the milestone's
+// review template, then the record is submitted.
 
 import type { TerrainAchievement } from '#lib/terrain/types.js';
 import { isEditable } from './recording.js';
 
-/** Activity credits Terrain asks a leader to review */
-const LEAD_CREDITS = ['leader', 'assistant'];
+/**
+ * Activity credits Terrain asks a leader to review. Only leads, as Terrain's page sends: a review for an
+ * assist isn't what it expects
+ */
+const LEAD_CREDITS = ['leader'];
 
 /** Terrain's answer for a reviewed lead: a blank comment, as its page sends */
 const REVIEWED = ' ';
@@ -31,6 +34,20 @@ export function milestoneToSubmit(
 				isEditable(r.status)
 		) ?? null
 	);
+}
+
+/** Terrain's own explanation in a refused request's answer, e.g. {"message": "..."}, kept short */
+export function terrainReason(body: string): string {
+	let text = body.trim();
+	try {
+		const parsed = JSON.parse(text) as Record<string, unknown>;
+		const message = parsed.message ?? parsed.detail ?? parsed.error ?? parsed.errors;
+		if (message !== undefined)
+			text = typeof message === 'string' ? message : JSON.stringify(message);
+	} catch {
+		// Not JSON: the text as it came
+	}
+	return text.length > 200 ? `${text.slice(0, 200)}...` : text;
 }
 
 /** Whether Terrain itself counts the milestone's participates and leads as done, where it says */
