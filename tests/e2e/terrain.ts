@@ -230,11 +230,13 @@ function records(unitId: string): Fixture[] {
 			...events(
 				['community', 'community', 'outdoors', 'outdoors', 'creative', 'creative'],
 				'leader'
-			)
+			),
+			...events(['personal_growth'], 'assistant')
 		],
 		event_count: {
 			participant: { community: 4, outdoors: 4, creative: 4, personal_growth: 4 },
-			leader: { community: 2, outdoors: 2, creative: 2 }
+			leader: { community: 2, outdoors: 2, creative: 2 },
+			assistant: { personal_growth: 1 }
 		}
 	});
 	add(1, 'milestone', 'in_progress', {

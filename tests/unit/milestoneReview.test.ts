@@ -26,7 +26,7 @@ const record = (extra: Partial<TerrainAchievement> = {}): TerrainAchievement => 
 });
 
 describe('submitting a milestone', () => {
-	it('reviews each lead, not assists, against the review template, as Terrain sends it', () => {
+	it('reviews each lead and assist, each with its own key, as Terrain sends it', () => {
 		expect(
 			milestoneReviewBody(record(), { template: 'milestone/cub/review/1', version: 3 })
 		).toEqual({
@@ -37,6 +37,7 @@ describe('submitting a milestone', () => {
 			answers: {
 				leader_review_e2: ' ',
 				leader_review_e3: ' ',
+				assist_review_e4: ' ',
 				supporting_files: []
 			},
 			uploads: [],

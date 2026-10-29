@@ -19,6 +19,7 @@ import {
 	type OASVerifier
 } from '#lib/model/oas/recording.js';
 import {
+	MILESTONE_REVIEW_TEMPLATE,
 	milestoneReviewBody,
 	milestoneToSubmit,
 	requirementsComplete,
@@ -259,7 +260,8 @@ export class RecordingService {
 
 	/**
 	 * Submits a milestone whose requirements are done for the Unit Council's review, as Terrain's own
-	 * Milestones page does: as the youth, a leader review is saved for each lead, then it's submitted
+	 * Milestones page does: as the youth, a leader review is saved for each lead and assist, then it's
+	 * submitted
 	 */
 	async submitMilestone(memberId: string, stage: number, unitId: string): Promise<SignOffOutcome> {
 		const failed = (message: string): SignOffOutcome => ({
@@ -280,7 +282,10 @@ export class RecordingService {
 				return { state: 'Skipped', savedCount: 0, message: 'Already submitted or complete.' };
 			if (!requirementsComplete(record))
 				return failed("Terrain doesn't count this milestone's activities as done yet.");
-			template = await this.context.terrain.milestoneReviewTemplate(section, stage);
+			template = await this.context.terrain.milestoneReviewTemplate(
+				section,
+				MILESTONE_REVIEW_TEMPLATE
+			);
 		} catch {
 			return failed("Couldn't load their milestone from Terrain.");
 		}
