@@ -195,6 +195,7 @@ function records(unitId: string): Fixture[] {
 	const events = (areas: string[], credit = 'participant') =>
 		areas.map((area, i) => ({
 			credit_type: credit,
+			event_id: `${credit}-${area}-${i}`,
 			challenge_area: area,
 			event_name: `${{ community: 'Clean up day', outdoors: 'Night hike', creative: 'Billy cart build', personal_growth: 'Cooking night' }[area]} ${i + 1}`,
 			event_start_datetime: `${isoDate(10 - i)}T19:00:00+10:00`
@@ -622,6 +623,15 @@ export async function fakeTerrain(page: Page, options: FakeOptions = {}): Promis
 			});
 			return json(route, { title: STREAMS[stream] ?? stream, stream_id: stream, tree: node(1) });
 		}
+		const milestoneTemplate = url.pathname.match(
+			/^\/milestone\/([^/]+)\/review\/(\d)\/latest\.json$/
+		);
+		if (milestoneTemplate)
+			return json(route, {
+				template: `milestone/${milestoneTemplate[1]}/review/${milestoneTemplate[2]}`,
+				version: 3,
+				document: []
+			});
 		const stageTemplate = url.pathname.match(/^\/oas\/([^/]+)\/(\d)\/latest\.json$/);
 		if (stageTemplate) return json(route, template(stageTemplate[1], Number(stageTemplate[2])));
 		return json(route, {}, 404);

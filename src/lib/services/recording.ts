@@ -18,6 +18,11 @@ import {
 	type OASStatement,
 	type OASVerifier
 } from '#lib/model/oas/recording.js';
+import {
+	milestoneReviewBody,
+	milestoneToSubmit,
+	requirementsComplete
+} from '#lib/model/oas/milestoneReview.js';
 import { latestByMember, type SignOffOutcome, type UnitOASRecord } from '#lib/model/oas/signOff.js';
 import type { OASStage, OASTemplate } from '#lib/model/oas/templates.js';
 import { compareText } from '#lib/model/util.js';
@@ -249,6 +254,54 @@ export class RecordingService {
 			message:
 				result.status > 0 ? `Terrain didn't accept it (response ${result.status}).` : result.body
 		};
+	}
+
+	/**
+	 * Submits a milestone whose requirements are done for the Unit Council's review, as Terrain's own
+	 * Milestones page does: as the youth, a leader review is saved for each lead, then it's submitted
+	 */
+	async submitMilestone(memberId: string, stage: number, unitId: string): Promise<SignOffOutcome> {
+		const failed = (message: string): SignOffOutcome => ({
+			state: 'Failed',
+			savedCount: 0,
+			message
+		});
+		const section = this.context.sectionOf(unitId);
+		let record;
+		let template;
+		try {
+			record = milestoneToSubmit(
+				await this.context.terrain.memberAchievements(memberId, 'milestone'),
+				section,
+				stage
+			);
+			if (!record)
+				return { state: 'Skipped', savedCount: 0, message: 'Already submitted or complete.' };
+			if (!requirementsComplete(record))
+				return failed("Terrain doesn't count this milestone's activities as done yet.");
+			template = await this.context.terrain.milestoneReviewTemplate(section, stage);
+		} catch {
+			return failed("Couldn't load their milestone from Terrain.");
+		}
+		const body = milestoneReviewBody(record, template);
+		try {
+			const outcome = await this.context.terrain.actAsYouth(memberId, async (youth) => {
+				const saved = await youth.updateAchievement(memberId, record.id, body);
+				if (!saved.success) return saved;
+				return youth.submitOnBehalf(memberId, record.id, submitBody(unitId, this.leaderMemberId()));
+			});
+			if (!outcome.acted) return failed(couldNotActAsYouth(outcome.result).body);
+			if (!outcome.value.success)
+				return failed(
+					outcome.value.status > 0
+						? `Terrain didn't accept it (response ${outcome.value.status}).`
+						: outcome.value.body
+				);
+			this.unitProgress.clear(unitId);
+			return { state: 'Saved', savedCount: 0, message: '' };
+		} catch (error) {
+			return failed(errorMessage(error));
+		}
 	}
 
 	/** The signed in leader, recorded as the verifier */

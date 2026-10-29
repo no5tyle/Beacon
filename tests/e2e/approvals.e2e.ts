@@ -462,14 +462,55 @@ test('awards several together, on one date', async ({ page }) => {
 	await expect(section.getByRole('button', { name: 'Tick all' })).toBeVisible();
 });
 
-test('milestones with every requirement done but not yet submitted show, to submit in Terrain', async ({
-	page
-}) => {
+test('milestones with every requirement done but not yet submitted show', async ({ page }) => {
 	await fakeTerrain(page);
 	await logIn(page);
 	await navigate(page, 'approvals/');
 	const ready = page.locator('section[aria-label="Milestones ready to submit"]');
-	await expect(ready.locator('.row')).toHaveText([/Mia Brown\s*Milestone 3/]);
+	await expect(ready.locator('.row')).toHaveText([/Mia Brown\s*·\s*Milestone 3/]);
 	await ready.locator('a', { hasText: 'Mia Brown' }).click();
 	await expect(page).toHaveURL(/\/progress\/unit-1-m2\/$/);
+});
+
+test('a ready milestone is submitted for review as the youth, with each lead reviewed', async ({
+	page
+}) => {
+	const terrain = await fakeTerrain(page);
+	await logIn(page);
+	await navigate(page, 'approvals/');
+	const ready = page.locator('section[aria-label="Milestones ready to submit"]');
+	await ready.getByRole('button', { name: 'Submit' }).click();
+	await expect(ready.locator('.confirm-box')).toContainText(
+		"Submit Mia Brown's Milestone 3 for review?"
+	);
+	await ready.getByRole('button', { name: 'Yes, submit' }).click();
+	await expect(page.locator('.alert-success')).toContainText(
+		"Mia Brown's Milestone 3 is submitted"
+	);
+	await expect(ready).toHaveCount(0);
+
+	// As Terrain's Milestones page does: the leads reviewed on the record, then submitted on her behalf
+	const writes = terrain.writes.filter((w) => w.request.includes('unit-1-m2/achievements'));
+	expect(writes.map((w) => w.request.replace(/\/achievements\/[^/]+/, '/achievements/ID'))).toEqual(
+		[
+			'PUT achievements/members/unit-1-m2/achievements/ID',
+			'POST achievements/members/unit-1-m2/achievements/ID/submit-on-behalf'
+		]
+	);
+	expect(writes[0].body).toMatchObject({
+		achievement_type: 'milestone',
+		template: 'milestone/scout/review/3',
+		version: 3,
+		section: 'scout',
+		answers: {
+			'leader_review_leader-community-0': ' ',
+			'leader_review_leader-creative-4': ' ',
+			supporting_files: []
+		},
+		uploads: [],
+		reset_to_draft: false
+	});
+	expect(Object.keys((writes[0].body as { answers: object }).answers)).toHaveLength(7);
+	expect(writes[1].body).toMatchObject({ type: 'review', unit_id: 'unit-1' });
+	expect(terrain.requests).toContain('POST members/members/unit-1-m2/assume-profiles');
 });

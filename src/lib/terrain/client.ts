@@ -344,6 +344,17 @@ export class Terrain {
 		return this.get(`${TEMPLATES_ADDRESS}${path}/latest.json`, { signedIn: this.isSignedIn });
 	}
 
+	/** A milestone's review template, e.g. milestone/cub/review/1, for its name and version. Public */
+	milestoneReviewTemplate(
+		section: string,
+		stage: number
+	): Promise<{ template: string; version: number }> {
+		return this.get(
+			`${TEMPLATES_ADDRESS}milestone/${pathPart(section)}/review/${stage}/latest.json`,
+			{ signedIn: this.isSignedIn }
+		);
+	}
+
 	/** Every youth's record for one OAS stage in a unit, in one request */
 	async unitOASAchievements(
 		unitId: string,
