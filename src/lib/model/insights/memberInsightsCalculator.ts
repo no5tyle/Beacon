@@ -37,6 +37,7 @@ import {
 	type StageProgress
 } from './memberModels.js';
 import type { OASRequirementStatus, YouthRecord } from './models.js';
+import type { YouthProgress } from './progress.js';
 import type { SectionRules } from './settings.js';
 import {
 	classify,
@@ -375,4 +376,24 @@ function highlights(report: MemberInsightsReport): string[] {
 			}.`
 		);
 	return result;
+}
+
+/**
+ * The milestones whose requirements are all met but which aren't awarded (or marked not required): ready
+ * to be submitted for review and awarded. Terrain only lists a milestone for the Unit Council once it's
+ * submitted, so these are found from the youth's activity counts
+ */
+export function milestonesReady(p: YouthProgress): number[] {
+	const awarded = [p.milestone1Awarded, p.milestone2Awarded, p.milestone3Awarded];
+	return ([1, 2, 3] as const).filter((n) => {
+		if (awarded[n - 1] !== null) return false;
+		const counts = [
+			p[`milestone${n}Community`],
+			p[`milestone${n}Outdoors`],
+			p[`milestone${n}Creative`],
+			p[`milestone${n}PersonalGrowth`]
+		];
+		const needs = milestoneNeeds(n, counts, p[`milestone${n}Assist`] + p[`milestone${n}Lead`]);
+		return milestoneRemaining(needs) === 0;
+	});
 }

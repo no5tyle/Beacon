@@ -461,3 +461,15 @@ test('awards several together, on one date', async ({ page }) => {
 	await expect(section.locator('.group-heading')).toHaveText(['Liam Smith (1)']);
 	await expect(section.getByRole('button', { name: 'Tick all' })).toBeVisible();
 });
+
+test('milestones with every requirement done but not yet submitted show, to submit in Terrain', async ({
+	page
+}) => {
+	await fakeTerrain(page);
+	await logIn(page);
+	await navigate(page, 'approvals/');
+	const ready = page.locator('section[aria-label="Milestones ready to submit"]');
+	await expect(ready.locator('.row')).toHaveText([/Mia Brown\s*Milestone 3/]);
+	await ready.locator('a', { hasText: 'Mia Brown' }).click();
+	await expect(page).toHaveURL(/\/progress\/unit-1-m2\/$/);
+});
