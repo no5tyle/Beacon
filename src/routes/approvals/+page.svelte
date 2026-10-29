@@ -69,27 +69,57 @@
 	// youth's activity counts, the progress Insights and Progress load
 	let ready = $state<{ unitId: string; memberId: string; name: string; milestone: number }[]>([]);
 	let readyFor = '';
-	// The ready milestone being confirmed, and those submitted here, until Terrain lists them
-	let confirmingMilestone = $state('');
-	const submittedHere = new SvelteSet<string>();
+	// Ready milestones ticked to submit together, the unit whose ticked ones are being confirmed, and those
+	// submitted here, until Terrain lists them
+	type Ready = (typeof ready)[number];
 	const readyKey = (r: { memberId: string; milestone: number }) => `${r.memberId}-${r.milestone}`;
+	const tickedReady = new SvelteSet<string>();
+	let confirmingSubmit = $state('');
+	const submittedHere = new SvelteSet<string>();
+	const readyTitle = (r: Ready) => `Milestone ${r.milestone}`;
 
-	async function submitMilestone(r: (typeof ready)[number]) {
-		working = readyKey(r);
-		message = null;
-		const outcome = await recording.submitMilestone(r.memberId, r.milestone, r.unitId);
-		working = '';
-		confirmingMilestone = '';
-		if (outcome.state === 'Failed') {
-			message = { text: `${r.name}'s Milestone ${r.milestone}: ${outcome.message}`, isError: true };
-			return;
+	function toggleAllReady(view: UnitView) {
+		const all = view.tickedReady.length === view.ready.length;
+		for (const r of view.ready) {
+			if (all) tickedReady.delete(readyKey(r));
+			else tickedReady.add(readyKey(r));
 		}
-		submittedHere.add(readyKey(r));
+	}
+
+	// One youth at a time: submitting switches Terrain to that youth's profile and back
+	async function submitTicked(view: UnitView) {
+		const list = view.tickedReady;
+		if (working || list.length === 0) return;
+		working = 'submitting';
+		message = null;
+		const results: { r: Ready; failure: string }[] = [];
+		for (const r of list) {
+			const outcome = await recording.submitMilestone(r.memberId, r.milestone, r.unitId);
+			results.push({ r, failure: outcome.state === 'Failed' ? outcome.message : '' });
+		}
+		working = '';
+		confirmingSubmit = '';
+		const done = results.filter((x) => !x.failure);
+		const failed = results.filter((x) => x.failure);
+		for (const { r } of done) {
+			tickedReady.delete(readyKey(r));
+			submittedHere.add(readyKey(r));
+		}
 		message = {
-			text: `${r.name}'s Milestone ${r.milestone} is submitted. It joins the list to approve once Terrain shows it.`,
-			isError: false
+			text: [
+				done.length === 1
+					? `Submitted ${readyTitle(done[0].r)} for ${done[0].r.name}.`
+					: done.length > 1
+						? `Submitted ${done.length}.`
+						: '',
+				done.length > 0 ? 'They join the list to approve once Terrain shows them.' : '',
+				...failed.map((x) => `${readyTitle(x.r)} for ${x.r.name}: ${x.failure}`)
+			]
+				.filter(Boolean)
+				.join(' '),
+			isError: failed.length > 0
 		};
-		load();
+		if (done.length > 0) load();
 	}
 
 	// What the leader has just done, shown straight away and kept until Terrain's list shows it too
@@ -266,6 +296,13 @@
 			.map((unit) => {
 				const items = pending.filter((a) => a.unitId === unit.id);
 				const toAward = items.filter((a) => a.isAward);
+				const unitReady = sortBy(
+					ready.filter(
+						(r) => r.unitId === unit.id && !submitted(r) && !submittedHere.has(readyKey(r))
+					),
+					asc((r) => (groupByMember ? r.name : r.milestone)),
+					asc((r) => (groupByMember ? r.milestone : r.name))
+				);
 				const awardGroups = grouped(toAward);
 				// The awards this leader can tick
 				const awardable = awardGroups.flatMap((g) => g.items).filter(canAwardInBeacon);
@@ -278,13 +315,9 @@
 					awardGroups,
 					awardable,
 					tickedAwards: awardable.filter((a) => ticked.has(a.submissionId)),
-					ready: sortBy(
-						ready.filter(
-							(r) => r.unitId === unit.id && !submitted(r) && !submittedHere.has(readyKey(r))
-						),
-						asc((r) => r.name),
-						asc((r) => r.milestone)
-					)
+					ready: unitReady,
+					readyGroups: groupBy(unitReady, (r) => (groupByMember ? r.name : readyTitle(r))),
+					tickedReady: unitReady.filter((r) => tickedReady.has(readyKey(r)))
 				};
 			})
 			.filter((view) => view.items.length > 0 || view.ready.length > 0)
@@ -611,53 +644,86 @@
 		<section class="approval-section" aria-label="Milestones ready to submit">
 			<h3>Milestones ready to submit <span class="muted">({view.ready.length})</span></h3>
 			<p class="small muted">
-				Every requirement is done, but {view.ready.length === 1 ? "it hasn't" : "they haven't"} been submitted
-				for review yet. Submitting marks each lead as reviewed by a leader, as Terrain's own Milestones
-				page does, then {view.ready.length === 1 ? 'it shows' : 'they show'} above to approve and award.
+				Every participate and lead is done, but not submitted for review yet. Tick the ones to
+				submit together.
 			</p>
-			<div class="card list ready-list">
-				{#each view.ready as r (readyKey(r))}
-					<div class="ready-row">
-						<div class="row">
-							<span class="row-main">
-								{#if view.unit.id === app.unitId}
-									<a href={pagePath(`progress/${r.memberId}/`)}>{r.name}</a>
-								{:else}
-									{r.name}
-								{/if}
-								<span class="muted"> · Milestone {r.milestone}</span>
-							</span>
-							<button
-								type="button"
-								class="btn btn-outline-primary btn-sm"
-								disabled={working !== ''}
-								onclick={() => (confirmingMilestone = readyKey(r))}
-								>{working === readyKey(r) ? 'Submitting...' : 'Submit'}</button
+			<div class="award-bar">
+				<button
+					type="button"
+					class="btn btn-sm btn-outline-secondary"
+					disabled={working !== ''}
+					onclick={() => toggleAllReady(view)}
+					>{view.tickedReady.length === view.ready.length ? 'Untick all' : 'Tick all'}</button
+				>
+				<button
+					type="button"
+					class="btn btn-sm btn-primary"
+					disabled={working !== '' || view.tickedReady.length === 0}
+					onclick={() => (confirmingSubmit = view.unit.id)}
+					><Icon name="check" /> Submit {view.tickedReady.length > 0
+						? view.tickedReady.length
+						: ''}</button
+				>
+			</div>
+			{#if confirmingSubmit === view.unit.id && view.tickedReady.length > 0}
+				<div class="confirm-box">
+					<strong
+						>Submit {view.tickedReady.length === 1
+							? `${readyTitle(view.tickedReady[0])} for ${view.tickedReady[0].name}`
+							: `these ${view.tickedReady.length}`} for review?</strong
+					>
+					{#if view.tickedReady.length > 1}
+						<ul class="small award-list">
+							{#each view.tickedReady as r (readyKey(r))}
+								<li>{readyTitle(r)}, {r.name}</li>
+							{/each}
+						</ul>
+					{/if}
+					<p class="small">
+						Beacon switches to each youth's profile in turn, marks every lead as reviewed by a
+						leader, submits the milestone, then switches back.
+					</p>
+					<button
+						type="button"
+						class="btn btn-sm btn-success"
+						disabled={working !== ''}
+						onclick={() => submitTicked(view)}
+						>{working === 'submitting' ? 'Submitting...' : 'Yes, submit'}</button
+					>
+					<button
+						type="button"
+						class="btn btn-sm btn-outline-secondary"
+						disabled={working !== ''}
+						onclick={() => (confirmingSubmit = '')}>Cancel</button
+					>
+				</div>
+			{/if}
+			{#each view.readyGroups as group (group.key)}
+				<section class="approval-group" aria-label={group.key}>
+					<div class="group-heading">
+						{group.key} <span class="muted">({group.items.length})</span>
+					</div>
+					{#each group.items as r (readyKey(r))}
+						<div class="approval-card">
+							<div class="strong">{groupByMember ? readyTitle(r) : r.name}</div>
+							<div class="small muted">Milestone · not submitted yet</div>
+							<label class="small award-pick"
+								><input
+									type="checkbox"
+									class="form-check-input"
+									disabled={working !== ''}
+									checked={tickedReady.has(readyKey(r))}
+									onchange={(e) =>
+										e.currentTarget.checked
+											? tickedReady.add(readyKey(r))
+											: tickedReady.delete(readyKey(r))}
+								/>
+								Submit {readyTitle(r)} for {r.name}</label
 							>
 						</div>
-						{#if confirmingMilestone === readyKey(r)}
-							<div class="confirm-box">
-								<p>
-									Submit {r.name}'s Milestone {r.milestone} for review? Beacon switches to their profile,
-									marks each lead as reviewed by a leader, submits it, then switches back.
-								</p>
-								<button
-									type="button"
-									class="btn btn-primary btn-sm"
-									disabled={working !== ''}
-									onclick={() => submitMilestone(r)}>Yes, submit</button
-								>
-								<button
-									type="button"
-									class="btn btn-outline-secondary btn-sm"
-									disabled={working !== ''}
-									onclick={() => (confirmingMilestone = '')}>Cancel</button
-								>
-							</div>
-						{/if}
-					</div>
-				{/each}
-			</div>
+					{/each}
+				</section>
+			{/each}
 		</section>
 	{/if}
 {/snippet}

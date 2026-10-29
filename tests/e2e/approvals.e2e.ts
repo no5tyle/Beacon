@@ -56,7 +56,10 @@ test('approves after confirming, sending what Terrain’s Approvals tab sends', 
 	const terrain = await fakeTerrain(page);
 	await logIn(page);
 	await navigate(page, 'approvals/');
-	const card = page.getByRole('region', { name: 'Mia Brown' }).locator('.approval-card');
+	const card = page
+		.getByRole('region', { name: /^To approve/ })
+		.getByRole('region', { name: 'Mia Brown' })
+		.locator('.approval-card');
 	await card.getByRole('button', { name: 'Approve' }).click();
 	await expect(card.locator('.confirm-box')).toContainText('Approve OAS Camping 1 for Mia Brown?');
 	await expect(card.locator('.confirm-box')).toContainText('this would be approval 1 of 2');
@@ -125,7 +128,10 @@ test('a badge on More and Approvals shows what waits for the leader’s vote or 
 		await navigate(page, 'approvals/');
 	}
 
-	const card = page.getByRole('region', { name: 'Mia Brown' }).locator('.approval-card');
+	const card = page
+		.getByRole('region', { name: /^To approve/ })
+		.getByRole('region', { name: 'Mia Brown' })
+		.locator('.approval-card');
 	await card.getByRole('button', { name: 'Approve' }).click();
 	await card.getByRole('button', { name: 'Yes, approve' }).click();
 	await expect(card).toContainText("You've voted on this one.");
@@ -218,7 +224,10 @@ test('what the leader did shows at once, even while Terrain is slow to list it',
 	await logIn(page);
 	await navigate(page, 'approvals/');
 	// A first approval: the vote shows although Terrain's next reads still have none
-	const mia = page.getByRole('region', { name: 'Mia Brown' }).locator('.approval-card');
+	const mia = page
+		.getByRole('region', { name: /^To approve/ })
+		.getByRole('region', { name: 'Mia Brown' })
+		.locator('.approval-card');
 	await mia.getByRole('button', { name: 'Approve' }).click();
 	await mia.getByRole('button', { name: 'Yes, approve' }).click();
 	await expect(mia).toContainText('1 of 2 approved (Sam Leader)');
@@ -324,7 +333,10 @@ test('no move-on box on a first approval', async ({ page }) => {
 	await fakeTerrain(page);
 	await logIn(page);
 	await navigate(page, 'approvals/');
-	const card = page.getByRole('region', { name: 'Mia Brown' }).locator('.approval-card');
+	const card = page
+		.getByRole('region', { name: /^To approve/ })
+		.getByRole('region', { name: 'Mia Brown' })
+		.locator('.approval-card');
 	await card.getByRole('button', { name: 'Approve' }).click();
 	await expect(card.getByRole('checkbox')).toHaveCount(0);
 });
@@ -467,25 +479,27 @@ test('milestones with every requirement done but not yet submitted show', async 
 	await logIn(page);
 	await navigate(page, 'approvals/');
 	const ready = page.locator('section[aria-label="Milestones ready to submit"]');
-	await expect(ready.locator('.row')).toHaveText([/Mia Brown\s*·\s*Milestone 3/]);
-	await ready.locator('a', { hasText: 'Mia Brown' }).click();
-	await expect(page).toHaveURL(/\/progress\/unit-1-m2\/$/);
+	await expect(ready.locator('.approval-card')).toHaveCount(1);
+	await expect(ready.locator('.group-heading')).toHaveText(/Mia Brown/);
+	await expect(ready.locator('.approval-card')).toContainText('Milestone 3');
+	await expect(ready.getByRole('button', { name: 'Submit' })).toBeDisabled();
 });
 
-test('a ready milestone is submitted for review as the youth, with each lead reviewed', async ({
+test('ready milestones are ticked and submitted for review together, as the youth, each lead reviewed', async ({
 	page
 }) => {
 	const terrain = await fakeTerrain(page);
 	await logIn(page);
 	await navigate(page, 'approvals/');
 	const ready = page.locator('section[aria-label="Milestones ready to submit"]');
-	await ready.getByRole('button', { name: 'Submit' }).click();
+	await ready.getByLabel('Submit Milestone 3 for Mia Brown').check();
+	await ready.getByRole('button', { name: 'Submit 1' }).click();
 	await expect(ready.locator('.confirm-box')).toContainText(
-		"Submit Mia Brown's Milestone 3 for review?"
+		'Submit Milestone 3 for Mia Brown for review?'
 	);
 	await ready.getByRole('button', { name: 'Yes, submit' }).click();
 	await expect(page.locator('.alert-success')).toContainText(
-		"Mia Brown's Milestone 3 is submitted"
+		'Submitted Milestone 3 for Mia Brown.'
 	);
 	await expect(ready).toHaveCount(0);
 
