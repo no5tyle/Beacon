@@ -31,9 +31,10 @@
 		type DecidedSubmission,
 		type PendingApproval
 	} from '#lib/model/approvals.js';
+	import { milestonesReady } from '#lib/model/insights/memberInsightsCalculator.js';
 	import { asc, distinct, groupBy, sortBy } from '#lib/model/util.js';
 	import { pagePath } from '#lib/paths.js';
-	import { app, approvals, approvalsBadge } from '#lib/services/index.js';
+	import { app, approvals, approvalsBadge, unitProgress } from '#lib/services/index.js';
 	import type { ApprovalsUnit } from '#lib/services/approvals.js';
 	import { unitsKey } from '#lib/stores/approvals.svelte.js';
 
@@ -64,6 +65,10 @@
 	let historyLoading = $state(false);
 	let historyError = $state('');
 	let showOlder = $state(false);
+	// Milestones with every requirement done but not submitted, so not in Terrain's list. Found from the
+	// youth's activity counts, the progress Insights and Progress load
+	let ready = $state<{ unitId: string; memberId: string; name: string; milestone: number }[]>([]);
+	let readyFor = '';
 
 	// What the leader has just done, shown straight away and kept until Terrain's list shows it too
 	let actioned = new SvelteMap<string, Actioned>();
@@ -110,6 +115,37 @@
 			}
 		}
 	}
+
+	async function loadReady(loaded: ApprovalsUnit[]) {
+		const key = loaded.map((u) => u.id).join(',');
+		if (key === readyFor) return;
+		readyFor = key;
+		const found: typeof ready = [];
+		for (const unit of loaded) {
+			try {
+				for (const p of await unitProgress.get(unit.id))
+					for (const milestone of milestonesReady(p))
+						found.push({ unitId: unit.id, memberId: p.memberId, name: p.memberName, milestone });
+			} catch {
+				// Without the unit's progress, there's just nothing to add
+			}
+		}
+		if (key === readyFor) ready = found;
+	}
+
+	$effect(() => {
+		const loaded = loadedUnits;
+		if (loaded.length > 0) untrack(() => loadReady(loaded));
+	});
+
+	// Once submitted, a milestone is in Terrain's list, to approve or award there instead
+	const submitted = (r: (typeof ready)[number]) =>
+		pending.some(
+			(a) =>
+				a.memberId === r.memberId &&
+				a.achievementType === 'milestone' &&
+				a.achievementName.endsWith(` ${r.milestone}`)
+		);
 
 	function showList(id: string, list: PendingApproval[]) {
 		pending = list;
@@ -219,10 +255,15 @@
 					reviewGroups: grouped(items.filter((a) => !a.isAward)),
 					awardGroups,
 					awardable,
-					tickedAwards: awardable.filter((a) => ticked.has(a.submissionId))
+					tickedAwards: awardable.filter((a) => ticked.has(a.submissionId)),
+					ready: sortBy(
+						ready.filter((r) => r.unitId === unit.id && !submitted(r)),
+						asc((r) => r.name),
+						asc((r) => r.milestone)
+					)
 				};
 			})
-			.filter((view) => view.items.length > 0)
+			.filter((view) => view.items.length > 0 || view.ready.length > 0)
 	);
 	type UnitView = (typeof unitViews)[number];
 	// Units get a heading of their own once the leader has more than one listed
@@ -542,6 +583,32 @@
 			{@render approvalGroups(view.awardGroups)}
 		</section>
 	{/if}
+	{#if view.ready.length > 0}
+		<section class="approval-section" aria-label="Milestones ready to submit">
+			<h3>Milestones ready to submit <span class="muted">({view.ready.length})</span></h3>
+			<p class="small muted">
+				Every requirement is done, but {view.ready.length === 1 ? "it hasn't" : "they haven't"} been submitted
+				for review in Terrain yet. Once submitted, {view.ready.length === 1
+					? 'it shows'
+					: 'they show'} above to approve and award.
+			</p>
+			<div class="card list ready-list">
+				{#each view.ready as r (`${r.memberId}-${r.milestone}`)}
+					{#if view.unit.id === app.unitId}
+						<a class="row row-link" href={pagePath(`progress/${r.memberId}/`)}>
+							<span class="row-main">{r.name}</span>
+							<span class="row-value muted">Milestone {r.milestone}</span>
+						</a>
+					{:else}
+						<div class="row">
+							<span class="row-main">{r.name}</span>
+							<span class="row-value muted">Milestone {r.milestone}</span>
+						</div>
+					{/if}
+				{/each}
+			</div>
+		</section>
+	{/if}
 {/snippet}
 
 {#snippet historyTab()}
@@ -670,7 +737,7 @@
 			<p class="muted">Loading approvals from Terrain...</p>
 		{:else if errorMessage}
 			<div class="alert alert-danger">{errorMessage}</div>
-		{:else if pending.length === 0}
+		{:else if pending.length === 0 && unitViews.length === 0}
 			<div class="approvals-empty">
 				<Icon name="circle-check" />
 				{loadedUnits.length === 0 && failedUnits.length === 0

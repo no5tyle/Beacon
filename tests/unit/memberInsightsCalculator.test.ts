@@ -1,7 +1,10 @@
 // Ported from the C# MemberInsightsCalculatorTests
 import { describe, expect, it } from 'vitest';
 import { addMonths, addYears } from '#lib/model/dates.js';
-import { buildMemberInsights } from '#lib/model/insights/memberInsightsCalculator.js';
+import {
+	buildMemberInsights,
+	milestonesReady
+} from '#lib/model/insights/memberInsightsCalculator.js';
 import { milestoneRemaining } from '#lib/model/insights/memberModels.js';
 import type { OASRequirementStatus, YouthRecord } from '#lib/model/insights/models.js';
 import { emptyProgress } from '#lib/model/insights/progress.js';
@@ -216,5 +219,31 @@ describe('member insights', () => {
 
 		expect(report.moveUpDate).toBe(addMonths(TODAY, 3));
 		expect(report.highlights[0].startsWith('Moves up around')).toBe(true);
+	});
+});
+
+describe('milestones ready', () => {
+	it('lists milestones with every requirement met that are not awarded', () => {
+		const p = {
+			...emptyProgress('m1', 'Mia Brown'),
+			milestone1Awarded: '2025-01-01',
+			// Milestone 2: 5 participates in each area and 4 leads or assists
+			milestone2Community: 5,
+			milestone2Outdoors: 6,
+			milestone2Creative: 5,
+			milestone2PersonalGrowth: 5,
+			milestone2Lead: 3,
+			milestone2Assist: 1,
+			// Milestone 3: one lead short
+			milestone3Community: 4,
+			milestone3Outdoors: 4,
+			milestone3Creative: 4,
+			milestone3PersonalGrowth: 4,
+			milestone3Lead: 5
+		};
+		expect(milestonesReady(p)).toEqual([2]);
+		expect(milestonesReady({ ...p, milestone3Lead: 6 })).toEqual([2, 3]);
+		expect(milestonesReady({ ...p, milestone2Awarded: '2026-01-01' })).toEqual([]);
+		expect(milestonesReady(emptyProgress('m2', 'New Youth'))).toEqual([]);
 	});
 });

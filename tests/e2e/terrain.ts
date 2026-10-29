@@ -132,6 +132,7 @@ interface Fixture {
 	answers?: Record<string, unknown>;
 	uploads?: unknown[];
 	event_log?: unknown[];
+	event_count?: Record<string, Record<string, number>>;
 	imported?: unknown;
 }
 
@@ -217,6 +218,22 @@ function records(unitId: string): Fixture[] {
 	for (const stage of [1, 2, 3]) add(3, 'milestone', 'awarded', { achievement_meta: { stage } });
 	// Mia joined the section late, so Milestones 1 and 2 aren't required of her
 	for (const stage of [1, 2]) add(2, 'milestone', 'not_required', { achievement_meta: { stage } });
+	// ...and has done everything Milestone 3 needs, but it hasn't been submitted for review yet
+	const areas = ['community', 'outdoors', 'creative', 'personal_growth'];
+	add(2, 'milestone', 'in_progress', {
+		achievement_meta: { stage: 3 },
+		event_log: [
+			...events(areas.flatMap((a) => [a, a, a, a])),
+			...events(
+				['community', 'community', 'outdoors', 'outdoors', 'creative', 'creative'],
+				'leader'
+			)
+		],
+		event_count: {
+			participant: { community: 4, outdoors: 4, creative: 4, personal_growth: 4 },
+			leader: { community: 2, outdoors: 2, creative: 2 }
+		}
+	});
 	add(1, 'milestone', 'in_progress', {
 		achievement_meta: { stage: 1 },
 		event_log: events(['outdoors', 'creative', 'personal_growth'])
