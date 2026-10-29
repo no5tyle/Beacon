@@ -513,18 +513,20 @@ test('ready milestones are ticked and submitted for review together, as the yout
 	);
 	expect(writes[0].body).toMatchObject({
 		achievement_type: 'milestone',
-		template: 'milestone/scout/review/3',
+		// Terrain's page uses the first review template for every milestone
+		template: 'milestone/scout/review/1',
 		version: 3,
 		section: 'scout',
 		answers: {
 			'leader_review_leader-community-0': ' ',
 			'leader_review_leader-creative-4': ' ',
+			'assist_review_assistant-personal_growth-0': ' ',
 			supporting_files: []
 		},
 		uploads: [],
 		reset_to_draft: false
 	});
-	expect(Object.keys((writes[0].body as { answers: object }).answers)).toHaveLength(7);
+	expect(Object.keys((writes[0].body as { answers: object }).answers)).toHaveLength(8);
 	expect(writes[1].body).toMatchObject({ type: 'review', unit_id: 'unit-1' });
 	expect(terrain.requests).toContain('POST members/members/unit-1-m2/assume-profiles');
 });

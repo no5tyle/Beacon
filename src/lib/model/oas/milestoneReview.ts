@@ -1,15 +1,21 @@
 // Submitting a milestone for the Unit Council's review on a youth's behalf, as Terrain's own Milestones
-// page does: each lead gets a leader review answer, saved to the youth's record against the milestone's
+// page does: each lead and assist gets a leader review answer, saved to the youth's record against the
 // review template, then the record is submitted.
 
 import type { TerrainAchievement } from '#lib/terrain/types.js';
 import { isEditable } from './recording.js';
 
 /**
- * Activity credits Terrain asks a leader to review. Only leads, as Terrain's page sends: a review for an
- * assist isn't what it expects
+ * The answer Terrain's page saves when a leader reviews each kind of activity: a lead, or an assist,
+ * which now counts as a lead but keeps its own review
  */
-const LEAD_CREDITS = ['leader'];
+const REVIEW_KEYS: Record<string, string> = {
+	leader: 'leader_review_',
+	assistant: 'assist_review_'
+};
+
+/** Terrain's page uses the first review template for every milestone, e.g. milestone/cub/review/1 */
+export const MILESTONE_REVIEW_TEMPLATE = 1;
 
 /** Terrain's answer for a reviewed lead: a blank comment, as its page sends */
 const REVIEWED = ' ';
@@ -57,16 +63,17 @@ export const requirementsComplete = (record: TerrainAchievement) =>
 
 /**
  * Body for PUT members/{id}/achievements/{milestoneId}: the record's answers, with a review for every lead
- * not reviewed yet, against the review template (e.g. "milestone/cub/review/1", version 3)
+ * and assist not reviewed yet, against the review template (e.g. "milestone/cub/review/1", version 3)
  */
 export function milestoneReviewBody(
 	record: TerrainAchievement,
 	template: { template: string; version: number }
 ): Record<string, unknown> {
 	const answers: Record<string, unknown> = { ...(record.answers ?? {}) };
-	for (const event of (record.event_log ?? []) as MilestoneEvent[])
-		if (event.event_id && LEAD_CREDITS.includes(event.credit_type ?? ''))
-			answers[`leader_review_${event.event_id}`] ??= REVIEWED;
+	for (const event of (record.event_log ?? []) as MilestoneEvent[]) {
+		const key = REVIEW_KEYS[event.credit_type ?? ''];
+		if (event.event_id && key) answers[`${key}${event.event_id}`] ??= REVIEWED;
+	}
 	answers.supporting_files ??= [];
 	return {
 		achievement_type: 'milestone',

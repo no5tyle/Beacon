@@ -42,6 +42,8 @@ test('signs off statements from more than one stream together', async ({ page })
 	await page.getByLabel('I can tie a reef knot and a clove hitch.').check();
 	await page.getByRole('button', { name: /^Bushwalking/ }).click();
 	await page.getByRole('button', { name: 'Stage 4', exact: true }).click();
+	// The stage's statements replace the last stage's once loaded
+	await expect(page.locator('.heading-row strong')).toHaveText('Bushwalking Stage 4');
 	await page.getByLabel('I can tie a reef knot and a clove hitch.').check();
 	await page.getByLabel('I can treat a blister and a minor cut with first aid.').check();
 
@@ -87,6 +89,8 @@ test('picked statements can be cleared by stream, or all at once', async ({ page
 	await page.getByLabel('I can tie a reef knot and a clove hitch.').check();
 	await page.getByRole('button', { name: /^Bushwalking/ }).click();
 	await page.getByRole('button', { name: 'Stage 4', exact: true }).click();
+	// The stage's statements replace the last stage's once loaded
+	await expect(page.locator('.heading-row strong')).toHaveText('Bushwalking Stage 4');
 	await page.getByLabel('I can tie a reef knot and a clove hitch.').check();
 
 	await page.getByRole('button', { name: 'Clear Camping' }).click();
