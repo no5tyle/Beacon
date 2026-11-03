@@ -70,6 +70,8 @@ test('youth details: who they are, next steps, awards and records', async ({ pag
 	await expect(milestones.first()).toContainText(/Milestone 1\s*Awarded \d\d\/\d\d\/\d\d/);
 	await expect(milestones.nth(1)).toContainText('In Progress');
 	await expect(milestones.nth(1).locator('.need-row')).toHaveCount(5);
+	// The award shows its percentage and checklist, without a points breakdown
+	await expect(page.locator('.tab-panel.shown')).not.toContainText(/Essentials [\d.]+\/[\d.]+/);
 	await milestones.nth(1).getByText('Activities (8)').click();
 	await expect(milestones.nth(1)).toContainText('Cooking night 1');
 	await expect(milestones.nth(1)).toContainText('Personal Growth');

@@ -19,7 +19,7 @@
 	} from '#lib/model/insights/memberModels.js';
 	import { milestoneNeeds } from '#lib/model/insights/memberInsightsCalculator.js';
 	import { readInsightsSettings } from '#lib/stores/storage.js';
-	import { asc, desc, formatOneDecimal, sortBy } from '#lib/model/util.js';
+	import { asc, desc, sortBy } from '#lib/model/util.js';
 	import { pagePath } from '#lib/paths.js';
 	import { app, insights, members, progress } from '#lib/services/index.js';
 	import type {
@@ -533,11 +533,6 @@
 			</h3>
 			<section class="card">
 				<div class="bar"><div style:width="{Math.round(peakAwardPercent(report))}%"></div></div>
-				<div class="small muted breakdown">
-					{report.peakAwardBreakdown
-						.map((c) => `${c.name} ${formatOneDecimal(c.earned)}/${formatOneDecimal(c.max)}`)
-						.join(' · ')}
-				</div>
 				{#if details.peakAward.awarded}
 					<div class="small strong">Awarded {shortDate(details.peakAward.awarded)}</div>
 				{/if}
@@ -1000,10 +995,6 @@
 	.bar div {
 		height: 100%;
 		background: var(--success);
-	}
-
-	.breakdown {
-		margin-top: 0.4rem;
 	}
 
 	.task-mark {
