@@ -400,8 +400,9 @@ test('awards after confirming the date, sending what Terrain’s Approvals tab s
 	await expect(page.locator('.summary')).toHaveText('Mt Example Scouts · 4 to approve');
 });
 
-test('lists every unit the leader is on the Unit Council for, grouped by unit', async ({
-	page
+test("lists the chosen unit's approvals, and switching units switches the list", async ({
+	page,
+	isMobile
 }) => {
 	const units = [
 		{ id: 'unit-1', name: 'Mt Example Scouts', section: 'scout' },
@@ -411,36 +412,45 @@ test('lists every unit the leader is on the Unit Council for, grouped by unit', 
 	const terrain = await fakeTerrain(page, { units, refuseApprovals: ['unit-3'] });
 	await logIn(page);
 	await navigate(page, 'approvals/');
-	// Joeys refuses: not on its Unit Council, so it's simply left out
-	await expect(page.locator('.unit-heading')).toHaveText([
-		/^Mt Example Scouts\s+· 4 to approve · 1 to award$/,
-		/^Mt Example Cubs\s+· 4 to approve · 1 to award$/
-	]);
-	await expect(page.locator('.summary')).toHaveText('1st Example · 8 to approve · 2 to award');
-	await expect(page.locator('.alert-warning')).toHaveCount(0);
-	const cubs = page.getByRole('region', { name: 'Mt Example Cubs' });
-	await expect(
-		cubs.getByRole('region', { name: 'To approve' }).locator('.group-heading')
-	).toHaveText(['Ava Nguyen (1)', 'Liam Smith (1)', 'Mia Brown (1)', 'Noah Jones (1)']);
+	await page.selectOption('#page-unit', 'unit-2');
+	await expect(page.locator('.summary')).toHaveText('Mt Example Cubs · 4 to approve · 1 to award');
+	await expect(page.locator('.unit-heading')).toHaveCount(0);
+	expect(terrain.requests.some((r) => r.includes('units/unit-1/submissions'))).toBe(false);
 
-	// Approving in one unit leaves the other as it was
-	const mia = cubs.getByRole('region', { name: 'Mia Brown' }).locator('.approval-card');
+	// Approving votes in the chosen unit
+	const mia = page
+		.getByRole('region', { name: /^To approve/ })
+		.getByRole('region', { name: 'Mia Brown' })
+		.locator('.approval-card');
 	await mia.getByRole('button', { name: 'Approve' }).click();
 	await mia.getByRole('button', { name: 'Yes, approve' }).click();
 	await expect(mia).toContainText("You've voted on this one.");
 	expect(terrain.writes.map((w) => w.request)).toEqual([
 		'POST achievements/submissions/unit-2-sub-2/assessments'
 	]);
+
+	// Another unit, its own list: the Joeys refuse, as the leader isn't on its Unit Council
+	const picker = async () => {
+		if (!isMobile) return page.locator('#side-unit');
+		// The More menu may still be open from the last switch; scrolled down, the tabs shrink away
+		if (!(await page.locator('#menu-unit').isVisible())) {
+			await page.evaluate(() => window.scrollTo(0, 0));
+			await page.locator('.tab-bar button', { hasText: 'More' }).click();
+		}
+		return page.locator('#menu-unit');
+	};
+	await (await picker()).selectOption('unit-3');
+	await expect(page.locator('.approvals-empty')).toContainText("Terrain doesn't list approvals");
+	await (await picker()).selectOption('unit-1');
+	await expect(page.locator('.summary')).toHaveText(
+		'Mt Example Scouts · 4 to approve · 1 to award'
+	);
 	await expect(
 		page
-			.getByRole('region', { name: 'Mt Example Scouts' })
+			.getByRole('region', { name: /^To approve/ })
 			.getByRole('region', { name: 'Mia Brown' })
 			.getByRole('button', { name: 'Approve' })
 	).toBeVisible();
-
-	// The history of both, each card saying its unit
-	await page.getByRole('tab', { name: 'History' }).click();
-	await expect(page.locator('.history-card').first()).toContainText(/Mt Example (Scouts|Cubs) · /);
 });
 
 test('a leader on no Unit Council is told why nothing is listed', async ({ page }) => {

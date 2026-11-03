@@ -55,6 +55,11 @@ export class AppState implements BeaconContext {
 		return distinctBy(units, (u) => u.id);
 	}
 
+	/** The chosen unit, as a list (empty when none is chosen), for pages that list a unit's things */
+	get chosenUnits(): NamedItem[] {
+		return this.units.filter((u) => u.id === this.unitId);
+	}
+
 	/** The chosen unit, or the only unit when there is just one */
 	get unitId(): string {
 		if (!this.chosenUnitId && this.units.length === 1) return this.units[0].id;
