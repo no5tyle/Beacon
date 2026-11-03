@@ -29,7 +29,9 @@ test('analyses the unit as soon as it opens', async ({ page, isMobile }) => {
 	await expect(page.locator('.candidate-card h4')).toHaveText('Ava Nguyen');
 	// Their award percentage and checklist, without a points breakdown
 	await expect(page.locator('.candidate-card')).not.toContainText(/Essentials [\d.]+\/[\d.]+/);
-	await expect(page.locator('.task-card').first()).toBeVisible();
+	// No board of high priority tasks above the youth
+	await expect(page.getByRole('heading', { name: /high priority tasks/ })).toHaveCount(0);
+	await expect(page.locator('.task-card')).toHaveCount(0);
 
 	// Programming: skill themes and milestone balance
 	await page.getByRole('tab', { name: 'Programming' }).click();
