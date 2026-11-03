@@ -160,3 +160,66 @@ test("back goes to the youth's progress, top left", async ({ page }) => {
 	await page.locator('.back-link', { hasText: 'Ava' }).click();
 	await expect(page).toHaveURL(/\/progress\/unit-1-m0\/$/);
 });
+
+test('a youth records their own OAS from Record, naming who verified it', async ({
+	page,
+	isMobile
+}) => {
+	const terrain = await fakeTerrain(page, { youth: true });
+	await logIn(page);
+	const record = isMobile
+		? page.locator('.tab-bar .tab', { hasText: 'Record' })
+		: page.locator('.side-link', { hasText: 'Record' });
+	await record.click();
+	await expect(page).toHaveURL(/\/progress\/unit-1-m0\/record-oas\/$/);
+	await expect(page.locator('h2')).toHaveText('Record OAS');
+	await expect(page.getByRole('navigation', { name: 'Record' }).getByRole('link')).toHaveText([
+		'OAS',
+		'SIA'
+	]);
+
+	await page.selectOption('#stage', { label: 'Bushwalking 4' });
+	await page.getByRole('button', { name: 'Tick all remaining' }).click();
+	// No verifier yet: they enter who verified it
+	await expect(page.locator('#verifierName')).toHaveValue('');
+	await page.getByRole('button', { name: 'Save 3 to Terrain' }).click();
+	await expect(page.locator('.alert-danger')).toHaveText(
+		"Enter the verifier's name and email or phone."
+	);
+	await page.locator('#verifierName').fill('Jo Leader');
+	await page.locator('#verifierContact').fill('jo@example.com');
+	await page.getByRole('button', { name: 'Save 3 to Terrain' }).click();
+	await expect(page.locator('.confirm-box')).toContainText('Save to Terrain?');
+	await page.getByRole('button', { name: 'Yes, save' }).click();
+	await expect(page.locator('.alert-success')).toHaveText('Saved 3 statements to Terrain.');
+
+	const save = terrain.writes.find((w) =>
+		w.request.startsWith('PUT achievements/members/unit-1-m0')
+	);
+	const answers = (save!.body as { answers: Record<string, unknown> }).answers;
+	expect(answers['bushwalking_4_review_verifierName']).toBe('Jo Leader');
+	expect(answers['bushwalking_4_review_verifierContact']).toBe('jo@example.com');
+	// As themselves: no switching profile
+	expect(terrain.requests.some((r) => r.includes('assume-profiles'))).toBe(false);
+	// Submitting is done in Terrain
+	await expect(page.getByRole('button', { name: 'Submit for review' })).toHaveCount(0);
+	await expect(page.locator('main')).toContainText('submit it for review in Terrain');
+});
+
+test('a leader can change the verifier from themselves', async ({ page }) => {
+	const terrain = await fakeTerrain(page);
+	await logIn(page);
+	await navigate(page, 'progress/unit-1-m0/record-oas/?stream=bushwalking&stage=4');
+	await expect(page.locator('#verifierName')).toHaveValue('Sam Leader');
+	await page.getByRole('button', { name: 'Tick all remaining' }).click();
+	await page.locator('#verifierName').fill('Kim Leader');
+	await page.getByRole('button', { name: 'Save 3 to Terrain' }).click();
+	await expect(page.locator('.confirm-box')).toContainText('Verified by Kim Leader');
+	await page.getByRole('button', { name: 'Yes, save' }).click();
+	await expect(page.locator('.alert-success')).toBeVisible();
+	const save = terrain.writes.find((w) =>
+		w.request.startsWith('PUT achievements/members/unit-1-m0')
+	);
+	const answers = (save!.body as { answers: Record<string, unknown> }).answers;
+	expect(answers['bushwalking_4_review_verifierName']).toBe('Kim Leader');
+});

@@ -19,7 +19,7 @@ async function menuTitles(page: Page, isMobile: boolean): Promise<string[]> {
 	return titles.map((t) => t.trim());
 }
 
-test('a youth opens at their own progress, with Record for SIAs and Reference and Logout in the menu', async ({
+test('a youth opens at their own progress, with Record, Progress and Reference, and Logout in the menu', async ({
 	page,
 	isMobile
 }) => {
@@ -30,9 +30,10 @@ test('a youth opens at their own progress, with Record for SIAs and Reference an
 	// Their own progress only: no list to go back to
 	await expect(page.locator('.back-link')).toHaveCount(0);
 
+	// Off the Unit Council, Reference is in the bar and only Logout is under the menu
 	if (isMobile) {
-		await expect(mainLinks(page, isMobile)).toHaveText(['Record', 'Progress']);
-		expect(await menuTitles(page, isMobile)).toEqual(['Reference', 'Logout']);
+		await expect(mainLinks(page, isMobile)).toHaveText(['Record', 'Progress', 'Reference']);
+		expect(await menuTitles(page, isMobile)).toEqual(['Logout']);
 	} else {
 		await expect(mainLinks(page, isMobile)).toHaveText([
 			'Record',
@@ -42,12 +43,12 @@ test('a youth opens at their own progress, with Record for SIAs and Reference an
 		]);
 	}
 
-	// Record is for SIAs, without the leaders' switch to OAS and activities
+	// Record opens their own OAS, with a switch to SIAs
 	await mainLinks(page, isMobile).filter({ hasText: 'Record' }).click();
-	await expect(page).toHaveURL(/\/record\/sia-plan\/$/);
+	await expect(page).toHaveURL(/\/progress\/unit-1-m0\/record-oas\/$/);
+	await page.getByRole('navigation', { name: 'Record' }).getByRole('link', { name: 'SIA' }).click();
 	await expect(page.locator('h2')).toHaveText('Plan an SIA');
 	await expect(page.locator('.construction')).toContainText('enter them in Terrain');
-	await expect(page.getByRole('navigation', { name: 'Record' })).toHaveCount(0);
 });
 
 test("a youth can't open the leaders' pages or anyone else's progress", async ({ page }) => {
@@ -82,6 +83,8 @@ test('a youth on the Unit Council has Approvals, with Approve and Award but not 
 	await fakeTerrain(page, { youth: true, councilIn: ['unit-1'] });
 	await logIn(page);
 	await expect(mainLinks(page, isMobile).filter({ hasText: 'Approvals' })).toHaveCount(1);
+	// Approvals takes Reference's place in the bar, which goes under the menu
+	if (isMobile) expect(await menuTitles(page, isMobile)).toEqual(['Reference', 'Logout']);
 	await mainLinks(page, isMobile).filter({ hasText: 'Approvals' }).click();
 	await expect(page).toHaveURL(/\/approvals\/$/);
 	await expect(page.getByRole('tab')).toHaveText([/^Approve/, /^Award/]);

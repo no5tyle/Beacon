@@ -1,11 +1,13 @@
 <!--
 	Record one youth's OAS: tick the statements they've done, save them to Terrain on their behalf,
 	then submit the stage for review. The Unit Council still approves it in Terrain.
+	A youth records their own here too, naming who verified each, and submits it in Terrain.
 -->
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import BackLink from '#lib/components/BackLink.svelte';
+	import RecordSwitch from '#lib/components/RecordSwitch.svelte';
 	import { page } from '$app/state';
 	import { dayMonthYear, today } from '#lib/model/dates.js';
 	import { isCoreStream } from '#lib/model/insights/insightsCalculator.js';
@@ -45,8 +47,8 @@
 	let messageIsError = $state(false);
 
 	onMount(async () => {
-		// Recording is for leaders; a youth goes back to Home
-		if (app.isYouth) {
+		// Youth record only their own
+		if (app.isYouth && memberId !== app.memberId) {
 			goto(pagePath(''), { replaceState: true });
 			return;
 		}
@@ -145,8 +147,9 @@
 
 	const status = $derived(record ? recordStatus(record) : '');
 	const canEdit = $derived(record !== null && isEditable(status));
+	// A youth names their verifier, who may be qualified for the higher stages; adult leaders can't
 	const canVerifyStatements = $derived(
-		record !== null && record.stage.stage <= MAX_LEADER_VERIFIABLE_STAGE
+		record !== null && (app.isYouth || record.stage.stage <= MAX_LEADER_VERIFIABLE_STAGE)
 	);
 	const canTick = (statement: OASStatement) =>
 		canEdit && !statement.alreadyDone && (statement.isLogbook || canVerifyStatements);
@@ -278,12 +281,22 @@
 	<title>Beacon / Record OAS</title>
 </svelte:head>
 
-<BackLink href={pagePath(`progress/${memberId}/`)} label={member?.firstName || 'Progress'} />
-<h2>Record OAS for {member ? `${member.firstName} ${members.lastName(member)}` : ''}</h2>
-<p class="muted intro">
-	Tick the "I" statements this youth has done and save them to Terrain on their behalf, then submit
-	the stage for review. The Unit Council still approves it in Terrain.
-</p>
+{#if app.isYouth}
+	<!-- Their own Record: OAS or SIAs -->
+	<RecordSwitch />
+	<h2>Record OAS</h2>
+	<p class="muted intro">
+		Tick the "I" statements you've done and save them to Terrain, with who verified them. When the
+		stage is done, submit it for review in Terrain.
+	</p>
+{:else}
+	<BackLink href={pagePath(`progress/${memberId}/`)} label={member?.firstName || 'Progress'} />
+	<h2>Record OAS for {member ? `${member.firstName} ${members.lastName(member)}` : ''}</h2>
+	<p class="muted intro">
+		Tick the "I" statements this youth has done and save them to Terrain on their behalf, then
+		submit the stage for review. The Unit Council still approves it in Terrain.
+	</p>
+{/if}
 
 <div class="controls">
 	<div class="field">
@@ -381,13 +394,21 @@
 					onclick={tickAllRemaining}
 					disabled={working}>Tick all remaining</button
 				>
-				<button
-					type="button"
-					class="btn btn-sm btn-success"
-					onclick={startSubmit}
-					disabled={working || !readyToSubmit}>Submit for review</button
-				>
-				{#if !readyToSubmit && ticked.length === 0}
+				{#if !app.isYouth}
+					<button
+						type="button"
+						class="btn btn-sm btn-success"
+						onclick={startSubmit}
+						disabled={working || !readyToSubmit}>Submit for review</button
+					>
+				{/if}
+				{#if app.isYouth}
+					{#if readyToSubmit}
+						<span class="small muted"
+							>Every statement is saved: submit it for review in Terrain.</span
+						>
+					{/if}
+				{:else if !readyToSubmit && ticked.length === 0}
 					<span class="small muted"
 						>Submitting needs every statement, including the logbook, saved first.</span
 					>
@@ -448,7 +469,11 @@
 				/>
 			</div>
 		</div>
-		<div class="small muted">Recorded in Terrain as verified by a Scout member, dated today.</div>
+		<div class="small muted">
+			{app.isYouth
+				? 'Who verified these statements: a Scout member, recorded in Terrain dated today.'
+				: 'Recorded in Terrain as verified by a Scout member, dated today. Change it if someone else verified them.'}
+		</div>
 
 		<div class="button-row">
 			<button
@@ -461,13 +486,21 @@
 
 		{#if confirmingSave}
 			<div class="confirm-box">
-				<strong>Save to Terrain as {member?.firstName}?</strong>
-				<p class="small">
-					Beacon will switch to {member?.firstName}'s profile, add these {plural(
-						tickedCount,
-						'statement'
-					)} to {savingTo}, then switch back. Nothing already recorded is changed.
-				</p>
+				{#if app.isYouth}
+					<strong>Save to Terrain?</strong>
+					<p class="small">
+						Beacon will add these {plural(tickedCount, 'statement')} to your {savingTo}. Nothing
+						already recorded is changed.
+					</p>
+				{:else}
+					<strong>Save to Terrain as {member?.firstName}?</strong>
+					<p class="small">
+						Beacon will switch to {member?.firstName}'s profile, add these {plural(
+							tickedCount,
+							'statement'
+						)} to {savingTo}, then switch back. Nothing already recorded is changed.
+					</p>
+				{/if}
 				{#each tickedStages as t (t.state.stage.templateLink)}
 					{#if tickedStages.length > 1}<strong class="small">{titleOf(t.state)}</strong>{/if}
 					<ul class="small">
