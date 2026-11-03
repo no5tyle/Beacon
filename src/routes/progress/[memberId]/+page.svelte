@@ -413,7 +413,7 @@
 									</li>
 								{/each}
 							</ul>
-							{#if !app.isYouth}
+							{#if !app.isYouth || memberId === app.memberId}
 								<a
 									class="btn btn-sm btn-outline-primary record-stage"
 									href={pagePath(
@@ -567,7 +567,7 @@
 	<div class="tab-panel" class:shown={tab === 'records'}>
 		<div class="section-head">
 			<h3>Outdoor Adventure Skills</h3>
-			{#if !app.isYouth}
+			{#if !app.isYouth || memberId === app.memberId}
 				<a
 					class="btn btn-sm btn-outline-primary"
 					href={pagePath(`progress/${memberId}/record-oas/`)}>Record OAS</a

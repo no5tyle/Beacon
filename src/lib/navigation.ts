@@ -26,11 +26,20 @@ export interface NavOptions {
 	isYouth: boolean;
 	/** On the chosen unit's Unit Council, which gives youth Approvals */
 	onUnitCouncil?: boolean;
+	/** The youth's own member id, for their own Progress and Record OAS */
+	memberId?: string;
 	/** Whether request logging is on, shown beside the version, which opens the logging page */
 	logging: boolean;
 	/** Submissions waiting for the leader's vote, shown on Approvals and More */
 	approvalsWaiting?: number;
 }
+
+const referencePage: NavPage = {
+	href: 'oas-reference/',
+	icon: 'book',
+	title: 'Reference',
+	shortTitle: 'Reference'
+};
 
 const approvalsPage = (badge: number): NavPage => ({
 	href: 'approvals/',
@@ -41,20 +50,34 @@ const approvalsPage = (badge: number): NavPage => ({
 });
 
 /** The main pages: the top of the sidebar on desktop, and on phones the tabs along the bottom (see phoneTabs) */
-export function mainPages({ isYouth, onUnitCouncil, approvalsWaiting = 0 }: NavOptions): NavPage[] {
-	if (isYouth)
+export function mainPages({
+	isYouth,
+	onUnitCouncil,
+	memberId,
+	approvalsWaiting = 0
+}: NavOptions): NavPage[] {
+	if (isYouth) {
+		const own = memberId ? `progress/${memberId}/` : 'progress/';
 		return [
-			// Youth record their SIAs, so Record opens there
+			// Youth record their own OAS, and their SIAs from Record's switch
 			{
-				href: 'record/sia-plan/',
+				href: memberId ? `${own}record-oas/` : 'record/sia-plan/',
 				icon: 'check',
 				title: 'Record',
 				shortTitle: 'Record',
 				alsoActive: ['record/']
 			},
-			{ href: 'progress/', icon: 'person', title: 'Progress', shortTitle: 'Progress' },
-			...(onUnitCouncil ? [approvalsPage(approvalsWaiting)] : [])
+			{
+				href: own,
+				icon: 'person',
+				title: 'Progress',
+				shortTitle: 'Progress',
+				exact: !!memberId
+			},
+			// On the Unit Council, Approvals takes Reference's place, which goes under the menu
+			onUnitCouncil ? approvalsPage(approvalsWaiting) : referencePage
 		];
+	}
 	return [
 		{ href: 'insights/', icon: 'graph', title: 'Insights', shortTitle: 'Insights' },
 		{
@@ -65,23 +88,19 @@ export function mainPages({ isYouth, onUnitCouncil, approvalsWaiting = 0 }: NavO
 			alsoActive: ['record/']
 		},
 		{ href: 'progress/', icon: 'person', title: 'Progress', shortTitle: 'Progress' },
-		{ href: 'oas-reference/', icon: 'book', title: 'Reference', shortTitle: 'Reference' }
+		referencePage
 	];
 }
 
 /** Less used pages: the bottom of the sidebar on desktop, and under More on phones (see phoneTabs) */
-export function morePages({ isYouth, approvalsWaiting = 0 }: NavOptions): NavPage[] {
+export function morePages({ isYouth, onUnitCouncil, approvalsWaiting = 0 }: NavOptions): NavPage[] {
 	const logout: NavPage = {
 		href: 'logout/',
 		icon: 'account-logout',
 		title: 'Logout',
 		shortTitle: 'Logout'
 	};
-	if (isYouth)
-		return [
-			{ href: 'oas-reference/', icon: 'book', title: 'Reference', shortTitle: 'Reference' },
-			logout
-		];
+	if (isYouth) return onUnitCouncil ? [referencePage, logout] : [logout];
 	return [
 		{ href: 'patrols/', icon: 'people', title: 'Patrols', shortTitle: 'Patrols' },
 		approvalsPage(approvalsWaiting),

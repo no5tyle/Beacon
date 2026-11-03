@@ -21,14 +21,24 @@ describe('navigation', () => {
 		]);
 	});
 
-	it('gives youth Record (for SIAs) and Progress, and Approvals on the Unit Council', () => {
-		expect(mainPages(youth).map((p) => p.shortTitle)).toEqual(['Record', 'Progress']);
-		expect(mainPages(youth)[0].href).toBe('record/sia-plan/');
-		expect(mainPages({ ...youth, onUnitCouncil: true }).map((p) => p.shortTitle)).toEqual([
+	it('gives youth Record and Progress, then Reference or, on the Unit Council, Approvals', () => {
+		const own = { ...youth, memberId: 'm1' };
+		expect(mainPages(own).map((p) => p.shortTitle)).toEqual(['Record', 'Progress', 'Reference']);
+		expect(mainPages(own).map((p) => p.href)).toEqual([
+			'progress/m1/record-oas/',
+			'progress/m1/',
+			'oas-reference/'
+		]);
+		expect(mainPages({ ...own, onUnitCouncil: true }).map((p) => p.shortTitle)).toEqual([
 			'Record',
 			'Progress',
 			'Approvals'
 		]);
+		// Recording isn't their Progress, though it's under it
+		const [record, progress] = mainPages(own);
+		expect(isActive(record, '/progress/m1/record-oas/')).toBe(true);
+		expect(isActive(progress, '/progress/m1/record-oas/')).toBe(false);
+		expect(isActive(record, '/record/sia-plan/')).toBe(true);
 	});
 
 	it('puts Patrols and Approvals (leaders only), Info and Logout under More, with logging left to the version', () => {
@@ -44,7 +54,11 @@ describe('navigation', () => {
 			'Info',
 			'Logout'
 		]);
-		expect(morePages(youth).map((p) => p.title)).toEqual(['Reference', 'Logout']);
+		expect(morePages(youth).map((p) => p.title)).toEqual(['Logout']);
+		expect(morePages({ ...youth, onUnitCouncil: true }).map((p) => p.title)).toEqual([
+			'Reference',
+			'Logout'
+		]);
 	});
 
 	it('shows how many approvals wait for the leader on Approvals, and in total on More', () => {
@@ -95,10 +109,10 @@ describe('navigation', () => {
 			});
 		});
 
-		it('give youth Record, Progress and Approvals in the bar, Reference and Logout under More', () => {
+		it('give youth Record, Progress and Reference in the bar, or Approvals on the Unit Council', () => {
 			expect(titles(phoneTabs(youth, '/progress/'))).toEqual({
-				main: ['Record', 'Progress'],
-				more: ['Reference', 'Logout']
+				main: ['Record', 'Progress', 'Reference'],
+				more: ['Logout']
 			});
 			expect(titles(phoneTabs({ ...youth, onUnitCouncil: true }, '/oas-reference/'))).toEqual({
 				main: ['Record', 'Progress', 'Approvals'],

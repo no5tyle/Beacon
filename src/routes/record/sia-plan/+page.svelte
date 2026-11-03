@@ -1,6 +1,5 @@
 <!--
-	SIA plan: under construction. Leaders reach it from Record's switch; youth, whose Record is only this,
-	without it. Entering a special interest area plan waits on Terrain's plan template
+	SIA plan: under construction, reached from Record's switch. Entering a special interest area plan waits on Terrain's plan template
 	and its requests for starting a plan and submitting it, so for now the page only says so.
 	The plan's model (#lib/model/siaPlan) stays for when it's built.
 -->
@@ -15,8 +14,7 @@
 </svelte:head>
 
 <div class="sia-plan">
-	<!-- Youth record only their SIAs, so there's nothing to switch to -->
-	{#if !app.isYouth}<RecordSwitch />{/if}
+	<RecordSwitch />
 	<h2>Plan an SIA</h2>
 	<div class="construction">
 		<Icon name="warning" />

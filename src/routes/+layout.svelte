@@ -82,6 +82,7 @@
 		signedIn: app.isSignedIn,
 		isYouth: app.isYouth,
 		onUnitCouncil: app.onUnitCouncil,
+		memberId: app.memberId,
 		logging: requestLog.enabled,
 		approvalsWaiting: approvalsBadge.key === unitsKey(app.chosenUnits) ? approvalsBadge.waiting : 0
 	});
