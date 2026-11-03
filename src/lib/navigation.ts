@@ -53,13 +53,16 @@ export function mainPages({ isYouth }: NavOptions): NavPage[] {
 export function morePages({ isYouth, approvalsWaiting = 0 }: NavOptions): NavPage[] {
 	const pages: NavPage[] = [];
 	if (!isYouth)
-		pages.push({
-			href: 'approvals/',
-			icon: 'circle-check',
-			title: 'Approvals',
-			shortTitle: 'Approvals',
-			badge: approvalsWaiting
-		});
+		pages.push(
+			{ href: 'patrols/', icon: 'people', title: 'Patrols', shortTitle: 'Patrols' },
+			{
+				href: 'approvals/',
+				icon: 'circle-check',
+				title: 'Approvals',
+				shortTitle: 'Approvals',
+				badge: approvalsWaiting
+			}
+		);
 	return [
 		...pages,
 		{ href: 'info/', icon: 'info', title: 'Info', shortTitle: 'Info' },
@@ -68,7 +71,7 @@ export function morePages({ isYouth, approvalsWaiting = 0 }: NavOptions): NavPag
 }
 
 /** Pages that may stand in for Reference on the phone's tab bar while they're open */
-const SWAPPABLE = ['progress/', 'approvals/', 'info/'];
+const SWAPPABLE = ['progress/', 'patrols/', 'approvals/', 'info/'];
 
 /**
 	The phone's tab bar and its More menu. Fewer tabs than the sidebar so they aren't cramped: for leaders

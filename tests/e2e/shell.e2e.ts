@@ -130,6 +130,8 @@ test.describe('phone', () => {
 
 	test("a page opened from More takes Reference's place in the bar", async ({ page }) => {
 		await logIn(page);
+		// The menu closes on moving to another page, so wait for the redirect to Insights first
+		await expect(page).toHaveURL(/\/insights\/$/);
 		const tabs = page.locator('.tab-bar .tab .tab-label');
 		await page.locator('.tab-bar button', { hasText: 'More' }).click();
 		await page.locator('.more-item', { hasText: 'Progress' }).click();
@@ -139,6 +141,7 @@ test.describe('phone', () => {
 		await page.locator('.tab-bar button', { hasText: 'More' }).click();
 		await expect(page.locator('.more-item')).toHaveText([
 			/^\s*Reference\s*$/,
+			/^\s*Patrols\s*$/,
 			/^\s*Approvals 3 waiting for you\s*$/,
 			/^\s*Info\s*$/,
 			/^\s*Logout\s*$/
@@ -154,9 +157,11 @@ test.describe('phone', () => {
 
 	test('More opens the less used pages, and Logout signs out', async ({ page }) => {
 		await logIn(page);
+		await expect(page).toHaveURL(/\/insights\/$/);
 		await page.locator('.tab-bar button', { hasText: 'More' }).click();
 		await expect(page.locator('.more-item')).toHaveText([
 			/^\s*Progress\s*$/,
+			/^\s*Patrols\s*$/,
 			/^\s*Approvals 3 waiting for you\s*$/,
 			/^\s*Info\s*$/,
 			/^\s*Logout\s*$/
@@ -190,6 +195,7 @@ test.describe('desktop', () => {
 				'Record',
 				'Progress',
 				'Reference',
+				'Patrols',
 				'Approvals 3 waiting for you',
 				'Info',
 				'Logout'
