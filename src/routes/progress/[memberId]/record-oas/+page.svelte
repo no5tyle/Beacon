@@ -18,7 +18,6 @@
 		canReceiveCredit,
 		isEditable,
 		isPreviousStageComplete,
-		MAX_LEADER_VERIFIABLE_STAGE,
 		type OASStatement
 	} from '#lib/model/oas/recording.js';
 	import type { OASStage } from '#lib/model/oas/templates.js';
@@ -149,12 +148,7 @@
 
 	const status = $derived(record ? recordStatus(record) : '');
 	const canEdit = $derived(record !== null && isEditable(status));
-	// A youth names their verifier, who may be qualified for the higher stages; adult leaders can't
-	const canVerifyStatements = $derived(
-		record !== null && (app.isYouth || record.stage.stage <= MAX_LEADER_VERIFIABLE_STAGE)
-	);
-	const canTick = (statement: OASStatement) =>
-		canEdit && !statement.alreadyDone && (statement.isLogbook || canVerifyStatements);
+	const canTick = (statement: OASStatement) => canEdit && !statement.alreadyDone;
 	const verifierValid = $derived(verifier.name.trim() !== '' && verifier.contact.trim() !== '');
 	const readyToSubmit = $derived(
 		record !== null &&
@@ -216,6 +210,12 @@
 			tickedStages.filter((t) => t.statements.some((s) => !s.isLogbook)).map((t) => t.state.stage)
 		)
 	);
+	// Whether the verifier has been checked as holding what NAAF asks, again if the verifier or stages change
+	let reviewedFor = $state('');
+	const reviewKey = $derived(
+		[verifier.name.trim(), verifier.contact.trim(), ...verifierLevels.map((r) => r.title)].join('|')
+	);
+	const verifierReviewed = $derived(verifierLevels.length === 0 || reviewedFor === reviewKey);
 	const shownStage = $derived(allStages.find((s) => s.templateLink === selectedTemplateLink));
 
 	function startSave() {
@@ -223,6 +223,11 @@
 		if (tickedCount === 0) return showMessage('Tick at least one statement first.', true);
 		if (needsVerifier && !verifierValid)
 			return showMessage("Enter the verifier's name and email or phone.", true);
+		if (needsVerifier && !verifierReviewed)
+			return showMessage(
+				'Check the verifier holds what NAAF Appendix 1 asks, then tick to say so.',
+				true
+			);
 		confirmingSave = true;
 	}
 
@@ -356,12 +361,6 @@
 				This stage is {statusDisplay(status).toLowerCase()}, so it can't be changed here.
 			</div>
 		{:else}
-			{#if !canVerifyStatements}
-				<div class="alert alert-warning small">
-					Adult leaders can't verify Stage {MAX_LEADER_VERIFIABLE_STAGE + 1} and above. Statements need
-					to be verified in Terrain by a suitable verifier.
-				</div>
-			{/if}
 			{#if !isPreviousStageComplete(record.stage.stage, record.completedStagesInStream)}
 				<div class="alert alert-warning small">
 					Stage {record.stage.stage - 1} of this stream isn't complete in Terrain yet.
@@ -492,6 +491,20 @@
 				? 'Who verified these statements: a Scout member, recorded in Terrain dated today.'
 				: 'Recorded in Terrain as verified by a Scout member, dated today. Change it if someone else verified them.'}
 		</div>
+		{#if needsVerifier && verifierLevels.length > 0}
+			<label class="check reviewed">
+				<input
+					type="checkbox"
+					class="form-check-input"
+					checked={verifierReviewed}
+					disabled={working || !verifier.name.trim() || !verifier.contact.trim()}
+					onchange={(e) => (reviewedFor = e.currentTarget.checked ? reviewKey : '')}
+				/>
+				{verifier.name.trim() || 'The verifier'} holds {verifierLevels.length === 1
+					? 'this'
+					: 'these'}, or a youth two stages ahead verified them
+			</label>
+		{/if}
 
 		<div class="button-row">
 			<button

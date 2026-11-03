@@ -14,6 +14,8 @@ async function menuTitles(page: Page, isMobile: boolean): Promise<string[]> {
 	if (!isMobile) return [];
 	await page.evaluate(() => window.scrollTo(0, 0));
 	await page.locator('.tab-bar button', { hasText: 'More' }).click();
+	// The menu opens before its items can be read
+	await expect(page.locator('.more-item', { hasText: 'Logout' })).toBeVisible();
 	const titles = await page.locator('.more-item').allInnerTexts();
 	await page.keyboard.press('Escape');
 	return titles.map((t) => t.trim());
@@ -82,6 +84,8 @@ test('a youth on the Unit Council has Approvals, with Approve and Award but not 
 }) => {
 	await fakeTerrain(page, { youth: true, councilIn: ['unit-1'] });
 	await logIn(page);
+	// Settled on their own progress, so the menu isn't closed by moving there
+	await expect(page).toHaveURL(/\/progress\/unit-1-m0\/$/);
 	await expect(mainLinks(page, isMobile).filter({ hasText: 'Approvals' })).toHaveCount(1);
 	// Approvals takes Reference's place in the bar, which goes under the menu
 	if (isMobile) expect(await menuTitles(page, isMobile)).toEqual(['Reference', 'Logout']);

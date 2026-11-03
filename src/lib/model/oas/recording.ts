@@ -12,9 +12,6 @@ export const LOGBOOK_INPUT_ID = 'logbook_up_to_date';
 export const VERIFIER_TYPE_MEMBER = 'member';
 export const SUBMIT_TYPE_REVIEW = 'review';
 
-/** Adult leaders can't verify Stage 6 and above (Terrain's verifier dialog) */
-export const MAX_LEADER_VERIFIABLE_STAGE = 5;
-
 const VERIFIED_DATE_SUFFIX = '_verifiedDate';
 const VERIFIER_NAME_SUFFIX = '_verifierName';
 const VERIFIER_TYPE_SUFFIX = '_verifierType';

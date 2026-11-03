@@ -72,15 +72,32 @@ test('starts a stage a youth has no record for', async ({ page }) => {
 	await expect(page.getByText('1 of 7 done in Terrain')).toBeVisible();
 });
 
-test('leaders can only tick the logbook from Stage 6', async ({ page }) => {
-	await fakeTerrain(page);
+test('leaders can record Stage 6 and above, once they tick that the verifier holds what NAAF asks', async ({
+	page
+}) => {
+	const terrain = await fakeTerrain(page);
 	await logIn(page);
 	await navigate(page, 'progress/unit-1-m1/record-oas/');
-	await page.selectOption('#stage', { label: 'Camping 6' });
-	await expect(page.getByText("Adult leaders can't verify Stage 6 and above.")).toBeVisible();
-	await expect(page.getByText("Terrain won't accept a submission for Stage 6")).toBeVisible();
-	await expect(page.getByLabel('I can tie a reef knot and a clove hitch.')).toBeDisabled();
-	await expect(page.getByLabel('My logbook is up to date.')).toBeEnabled();
+	await page.selectOption('#stage', { label: 'Bushwalking 6' });
+	await expect(page.getByText("Adult leaders can't verify")).toHaveCount(0);
+	await page.getByLabel('I can tie a reef knot and a clove hitch.').check();
+	await expect(page.locator('.saving .verifier-levels')).toContainText(
+		'Bushwalking Stage 6 needs Trained Participant (TP)'
+	);
+	await page.getByRole('button', { name: 'Save 1 to Terrain' }).click();
+	await expect(page.locator('.alert-danger')).toContainText('Check the verifier holds');
+	await page.getByLabel('Sam Leader holds this, or a youth two stages ahead verified them').check();
+	await page.getByRole('button', { name: 'Save 1 to Terrain' }).click();
+	await page.getByRole('button', { name: 'Yes, save' }).click();
+	await expect(page.locator('.alert-success')).toHaveText('Saved 1 statement to Terrain.');
+	expect(terrain.writes.some((w) => w.request.includes('members/unit-1-m1'))).toBe(true);
+
+	// A different verifier needs checking again
+	await page.getByLabel('I can treat a blister and a minor cut with first aid.').check();
+	await page.locator('#verifierName').fill('Kim Leader');
+	await expect(
+		page.getByLabel('Kim Leader holds this, or a youth two stages ahead verified them')
+	).not.toBeChecked();
 });
 
 test('saves to a record that has no last_updated, without sending one', async ({ page }) => {

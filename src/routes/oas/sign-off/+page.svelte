@@ -14,11 +14,7 @@
 	import VerifierLevels from '#lib/components/VerifierLevels.svelte';
 	import { firstStageAboveBase, requirementsAboveBase } from '#lib/model/oas/naaf.js';
 	import { isCoreStream } from '#lib/model/insights/insightsCalculator.js';
-	import {
-		MAX_LEADER_VERIFIABLE_STAGE,
-		statements as templateStatements,
-		type OASStatement
-	} from '#lib/model/oas/recording.js';
+	import { statements as templateStatements, type OASStatement } from '#lib/model/oas/recording.js';
 	import {
 		combineOutcomes,
 		forYouth,
@@ -33,7 +29,8 @@
 	import { app, members, oas, recording } from '#lib/services/index.js';
 	import type { MemberSummary } from '#lib/services/members.js';
 
-	type Step = 'statements' | 'youth' | 'review';
+	// The verifier step only shows when a picked stage needs more than Scouting Adventure to verify
+	type Step = 'statements' | 'verifier' | 'youth' | 'review';
 
 	/** A stage with statements picked, in the order it was first picked from */
 	interface Picked {
@@ -90,7 +87,7 @@
 		if (pickedCount === 0) return;
 		// Moving to the youth step keeps only those who still need something
 		selectedYouth = list('youth');
-		await goToYouth();
+		await next();
 	}
 
 	const streams = $derived(
@@ -128,8 +125,6 @@
 			.filter((p) => p.stage.stream === stream)
 			.reduce((sum, p) => sum + p.inputIds.length, 0);
 	const pickedInStage = (option: OASStage) => picked[option.templateLink]?.inputIds.length ?? 0;
-	const leadersCanVerify = $derived(stage !== null && stage.stage <= MAX_LEADER_VERIFIABLE_STAGE);
-	const canSelect = (statement: OASStatement) => statement.isLogbook || leadersCanVerify;
 	const isPicked = (statement: OASStatement) =>
 		stage !== null && (picked[stage.templateLink]?.inputIds.includes(statement.inputId) ?? false);
 	function plural(count: number, word: string) {
@@ -171,7 +166,7 @@
 	}
 
 	function toggleStatement(statement: OASStatement) {
-		if (!stage || !canSelect(statement)) return;
+		if (!stage) return;
 		const current = picked[stage.templateLink]?.inputIds ?? [];
 		setPicked(
 			current.includes(statement.inputId)
@@ -185,7 +180,7 @@
 		setPicked(
 			distinct([
 				...(picked[stage.templateLink]?.inputIds ?? []),
-				...statements.filter(canSelect).map((s) => s.inputId)
+				...statements.map((s) => s.inputId)
 			])
 		);
 	}
@@ -198,6 +193,17 @@
 
 	function unpick(stages: OASStage[]) {
 		for (const option of stages) delete picked[option.templateLink];
+	}
+
+	/** On from the statements: to the verifier when a stage needs more than SA, otherwise the youth */
+	async function next() {
+		if (pickedCount === 0) return;
+		if (verifierLevels.length > 0) {
+			step = 'verifier';
+			message = '';
+			return;
+		}
+		await goToYouth();
 	}
 
 	async function goToYouth() {
@@ -279,8 +285,16 @@
 				.map((p) => p.stage)
 		)
 	);
+	// Whether the leader has said this verifier holds what the stages need; checking again if the verifier
+	// or the stages change
+	let reviewedFor = $state('');
+	const reviewKey = $derived(
+		[verifier.name.trim(), verifier.contact.trim(), ...verifierLevels.map((r) => r.title)].join('|')
+	);
+	const verifierReviewed = $derived(verifierLevels.length === 0 || reviewedFor === reviewKey);
 	const verifierValid = $derived(
-		!needsVerifier || (verifier.name.trim() !== '' && verifier.contact.trim() !== '')
+		!needsVerifier ||
+			(verifier.name.trim() !== '' && verifier.contact.trim() !== '' && verifierReviewed)
 	);
 	const selectedInOrder = $derived(youth.filter((m) => selectedYouth.includes(m.id)));
 	const outcomeList = $derived(Object.values(outcomes));
@@ -289,6 +303,17 @@
 	const count = (state: SignOffOutcome['state']) =>
 		outcomeList.filter((o) => o.state === state).length;
 	const submitting = $derived(Object.values(submitOutcomes).some((o) => !settled(o)));
+	const stepNames: Record<Step, string> = {
+		statements: 'Statements',
+		verifier: 'Verifier',
+		youth: 'Youth',
+		review: 'Save'
+	};
+	const steps = $derived<Step[]>(
+		verifierLevels.length > 0
+			? ['statements', 'verifier', 'youth', 'review']
+			: ['statements', 'youth', 'review']
+	);
 	const nameOf = (memberId: string) => {
 		const m = youth.find((y) => y.id === memberId);
 		return m ? `${m.firstName} ${m.lastName}` : '';
@@ -404,6 +429,21 @@
 	<title>Beacon / Record OAS</title>
 </svelte:head>
 
+{#snippet verifierFields()}
+	<div class="field">
+		<label class="form-label small" for="verifierName">Verifier name</label>
+		<input id="verifierName" class="form-control" bind:value={verifier.name} />
+	</div>
+	<div class="field">
+		<label class="form-label small" for="verifierContact">Verifier email or phone</label>
+		<input id="verifierContact" class="form-control" bind:value={verifier.contact} />
+		<div class="small muted">
+			Recorded in Terrain as verified by a Scout member, dated today. Change it if someone else
+			verified them.
+		</div>
+	</div>
+{/snippet}
+
 {#snippet resultIcon(outcome: SignOffOutcome)}
 	<span class="result-icon {outcome.state.toLowerCase()}">
 		{#if outcome.state === 'Saved'}<Icon name="check" />
@@ -421,18 +461,15 @@
 		<RecordSwitch />
 	{:else if outcomeList.length === 0}
 		<BackLink
-			label={step === 'youth' ? 'Statements' : 'Youth'}
+			label={stepNames[steps[steps.indexOf(step) - 1]]}
 			onclick={() => {
-				step = step === 'youth' ? 'statements' : 'youth';
+				step = steps[steps.indexOf(step) - 1];
 				message = '';
 			}}
 		/>
 	{/if}
 	<h2>Record OAS</h2>
-	<StepBar
-		steps={['Statements', 'Youth', 'Save']}
-		current={['statements', 'youth', 'review'].indexOf(step)}
-	/>
+	<StepBar steps={steps.map((s) => stepNames[s])} current={steps.indexOf(step)} />
 
 	{#if message}
 		<div class="alert alert-danger">{message}</div>
@@ -491,12 +528,6 @@
 		{#if loading}
 			<p class="muted">Loading...</p>
 		{:else if stage && statements.length > 0}
-			{#if !leadersCanVerify}
-				<div class="alert alert-warning small">
-					Adult leaders can't verify Stage {MAX_LEADER_VERIFIABLE_STAGE + 1} and above, so only the logbook
-					can be ticked here.
-				</div>
-			{/if}
 			<div class="heading-row">
 				<strong>{stageName}</strong>
 				<span>
@@ -514,12 +545,11 @@
 			{#each groupBy(statements, (s) => s.group) as group (group.key)}
 				<div class="group-title">{group.key}</div>
 				{#each group.items as statement (statement.inputId)}
-					<label class="pick-row" class:disabled={!canSelect(statement)}>
+					<label class="pick-row">
 						<input
 							type="checkbox"
 							class="form-check-input"
 							checked={isPicked(statement)}
-							disabled={!canSelect(statement)}
 							onchange={() => toggleStatement(statement)}
 						/>
 						<span>{statement.label}</span>
@@ -541,7 +571,34 @@
 				type="button"
 				class="btn btn-primary"
 				disabled={pickedCount === 0 || loading}
-				onclick={goToYouth}>Choose youth</button
+				onclick={next}>{verifierLevels.length > 0 ? 'Check verifier' : 'Choose youth'}</button
+			>
+		</div>
+	{:else if step === 'verifier'}
+		<div class="small muted subtitle">
+			{pickedName} · {plural(pickedCount, 'statement')}
+		</div>
+		<VerifierLevels requirements={verifierLevels} />
+		{@render verifierFields()}
+		<label class="pick-row reviewed">
+			<input
+				type="checkbox"
+				class="form-check-input"
+				checked={verifierReviewed}
+				disabled={!verifier.name.trim() || !verifier.contact.trim()}
+				onchange={(e) => (reviewedFor = e.currentTarget.checked ? reviewKey : '')}
+			/>
+			<span
+				>{verifier.name.trim() || 'The verifier'} holds {verifierLevels.length === 1
+					? 'this'
+					: 'these'}, or a youth two stages ahead verified them</span
+			>
+		</label>
+
+		<div class="action-bar">
+			<span class="small muted">{verifier.name || 'No verifier'}</span>
+			<button type="button" class="btn btn-primary" disabled={!verifierValid} onclick={goToYouth}
+				>Choose youth</button
 			>
 		</div>
 	{:else if step === 'youth'}
@@ -631,19 +688,12 @@
 			</div>
 		</div>
 
-		{#if needsVerifier}
-			<VerifierLevels requirements={verifierLevels} />
-			<div class="field">
-				<label class="form-label small" for="verifierName">Verifier name</label>
-				<input id="verifierName" class="form-control" bind:value={verifier.name} />
-			</div>
-			<div class="field">
-				<label class="form-label small" for="verifierContact">Verifier email or phone</label>
-				<input id="verifierContact" class="form-control" bind:value={verifier.contact} />
-				<div class="small muted">
-					Recorded in Terrain as verified by a Scout member, dated today.
-				</div>
-			</div>
+		{#if needsVerifier && verifierLevels.length > 0}
+			<p class="small">
+				Verified by {verifier.name} ({verifier.contact}), checked against NAAF Appendix 1.
+			</p>
+		{:else if needsVerifier}
+			{@render verifierFields()}
 		{/if}
 
 		<p class="small muted">

@@ -7,12 +7,7 @@
 	import { page } from '$app/state';
 	import ChooseUnit from '#lib/components/ChooseUnit.svelte';
 	import { pullToRefresh } from '#lib/actions/pullToRefresh.js';
-	import {
-		analyseStage,
-		type StageYouth,
-		type StatementPriority
-	} from '#lib/model/insights/stageAnalysis.js';
-	import { MAX_LEADER_VERIFIABLE_STAGE } from '#lib/model/oas/recording.js';
+	import { analyseStage, type StageYouth } from '#lib/model/insights/stageAnalysis.js';
 	import { asc, compareText, distinct, sortBy } from '#lib/model/util.js';
 	import { pagePath } from '#lib/paths.js';
 	import { app, insights } from '#lib/services/index.js';
@@ -98,13 +93,6 @@
 			.filter((y): y is StageYouth => y !== undefined)
 			.sort((a, b) => compareText(a.name, b.name));
 	const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? '' : 's'}`;
-
-	// Leaders can't verify Stage 6 and above, so only the logbook can be signed off there
-	const leadersCanVerify = $derived(
-		report !== null && report.stage.stage <= MAX_LEADER_VERIFIABLE_STAGE
-	);
-	const canSignOff = (priority: StatementPriority) =>
-		priority.statement.isLogbook || leadersCanVerify;
 
 	const toggle = (list: string[], id: string) =>
 		list.includes(id) ? list.filter((i) => i !== id) : [...list, id];
@@ -228,12 +216,6 @@
 			</p>
 		{:else}
 			<h3>Statements to programme first</h3>
-			{#if !leadersCanVerify}
-				<div class="alert alert-warning small">
-					Adult leaders can't verify Stage {MAX_LEADER_VERIFIABLE_STAGE + 1} and above, so only the logbook
-					can be signed off from here.
-				</div>
-			{/if}
 			<ol class="ranked">
 				{#each analysis.statements as priority, i (priority.statement.inputId)}
 					{@const id = priority.statement.inputId}
@@ -244,7 +226,6 @@
 							class="form-check-input"
 							aria-label="Pick to sign off: {priority.statement.label}"
 							checked={selected.includes(id)}
-							disabled={!canSignOff(priority)}
 							onchange={() => (selected = toggle(selected, id))}
 						/>
 						<span class="rank" aria-hidden="true">{i + 1}</span>
