@@ -25,7 +25,13 @@ import {
 	requirementsComplete,
 	terrainReason
 } from '#lib/model/oas/milestoneReview.js';
-import { latestByMember, type SignOffOutcome, type UnitOASRecord } from '#lib/model/oas/signOff.js';
+import { stageFor } from '#lib/model/insights/insightsCalculator.js';
+import {
+	latestByMember,
+	readyToSubmit,
+	type SignOffOutcome,
+	type UnitOASRecord
+} from '#lib/model/oas/signOff.js';
 import type { OASStage, OASTemplate } from '#lib/model/oas/templates.js';
 import { compareText } from '#lib/model/util.js';
 import type { TerrainWriteResult } from '#lib/terrain/errors.js';
@@ -163,7 +169,10 @@ export class RecordingService {
 		}
 	}
 
-	async submitForReview(state: OASRecordingState): Promise<TerrainWriteResult> {
+	async submitForReview(
+		state: OASRecordingState,
+		unitId = this.context.unitId
+	): Promise<TerrainWriteResult> {
 		if (!state.achievement || !isEditable(recordStatus(state)))
 			return failure('Save the stage first. Only stages in progress can be submitted.');
 		if (!allComplete(state.statements))
@@ -173,7 +182,6 @@ export class RecordingService {
 				`Stage ${state.stage.stage - 3} of this stream must be complete before Stage ${state.stage.stage} can be submitted.`
 			);
 
-		const unitId = this.context.unitId;
 		try {
 			const outcome = await this.context.terrain.actAsYouth(state.memberId, (youth) =>
 				youth.submitOnBehalf(
@@ -237,7 +245,11 @@ export class RecordingService {
 	}
 
 	/** Submits one youth's stage for Unit Council review, reading their record fresh from Terrain first */
-	async submitStage(memberId: string, stage: OASStage): Promise<SignOffOutcome> {
+	async submitStage(
+		memberId: string,
+		stage: OASStage,
+		unitId = this.context.unitId
+	): Promise<SignOffOutcome> {
 		let state: OASRecordingState;
 		try {
 			state = await this.loadStage(memberId, stage);
@@ -248,7 +260,7 @@ export class RecordingService {
 				message: "Couldn't load their record from Terrain."
 			};
 		}
-		const result = await this.submitForReview(state);
+		const result = await this.submitForReview(state, unitId);
 		if (result.success) return { state: 'Saved', savedCount: 0, message: '' };
 		return {
 			state: 'Failed',
@@ -256,6 +268,49 @@ export class RecordingService {
 			message:
 				result.status > 0 ? `Terrain didn't accept it (response ${result.status}).` : result.body
 		};
+	}
+
+	/**
+	 * Each youth's OAS stages with every statement and the logbook ticked but not submitted yet, from the
+	 * stages the unit's progress has in progress: one request for the unit's records of each stage, and its
+	 * template. A stage Terrain won't give credit for yet (Stage 4 and above need the stage three below
+	 * done) says why
+	 */
+	async stagesReadyToSubmit(
+		unitId: string,
+		stageList: readonly OASStage[]
+	): Promise<{ memberId: string; name: string; stage: OASStage; blocked: string }[]> {
+		const progress = await this.unitProgress.get(unitId);
+		const started = new Set(progress.flatMap((p) => p.oasStagesInProgress));
+		const stages = stageList.filter(
+			(s) => s.templateLink && started.has(`${s.stream.toLowerCase()}/${s.stage}`)
+		);
+		const found: { memberId: string; name: string; stage: OASStage; blocked: string }[] = [];
+		for (const stage of stages) {
+			try {
+				const [template, records] = await Promise.all([
+					this.loadTemplate(stage),
+					this.loadUnitStage(unitId, stage)
+				]);
+				const inputIds = statements(template, null).map((s) => s.inputId);
+				for (const p of progress) {
+					if (!readyToSubmit(records.get(p.memberId), inputIds)) continue;
+					const reached = stageFor(p, stage.stream.toLowerCase());
+					found.push({
+						memberId: p.memberId,
+						name: p.memberName,
+						stage,
+						blocked:
+							stage.stage <= 3 || reached >= stage.stage - 3
+								? ''
+								: `Stage ${stage.stage - 3} must be complete first`
+					});
+				}
+			} catch {
+				// A stage Terrain couldn't give is left out
+			}
+		}
+		return found;
 	}
 
 	/**

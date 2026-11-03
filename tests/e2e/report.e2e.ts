@@ -91,19 +91,19 @@ test('printed double-sided, each report starts on a new sheet', async ({ page })
 	await navigate(page, 'progress/report/');
 	await expect(page.locator('.report')).toHaveCount(4);
 	await expect(page.locator('.report table.oas').first()).toBeVisible();
-	// Ava's report takes 3 pages, Liam's and Mia's 2 each, and Noah's 1
+	// Ava's and Liam's reports take 3 pages each, Mia's 2, and Noah's 1
 	await page.getByLabel('Achieved "I" statements').check();
 	await page.getByLabel('"I" statements still to do').check();
 	await page.getByLabel('Non-core streams').check();
 	// Non-core streams load the reports again
 	await expect(page.getByText('Preparing reports')).toHaveCount(0);
 	await expect(page.locator('.statements-page')).toHaveCount(3);
-	expect(await print()).toBe(8);
-
-	// A blank page after Ava's; Noah's comes last, so nothing follows it
-	await page.getByLabel('Double-sided: each report starts on a new sheet').check();
 	expect(await print()).toBe(9);
-	await expect(page.locator('.blank-page')).toHaveCount(1);
+
+	// A blank page after Ava's and Liam's; Noah's comes last, so nothing follows it
+	await page.getByLabel('Double-sided: each report starts on a new sheet').check();
+	expect(await print()).toBe(11);
+	await expect(page.locator('.blank-page')).toHaveCount(2);
 	await expect(page.locator('.report').first().locator('+ .blank-page')).toHaveCount(1);
 
 	// Just the front pages: a blank after each but the last

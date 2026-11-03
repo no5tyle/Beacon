@@ -32,9 +32,17 @@
 		type PendingApproval
 	} from '#lib/model/approvals.js';
 	import { milestonesReady } from '#lib/model/insights/memberInsightsCalculator.js';
+	import type { OASStage } from '#lib/model/oas/templates.js';
 	import { asc, distinct, groupBy, sortBy } from '#lib/model/util.js';
 	import { pagePath } from '#lib/paths.js';
-	import { app, approvals, approvalsBadge, recording, unitProgress } from '#lib/services/index.js';
+	import {
+		app,
+		approvals,
+		approvalsBadge,
+		oas,
+		recording,
+		unitProgress
+	} from '#lib/services/index.js';
 	import type { ApprovalsUnit } from '#lib/services/approvals.js';
 	import { unitsKey } from '#lib/stores/approvals.svelte.js';
 
@@ -67,20 +75,33 @@
 	let showOlder = $state(false);
 	// Milestones with every requirement done but not submitted, so not in Terrain's list. Found from the
 	// youth's activity counts, the progress Insights and Progress load
-	let ready = $state<{ unitId: string; memberId: string; name: string; milestone: number }[]>([]);
+	// and OAS stages with every statement and the logbook ticked, from the unit's records of each stage
+	interface Ready {
+		key: string;
+		unitId: string;
+		memberId: string;
+		name: string;
+		title: string;
+		milestone?: number;
+		stage?: OASStage;
+		/** Why Terrain won't take it yet, if it won't */
+		blocked: string;
+	}
+	let ready = $state<Ready[]>([]);
 	let readyFor = '';
 	// Ready milestones ticked to submit together, the unit whose ticked ones are being confirmed, and those
 	// submitted here, until Terrain lists them
-	type Ready = (typeof ready)[number];
-	const readyKey = (r: { memberId: string; milestone: number }) => `${r.memberId}-${r.milestone}`;
+	const readyKey = (r: Ready) => r.key;
 	const tickedReady = new SvelteSet<string>();
 	let confirmingSubmit = $state('');
 	const submittedHere = new SvelteSet<string>();
-	const readyTitle = (r: Ready) => `Milestone ${r.milestone}`;
+	const readyTitle = (r: Ready) => r.title;
+	const stageTitle = (stage: OASStage) =>
+		`OAS ${stage.stream} ${stage.stage}${stage.branch && stage.branch !== stage.stream.toLowerCase() ? ` ${stage.stageTitle}` : ''}`;
 
 	function toggleAllReady(view: UnitView) {
-		const all = view.tickedReady.length === view.ready.length;
-		for (const r of view.ready) {
+		const all = view.tickedReady.length === view.tickable.length;
+		for (const r of view.tickable) {
 			if (all) tickedReady.delete(readyKey(r));
 			else tickedReady.add(readyKey(r));
 		}
@@ -94,7 +115,9 @@
 		message = null;
 		const results: { r: Ready; failure: string }[] = [];
 		for (const r of list) {
-			const outcome = await recording.submitMilestone(r.memberId, r.milestone, r.unitId);
+			const outcome = r.stage
+				? await recording.submitStage(r.memberId, r.stage, r.unitId)
+				: await recording.submitMilestone(r.memberId, r.milestone!, r.unitId);
 			results.push({ r, failure: outcome.state === 'Failed' ? outcome.message : '' });
 		}
 		working = '';
@@ -172,12 +195,30 @@
 		const key = loaded.map((u) => u.id).join(',');
 		if (key === readyFor) return;
 		readyFor = key;
-		const found: typeof ready = [];
+		const found: Ready[] = [];
 		for (const unit of loaded) {
 			try {
 				for (const p of await unitProgress.get(unit.id))
 					for (const milestone of milestonesReady(p))
-						found.push({ unitId: unit.id, memberId: p.memberId, name: p.memberName, milestone });
+						found.push({
+							key: `${p.memberId}-milestone-${milestone}`,
+							unitId: unit.id,
+							memberId: p.memberId,
+							name: p.memberName,
+							title: `Milestone ${milestone}`,
+							milestone,
+							blocked: ''
+						});
+				for (const r of await recording.stagesReadyToSubmit(unit.id, await oas.stageList()))
+					found.push({
+						key: `${r.memberId}-${r.stage.templateLink}`,
+						unitId: unit.id,
+						memberId: r.memberId,
+						name: r.name,
+						title: stageTitle(r.stage),
+						stage: r.stage,
+						blocked: r.blocked
+					});
 			} catch {
 				// Without the unit's progress, there's just nothing to add
 			}
@@ -190,8 +231,10 @@
 		if (loaded.length > 0) untrack(() => loadReady(loaded));
 	});
 
-	// Once submitted, a milestone is in Terrain's list, to approve or award there instead
-	const submitted = (r: (typeof ready)[number]) =>
+	// Once submitted, a milestone is in Terrain's list, to approve or award there instead. A submitted
+	// OAS stage is no longer editable, so it isn't found ready again
+	const submitted = (r: Ready) =>
+		r.milestone !== undefined &&
 		pending.some(
 			(a) =>
 				a.memberId === r.memberId &&
@@ -300,8 +343,8 @@
 					ready.filter(
 						(r) => r.unitId === unit.id && !submitted(r) && !submittedHere.has(readyKey(r))
 					),
-					asc((r) => (groupByMember ? r.name : r.milestone)),
-					asc((r) => (groupByMember ? r.milestone : r.name))
+					asc((r) => (groupByMember ? r.name : r.title)),
+					asc((r) => (groupByMember ? r.title : r.name))
 				);
 				const awardGroups = grouped(toAward);
 				// The awards this leader can tick
@@ -317,7 +360,8 @@
 					tickedAwards: awardable.filter((a) => ticked.has(a.submissionId)),
 					ready: unitReady,
 					readyGroups: groupBy(unitReady, (r) => (groupByMember ? r.name : readyTitle(r))),
-					tickedReady: unitReady.filter((r) => tickedReady.has(readyKey(r)))
+					tickable: unitReady.filter((r) => !r.blocked),
+					tickedReady: unitReady.filter((r) => !r.blocked && tickedReady.has(readyKey(r)))
 				};
 			})
 			.filter((view) => view.items.length > 0 || view.ready.length > 0)
@@ -641,11 +685,11 @@
 		</section>
 	{/if}
 	{#if view.ready.length > 0}
-		<section class="approval-section" aria-label="Milestones ready to submit">
-			<h3>Milestones ready to submit <span class="muted">({view.ready.length})</span></h3>
+		<section class="approval-section" aria-label="Ready to submit">
+			<h3>Ready to submit <span class="muted">({view.ready.length})</span></h3>
 			<p class="small muted">
-				Every participate and lead is done, but not submitted for review yet. Tick the ones to
-				submit together.
+				Milestones and OAS stages with every requirement done, but not submitted for review yet.
+				Tick the ones to submit together.
 			</p>
 			<div class="award-bar">
 				<button
@@ -653,7 +697,7 @@
 					class="btn btn-sm btn-outline-secondary"
 					disabled={working !== ''}
 					onclick={() => toggleAllReady(view)}
-					>{view.tickedReady.length === view.ready.length ? 'Untick all' : 'Tick all'}</button
+					>{view.tickedReady.length === view.tickable.length ? 'Untick all' : 'Tick all'}</button
 				>
 				<button
 					type="button"
@@ -680,8 +724,8 @@
 						</ul>
 					{/if}
 					<p class="small">
-						Beacon switches to each youth's profile in turn, marks every lead as reviewed by a
-						leader, submits the milestone, then switches back.
+						Beacon switches to each youth's profile in turn, submits each for review (marking a
+						milestone's leads as reviewed by a leader), then switches back.
 					</p>
 					<button
 						type="button"
@@ -706,20 +750,29 @@
 					{#each group.items as r (readyKey(r))}
 						<div class="approval-card">
 							<div class="strong">{groupByMember ? readyTitle(r) : r.name}</div>
-							<div class="small muted">Milestone · not submitted yet</div>
-							<label class="small award-pick"
-								><input
-									type="checkbox"
-									class="form-check-input"
-									disabled={working !== ''}
-									checked={tickedReady.has(readyKey(r))}
-									onchange={(e) =>
-										e.currentTarget.checked
-											? tickedReady.add(readyKey(r))
-											: tickedReady.delete(readyKey(r))}
-								/>
-								Submit {readyTitle(r)} for {r.name}</label
-							>
+							<div class="small muted">
+								{r.stage
+									? 'Every statement and the logbook ticked'
+									: 'Every participate and lead done'}
+								· not submitted yet
+							</div>
+							{#if r.blocked}
+								<div class="small muted award-note">{r.blocked}, before Terrain takes it.</div>
+							{:else}
+								<label class="small award-pick"
+									><input
+										type="checkbox"
+										class="form-check-input"
+										disabled={working !== ''}
+										checked={tickedReady.has(readyKey(r))}
+										onchange={(e) =>
+											e.currentTarget.checked
+												? tickedReady.add(readyKey(r))
+												: tickedReady.delete(readyKey(r))}
+									/>
+									Submit {readyTitle(r)} for {r.name}</label
+								>
+							{/if}
 						</div>
 					{/each}
 				</section>
