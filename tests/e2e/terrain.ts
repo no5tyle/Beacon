@@ -187,6 +187,8 @@ function records(unitId: string): Fixture[] {
 	oas(1, 'camping', 1, 'awarded');
 	oas(1, 'camping', 2, 'in_progress', 2);
 	oas(1, 'bushcraft', 1, 'awarded');
+	// ...and has ticked everything in Bushcraft Stage 2, but it hasn't been submitted yet
+	oas(1, 'bushcraft', 2, 'in_progress', 7);
 	// Mia
 	oas(2, 'bushwalking', 1, 'awarded');
 	oas(2, 'camping', 1, 'awarded');

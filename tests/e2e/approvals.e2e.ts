@@ -25,7 +25,10 @@ test('lists what is waiting for the Unit Council, with who has voted', async ({ 
 	await expect(toAward.getByRole('region', { name: 'Noah Jones' }).locator('.strong')).toHaveText(
 		'OAS Bushcraft 1'
 	);
-	const milestone = page.getByRole('region', { name: 'Liam Smith' }).locator('.approval-card');
+	const milestone = page
+		.getByRole('region', { name: /^To approve/ })
+		.getByRole('region', { name: 'Liam Smith' })
+		.locator('.approval-card');
 	await expect(milestone).toContainText('Review · submitted 3 days ago');
 	await expect(milestone).toContainText('1 of 2 approved (Kim Leader)');
 	await expect(milestone.getByRole('button', { name: 'Approve' })).toBeVisible();
@@ -86,12 +89,18 @@ test('the second approval sends it through, and it leaves the list', async ({ pa
 	await fakeTerrain(page);
 	await logIn(page);
 	await navigate(page, 'approvals/');
-	const card = page.getByRole('region', { name: 'Liam Smith' }).locator('.approval-card');
+	const card = page
+		.getByRole('region', { name: /^To approve/ })
+		.getByRole('region', { name: 'Liam Smith' })
+		.locator('.approval-card');
 	await card.getByRole('button', { name: 'Approve' }).click();
 	await card.getByRole('button', { name: 'Yes, approve' }).click();
 	await expect(page.locator('.alert-success')).toHaveText('Approved Milestone 1 for Liam Smith.');
 	await expect(
-		page.getByRole('region', { name: 'Liam Smith' }).locator('.approval-card')
+		page
+			.getByRole('region', { name: /^To approve/ })
+			.getByRole('region', { name: 'Liam Smith' })
+			.locator('.approval-card')
 	).toHaveCount(0);
 	await expect(page.locator('.summary')).toHaveText(
 		'Mt Example Scouts · 3 to approve · 1 to award'
@@ -205,7 +214,10 @@ test('something approved through shows in the History', async ({ page }) => {
 	await expect(page.locator('.history-card')).toHaveCount(2);
 
 	await page.getByRole('tab', { name: /Waiting/ }).click();
-	const card = page.getByRole('region', { name: 'Liam Smith' }).locator('.approval-card');
+	const card = page
+		.getByRole('region', { name: /^To approve/ })
+		.getByRole('region', { name: 'Liam Smith' })
+		.locator('.approval-card');
 	await card.getByRole('button', { name: 'Approve' }).click();
 	await card.getByRole('button', { name: 'Yes, approve' }).click();
 	await expect(page.locator('.alert-success')).toHaveText('Approved Milestone 1 for Liam Smith.');
@@ -233,7 +245,10 @@ test('what the leader did shows at once, even while Terrain is slow to list it',
 	await expect(mia).toContainText('1 of 2 approved (Sam Leader)');
 	await expect(mia).toContainText("You've voted on this one.");
 	// The deciding approval: it leaves the list straight away and stays gone
-	const liam = page.getByRole('region', { name: 'Liam Smith' }).locator('.approval-card');
+	const liam = page
+		.getByRole('region', { name: /^To approve/ })
+		.getByRole('region', { name: 'Liam Smith' })
+		.locator('.approval-card');
 	await liam.getByRole('button', { name: 'Approve' }).click();
 	await liam.getByRole('button', { name: 'Yes, approve' }).click();
 	await expect(liam).toHaveCount(0);
@@ -474,14 +489,20 @@ test('awards several together, on one date', async ({ page }) => {
 	await expect(section.getByRole('button', { name: 'Tick all' })).toBeVisible();
 });
 
-test('milestones with every requirement done but not yet submitted show', async ({ page }) => {
+test('milestones and OAS stages with every requirement done but not yet submitted show', async ({
+	page
+}) => {
 	await fakeTerrain(page);
 	await logIn(page);
 	await navigate(page, 'approvals/');
-	const ready = page.locator('section[aria-label="Milestones ready to submit"]');
-	await expect(ready.locator('.approval-card')).toHaveCount(1);
-	await expect(ready.locator('.group-heading')).toHaveText(/Mia Brown/);
-	await expect(ready.locator('.approval-card')).toContainText('Milestone 3');
+	const ready = page.locator('section[aria-label="Ready to submit"]');
+	// Liam has ticked all of Bushcraft 2, and Mia's Milestone 3 has every participate and lead
+	await expect(ready.locator('.group-heading')).toHaveText([/Liam Smith/, /Mia Brown/]);
+	await expect(ready.locator('.approval-card').nth(1)).toContainText('Milestone 3');
+	await expect(ready.locator('.approval-card').first()).toContainText('OAS Bushcraft 2');
+	await expect(ready.locator('.approval-card').first()).toContainText(
+		'Every statement and the logbook ticked'
+	);
 	await expect(ready.getByRole('button', { name: 'Submit' })).toBeDisabled();
 });
 
@@ -491,7 +512,7 @@ test('ready milestones are ticked and submitted for review together, as the yout
 	const terrain = await fakeTerrain(page);
 	await logIn(page);
 	await navigate(page, 'approvals/');
-	const ready = page.locator('section[aria-label="Milestones ready to submit"]');
+	const ready = page.locator('section[aria-label="Ready to submit"]');
 	await ready.getByLabel('Submit Milestone 3 for Mia Brown').check();
 	await ready.getByRole('button', { name: 'Submit 1' }).click();
 	await expect(ready.locator('.confirm-box')).toContainText(
@@ -501,7 +522,7 @@ test('ready milestones are ticked and submitted for review together, as the yout
 	await expect(page.locator('.alert-success')).toContainText(
 		'Submitted Milestone 3 for Mia Brown.'
 	);
-	await expect(ready).toHaveCount(0);
+	await expect(ready.locator('.approval-card', { hasText: 'Milestone 3' })).toHaveCount(0);
 
 	// As Terrain's Milestones page does: the leads reviewed on the record, then submitted on her behalf
 	const writes = terrain.writes.filter((w) => w.request.includes('unit-1-m2/achievements'));
@@ -537,7 +558,7 @@ test("a milestone Terrain won't submit says which step failed and Terrain's reas
 	await fakeTerrain(page, { refuseSubmit: 'Milestone 2 must be awarded first' });
 	await logIn(page);
 	await navigate(page, 'approvals/');
-	const ready = page.locator('section[aria-label="Milestones ready to submit"]');
+	const ready = page.locator('section[aria-label="Ready to submit"]');
 	await ready.getByLabel('Submit Milestone 3 for Mia Brown').check();
 	await ready.getByRole('button', { name: 'Submit 1' }).click();
 	await ready.getByRole('button', { name: 'Yes, submit' }).click();
@@ -545,5 +566,29 @@ test("a milestone Terrain won't submit says which step failed and Terrain's reas
 		"Milestone 3 for Mia Brown: Terrain didn't accept submitting it (response 400): Milestone 2 must be awarded first"
 	);
 	// Still there to try again
-	await expect(ready.locator('.approval-card')).toHaveCount(1);
+	await expect(ready.locator('.approval-card', { hasText: 'Milestone 3' })).toHaveCount(1);
+});
+
+test('an OAS stage with everything ticked is submitted for review from Approvals', async ({
+	page
+}) => {
+	const terrain = await fakeTerrain(page);
+	await logIn(page);
+	await navigate(page, 'approvals/');
+	const ready = page.locator('section[aria-label="Ready to submit"]');
+	await ready.getByRole('button', { name: 'Tick all' }).click();
+	await ready.getByRole('button', { name: 'Submit 2' }).click();
+	await expect(ready.locator('.confirm-box li')).toHaveText([
+		'OAS Bushcraft 2, Liam Smith',
+		'Milestone 3, Mia Brown'
+	]);
+	await ready.getByRole('button', { name: 'Yes, submit' }).click();
+	await expect(page.locator('.alert-success')).toContainText('Submitted 2.');
+	await expect(ready).toHaveCount(0);
+	// Liam's stage submitted on his behalf, as Record OAS does
+	const submit = terrain.writes.find((w) =>
+		/^POST achievements\/members\/unit-1-m1\/achievements\/[^/]+\/submit-on-behalf$/.test(w.request)
+	);
+	expect(submit?.body).toMatchObject({ type: 'review', unit_id: 'unit-1' });
+	expect(terrain.requests).toContain('POST members/members/unit-1-m1/assume-profiles');
 });
