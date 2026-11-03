@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { fakeTerrain, logIn, navigate } from './terrain.js';
 
-test('lists what is waiting for the Unit Council, with who has voted', async ({ page }) => {
+test('Approve, Award and Submit tabs list what waits, with who has voted', async ({ page }) => {
 	await fakeTerrain(page);
 	await logIn(page);
 	await navigate(page, 'approvals/');
@@ -9,39 +9,41 @@ test('lists what is waiting for the Unit Council, with who has voted', async ({ 
 	await expect(page.locator('.summary')).toHaveText(
 		'Mt Example Scouts · 4 to approve · 1 to award'
 	);
-	// Reviews to approve, then awards, each grouped by youth and named for what it is
+	await expect(page.getByRole('tab')).toHaveText([/^Approve\s+4$/, /^Award\s+1$/, /^Submit\s+2$/]);
+
+	// Reviews to approve, grouped by youth and named for what it is
 	const toApprove = page.getByRole('region', { name: /^To approve/ });
-	const toAward = page.getByRole('region', { name: /^Ready to award/ });
 	await expect(toApprove.locator('.group-heading')).toHaveText([
 		'Ava Nguyen (1)',
 		'Liam Smith (1)',
 		'Mia Brown (1)',
 		'Noah Jones (1)'
 	]);
-	await expect(toAward.locator('.group-heading')).toHaveText(['Noah Jones (1)']);
 	await expect(toApprove.getByRole('region', { name: 'Noah Jones' }).locator('.strong')).toHaveText(
 		'Intro To Section'
 	);
-	await expect(toAward.getByRole('region', { name: 'Noah Jones' }).locator('.strong')).toHaveText(
-		'OAS Bushcraft 1'
-	);
-	const milestone = page
-		.getByRole('region', { name: /^To approve/ })
-		.getByRole('region', { name: 'Liam Smith' })
-		.locator('.approval-card');
+	const milestone = toApprove.getByRole('region', { name: 'Liam Smith' }).locator('.approval-card');
 	await expect(milestone).toContainText('Review · submitted 3 days ago');
 	await expect(milestone).toContainText('1 of 2 approved (Kim Leader)');
 	await expect(milestone.getByRole('button', { name: 'Approve' })).toBeVisible();
 	// Already voted on, or not this leader's to action: no button
-	const voted = page.getByRole('region', { name: 'Ava Nguyen' }).locator('.approval-card');
+	const voted = toApprove.getByRole('region', { name: 'Ava Nguyen' }).locator('.approval-card');
 	await expect(voted).toContainText("You've voted on this one.");
 	await expect(voted.getByRole('button', { name: 'Approve' })).toHaveCount(0);
-	await expect(
-		page.getByRole('region', { name: 'Noah Jones' }).getByRole('button', { name: 'Approve' })
-	).toHaveCount(0);
+	await expect(page.getByRole('region', { name: /^Ready to award/ })).toHaveCount(0);
 
-	// No youth filter, just a choice of grouping
-	await expect(page.getByRole('button', { name: 'Everyone' })).toHaveCount(0);
+	// Awards on their own tab
+	await page.getByRole('tab', { name: /^Award/ }).click();
+	const toAward = page.getByRole('region', { name: /^Ready to award/ });
+	await expect(toAward.locator('.group-heading')).toHaveText(['Noah Jones (1)']);
+	await expect(toAward.getByRole('region', { name: 'Noah Jones' }).locator('.strong')).toHaveText(
+		'OAS Bushcraft 1'
+	);
+	await expect(toApprove).toHaveCount(0);
+
+	// The filters: grouping, a pick of youth, and the history
+	await page.getByRole('tab', { name: /^Approve/ }).click();
+	await page.getByRole('button', { name: 'Filters' }).click();
 	await page.selectOption('#groupBy', 'achievement');
 	await expect(toApprove.locator('.group-heading')).toHaveText([
 		'Adventure Sport (1)',
@@ -49,10 +51,17 @@ test('lists what is waiting for the Unit Council, with who has voted', async ({ 
 		'Milestone 1 (1)',
 		'OAS Camping 1 (1)'
 	]);
-	await expect(toAward.locator('.group-heading')).toHaveText(['OAS Bushcraft 1 (1)']);
 	await expect(
-		page.getByRole('region', { name: 'Milestone 1' }).locator('.approval-card .strong')
+		toApprove.getByRole('region', { name: 'Milestone 1' }).locator('.approval-card .strong')
 	).toHaveText('Liam Smith');
+	const youth = page.getByRole('button', { name: 'Youth' });
+	await youth.click();
+	await page.getByRole('listbox', { name: 'Youth' }).getByLabel('Liam Smith').check();
+	await page.keyboard.press('Escape');
+	await expect(toApprove.locator('.approval-card')).toHaveCount(1);
+	await expect(page.getByRole('tab')).toHaveText([/^Approve\s+1$/, /^Award$/, /^Submit\s+1$/]);
+	await page.getByRole('link', { name: 'View history' }).click();
+	await expect(page).toHaveURL(/\/approvals\/history\/$/);
 });
 
 test('approves after confirming, sending what Terrain’s Approvals tab sends', async ({ page }) => {
@@ -162,9 +171,8 @@ test('History lists what the Unit Council has finished with, most recent first',
 }) => {
 	const terrain = await fakeTerrain(page);
 	await logIn(page);
-	await navigate(page, 'approvals/');
-	await expect(page.getByRole('tab', { name: /Waiting/ })).toContainText('5');
-	await page.getByRole('tab', { name: 'History' }).click();
+	await navigate(page, 'approvals/history/');
+	await expect(page.locator('h2')).toHaveText('History');
 	await expect
 		.poll(() => terrain.requests.some((r) => r.includes('submissions?status=finalised')))
 		.toBe(true);
@@ -209,11 +217,10 @@ test('History lists what the Unit Council has finished with, most recent first',
 test('something approved through shows in the History', async ({ page }) => {
 	await fakeTerrain(page);
 	await logIn(page);
-	await navigate(page, 'approvals/');
-	await page.getByRole('tab', { name: 'History' }).click();
+	await navigate(page, 'approvals/history/');
 	await expect(page.locator('.history-card')).toHaveCount(2);
 
-	await page.getByRole('tab', { name: /Waiting/ }).click();
+	await page.locator('.back-link', { hasText: 'Approvals' }).click();
 	const card = page
 		.getByRole('region', { name: /^To approve/ })
 		.getByRole('region', { name: 'Liam Smith' })
@@ -222,7 +229,8 @@ test('something approved through shows in the History', async ({ page }) => {
 	await card.getByRole('button', { name: 'Yes, approve' }).click();
 	await expect(page.locator('.alert-success')).toHaveText('Approved Milestone 1 for Liam Smith.');
 
-	await page.getByRole('tab', { name: 'History' }).click();
+	await page.getByRole('button', { name: 'Filters' }).click();
+	await page.getByRole('link', { name: 'View history' }).click();
 	const first = page.locator('.history-card').first();
 	await expect(first).toContainText('Liam Smith');
 	await expect(first).toContainText('Milestone 1');
@@ -269,6 +277,7 @@ test('an award leaves the list at once, even while Terrain is slow to list it', 
 	await fakeTerrain(page, { staleReads: 1 });
 	await logIn(page);
 	await navigate(page, 'approvals/');
+	await page.getByRole('tab', { name: /^Award/ }).click();
 	const award = page.locator('.approval-card', { hasText: 'Award ·' });
 	await page.getByLabel('Award OAS Bushcraft 1 to Noah Jones').check();
 	await page.getByRole('button', { name: /^Award 1$/ }).click();
@@ -362,6 +371,7 @@ test('awards after confirming the date, sending what Terrain’s Approvals tab s
 	const terrain = await fakeTerrain(page);
 	await logIn(page);
 	await navigate(page, 'approvals/');
+	await page.getByRole('tab', { name: /^Award/ }).click();
 	const section = page.getByRole('region', { name: /^Ready to award/ });
 	await expect(section).toContainText('Approved by the Unit Council.');
 	const award = section.locator('.approval-card');
@@ -458,7 +468,7 @@ test('a leader on no Unit Council is told why nothing is listed', async ({ page 
 	await logIn(page);
 	await navigate(page, 'approvals/');
 	await expect(page.locator('.approvals-empty')).toContainText(
-		"Terrain doesn't list approvals for you in any of your units"
+		"Terrain doesn't list approvals for you in this unit"
 	);
 });
 
@@ -466,6 +476,7 @@ test('awards several together, on one date', async ({ page }) => {
 	const terrain = await fakeTerrain(page, { moreAwards: true });
 	await logIn(page);
 	await navigate(page, 'approvals/');
+	await page.getByRole('tab', { name: /^Award/ }).click();
 	const section = page.getByRole('region', { name: /^Ready to award/ });
 	await expect(section.locator('.group-heading')).toHaveText([
 		'Liam Smith (1)',
@@ -505,6 +516,7 @@ test('milestones and OAS stages with every requirement done but not yet submitte
 	await fakeTerrain(page);
 	await logIn(page);
 	await navigate(page, 'approvals/');
+	await page.getByRole('tab', { name: /^Submit/ }).click();
 	const ready = page.locator('section[aria-label="Ready to submit"]');
 	// Liam has ticked all of Bushcraft 2, and Mia's Milestone 3 has every participate and lead
 	await expect(ready.locator('.group-heading')).toHaveText([/Liam Smith/, /Mia Brown/]);
@@ -522,6 +534,7 @@ test('ready milestones are ticked and submitted for review together, as the yout
 	const terrain = await fakeTerrain(page);
 	await logIn(page);
 	await navigate(page, 'approvals/');
+	await page.getByRole('tab', { name: /^Submit/ }).click();
 	const ready = page.locator('section[aria-label="Ready to submit"]');
 	await ready.getByLabel('Submit Milestone 3 for Mia Brown').check();
 	await ready.getByRole('button', { name: 'Submit 1' }).click();
@@ -568,6 +581,7 @@ test("a milestone Terrain won't submit says which step failed and Terrain's reas
 	await fakeTerrain(page, { refuseSubmit: 'Milestone 2 must be awarded first' });
 	await logIn(page);
 	await navigate(page, 'approvals/');
+	await page.getByRole('tab', { name: /^Submit/ }).click();
 	const ready = page.locator('section[aria-label="Ready to submit"]');
 	await ready.getByLabel('Submit Milestone 3 for Mia Brown').check();
 	await ready.getByRole('button', { name: 'Submit 1' }).click();
@@ -585,6 +599,7 @@ test('an OAS stage with everything ticked is submitted for review from Approvals
 	const terrain = await fakeTerrain(page);
 	await logIn(page);
 	await navigate(page, 'approvals/');
+	await page.getByRole('tab', { name: /^Submit/ }).click();
 	const ready = page.locator('section[aria-label="Ready to submit"]');
 	await ready.getByRole('button', { name: 'Tick all' }).click();
 	await ready.getByRole('button', { name: 'Submit 2' }).click();
