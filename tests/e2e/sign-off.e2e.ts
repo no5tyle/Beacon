@@ -126,3 +126,43 @@ test('back is top left, naming the step it goes back to; the action bar only mov
 	await expect(page.getByLabel('I can tie a reef knot and a clove hitch.')).toBeChecked();
 	await expect(page.locator('.record-switch')).toBeVisible();
 });
+
+test('warns which verifier each stage needs when it is more than Scouting Adventure', async ({
+	page
+}) => {
+	await fakeTerrain(page);
+	await logIn(page);
+	await navigate(page, 'oas/sign-off/');
+
+	// Camping is SA throughout: no note
+	await page.getByRole('button', { name: 'Camping', exact: true }).click();
+	await expect(page.locator('.verifier-levels')).toHaveCount(0);
+
+	// Paddling needs more from Stage 2, noted at the top until a stage says which
+	await page.getByRole('button', { name: 'More streams' }).click();
+	await page.getByRole('button', { name: 'Paddling', exact: true }).click();
+	await expect(page.locator('.verifier-levels')).toContainText(
+		'Paddling from Stage 2 needs a verifier with more than Scouting Adventure (SA)'
+	);
+	await page.getByRole('button', { name: 'Stage 3', exact: true }).click();
+	await expect(page.locator('.verifier-levels')).toContainText(
+		'Verifying Paddling Stage 3 needs Trained Participant (TP) or above.'
+	);
+	await page.getByLabel('I can tie a reef knot and a clove hitch.').check();
+	await page.getByRole('button', { name: 'Stage 2', exact: true }).click();
+	await page.getByLabel('I can tie a reef knot and a clove hitch.').check();
+	await page.getByRole('button', { name: 'Camping', exact: true }).click();
+	await page.getByRole('button', { name: 'Stage 2', exact: true }).click();
+	await page.getByLabel('I can tie a reef knot and a clove hitch.').check();
+
+	await page.getByRole('button', { name: 'Choose youth' }).click();
+	await page.locator('.pick-row', { hasText: 'Noah Jones' }).locator('input').check();
+	await page.getByRole('button', { name: /^Review/ }).click();
+	// Before saving, each stage that needs more than SA, and what (Camping isn't listed)
+	const warning = page.locator('.verifier-levels');
+	await expect(warning).toContainText('These need more than Scouting Adventure (SA) to verify:');
+	await expect(warning.locator('li')).toHaveText([
+		'Paddling Stage 2: Safe Participant (SP)',
+		'Paddling Stage 3: Trained Participant (TP)'
+	]);
+});
