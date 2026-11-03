@@ -155,14 +155,45 @@ test('warns which verifier each stage needs when it is more than Scouting Advent
 	await page.getByRole('button', { name: 'Stage 2', exact: true }).click();
 	await page.getByLabel('I can tie a reef knot and a clove hitch.').check();
 
-	await page.getByRole('button', { name: 'Choose youth' }).click();
-	await page.locator('.pick-row', { hasText: 'Noah Jones' }).locator('input').check();
-	await page.getByRole('button', { name: /^Review/ }).click();
-	// Before saving, each stage that needs more than SA, and what (Camping isn't listed)
+	// A Verifier step comes before the youth, as these need more than SA
+	await page.getByRole('button', { name: 'Check verifier' }).click();
+	await expect(page.locator('.step-bar')).toContainText('Verifier');
 	const warning = page.locator('.verifier-levels');
 	await expect(warning).toContainText('These need more than Scouting Adventure (SA) to verify:');
 	await expect(warning.locator('li')).toHaveText([
 		'Paddling Stage 2: Safe Participant (SP)',
 		'Paddling Stage 3: Trained Participant (TP)'
 	]);
+	await expect(page.locator('#verifierName')).toHaveValue('Sam Leader');
+	const next = page.getByRole('button', { name: 'Choose youth' });
+	await expect(next).toBeDisabled();
+	await page
+		.getByLabel('Sam Leader holds these, or a youth two stages ahead verified them')
+		.check();
+	await next.click();
+	await page.locator('.pick-row', { hasText: 'Noah Jones' }).locator('input').check();
+	await page.getByRole('button', { name: /^Review/ }).click();
+	await expect(page.locator('main')).toContainText(
+		'Verified by Sam Leader (sam@example.com), checked against NAAF Appendix 1.'
+	);
+	await expect(page.getByRole('button', { name: 'Sign off 1 youth' })).toBeEnabled();
+	// Back from the youth goes to the verifier
+	await page.locator('.back-link').click();
+	await expect(page.locator('.back-link')).toHaveText(/Verifier/);
+});
+
+test('signs off Stage 6 and above, with no verifier step where SA is enough', async ({ page }) => {
+	const terrain = await fakeTerrain(page);
+	await logIn(page);
+	await navigate(page, 'oas/sign-off/');
+	await page.getByRole('button', { name: 'Camping', exact: true }).click();
+	await page.getByRole('button', { name: 'Stage 7', exact: true }).click();
+	await page.getByLabel('I can tie a reef knot and a clove hitch.').check();
+	// Camping is SA throughout: straight to the youth
+	await page.getByRole('button', { name: 'Choose youth' }).click();
+	await page.getByRole('button', { name: 'Select everyone who needs it' }).click();
+	await page.getByRole('button', { name: /^Review/ }).click();
+	await page.getByRole('button', { name: /^Sign off/ }).click();
+	await expect(page.locator('.result-row').first()).toContainText('Saved 1 statement');
+	expect(terrain.writes.length).toBeGreaterThan(0);
 });

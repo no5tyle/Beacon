@@ -9,7 +9,6 @@ import {
 	canReceiveCredit,
 	createBody,
 	isEditable,
-	MAX_LEADER_VERIFIABLE_STAGE,
 	statements,
 	submitBody,
 	updateBody,
@@ -122,16 +121,6 @@ export class RecordingService {
 		if (newlyTicked.length === 0) return failure('Nothing new to save.');
 		if (!isEditable(recordStatus(state)))
 			return failure("This stage can't be changed while it is submitted or complete.");
-		// Youth recording their own name their verifier, who may be qualified for the higher stages
-		if (
-			!this.context.isYouth &&
-			state.stage.stage > MAX_LEADER_VERIFIABLE_STAGE &&
-			newlyTicked.some((s) => !s.isLogbook)
-		)
-			return failure(
-				`Adult leaders can't verify Stage ${MAX_LEADER_VERIFIABLE_STAGE + 1} and above.`
-			);
-
 		const unitId = this.context.unitId;
 		const section = this.context.sectionOf(unitId);
 		try {
