@@ -27,6 +27,8 @@ test('analyses the unit as soon as it opens', async ({ page, isMobile }) => {
 	await priority.click();
 	await expect(page.locator('.candidate-card')).toHaveCount(1);
 	await expect(page.locator('.candidate-card h4')).toHaveText('Ava Nguyen');
+	// Their award percentage and checklist, without a points breakdown
+	await expect(page.locator('.candidate-card')).not.toContainText(/Essentials [\d.]+\/[\d.]+/);
 	await expect(page.locator('.task-card').first()).toBeVisible();
 
 	// Programming: skill themes and milestone balance

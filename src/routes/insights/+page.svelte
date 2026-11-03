@@ -734,11 +734,6 @@
 									candidate
 								)} items outstanding</small
 							>
-							<div class="small muted">
-								{candidate.peakAwardBreakdown
-									.map((c) => `${c.name} ${formatOneDecimal(c.earned)}/${formatOneDecimal(c.max)}`)
-									.join(' · ')}
-							</div>
 							<ul class="plain task-list">
 								{#each sortBy( candidate.tasks, asc((t) => t.done) ) as task (task.key)}
 									<li class={task.done ? 'done' : 'todo'}>

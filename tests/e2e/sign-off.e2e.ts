@@ -93,6 +93,8 @@ test('picked statements can be cleared by stream, or all at once', async ({ page
 	await expect(page.locator('.heading-row strong')).toHaveText('Bushwalking Stage 4');
 	await page.getByLabel('I can tie a reef knot and a clove hitch.').check();
 
+	// Both listed before clearing: the second stream's pick moves the card's buttons as it arrives
+	await expect(page.locator('.picked-row')).toHaveCount(2);
 	await page.getByRole('button', { name: 'Clear Camping' }).click();
 	await expect(page.locator('.picked-row')).toHaveText([/Bushwalking Stage 4/]);
 	await page.getByRole('button', { name: 'Clear all' }).click();
