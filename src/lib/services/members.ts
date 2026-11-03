@@ -70,9 +70,10 @@ export function toMemberSummary(
 	};
 }
 
-/** A youth member logged in sees only themselves, built from their own profile */
-export function youthSelf(profiles: Profiles): MemberSummary | null {
-	const profile = profiles.profiles[0];
+/** A youth member sees only themselves, built from their own profile (for the unit, if given) */
+export function youthSelf(profiles: Profiles, unitId = ''): MemberSummary | null {
+	const profile =
+		profiles.profiles.find((p) => unitId && p.unit?.id === unitId) ?? profiles.profiles[0];
 	if (!profile) return null;
 	const username = profiles.username.split('-');
 	const name = profile.member.name.split(' ');
@@ -103,7 +104,7 @@ export class MembersService {
 		const cached = this.cache.get(unitId);
 		if (cached) return cached;
 		if (this.context.isYouth) {
-			const self = this.context.profiles ? youthSelf(this.context.profiles) : null;
+			const self = this.context.profiles ? youthSelf(this.context.profiles, unitId) : null;
 			return self ? [self] : [];
 		}
 		const members = (await this.context.terrain.unitMembers(unitId)).map((m) => toMemberSummary(m));

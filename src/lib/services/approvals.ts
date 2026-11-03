@@ -205,12 +205,14 @@ export class ApprovalsService {
 
 	/** The signed in leader's member id, to tell whether they've already voted */
 	leaderMemberId(): string {
-		return this.context.profiles?.profiles[0]?.member.id ?? '';
+		return this.leader().memberId;
 	}
 
 	/** The signed in leader, as a voter on what they've just approved */
 	leader(): Voter {
-		const member = this.context.profiles?.profiles[0]?.member;
+		const profiles = this.context.profiles?.profiles ?? [];
+		const member = (profiles.find((p) => p.unit?.id === this.context.unitId) ?? profiles[0])
+			?.member;
 		return { memberId: member?.id ?? '', name: member?.name ?? '' };
 	}
 }

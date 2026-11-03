@@ -29,6 +29,28 @@
 	// The page Beacon opens at, which also suggests adding it to the Home Screen
 	const onLanding = $derived(app.isYouth ? path.startsWith('/progress/') : path === '/insights/');
 
+	// Youth in the chosen unit see only their own progress, Record for SIAs, the Reference, and Approvals
+	// on the Unit Council. Anywhere else, including after switching to a unit they're youth in, goes to
+	// their own progress
+	const YOUTH_PAGES = [
+		'/record/sia-plan/',
+		'/oas-reference/',
+		'/reference/',
+		'/styles/',
+		'/info/',
+		'/logging/',
+		'/logout/',
+		'/login/'
+	];
+	const youthMayView = (at: string) =>
+		YOUTH_PAGES.some((p) => at.startsWith(p)) ||
+		at.startsWith(`/progress/${app.memberId}/`) ||
+		(app.onUnitCouncil && at.startsWith('/approvals/'));
+	$effect(() => {
+		if (app.isSignedIn && app.isYouth && app.memberId && !youthMayView(path))
+			goto(pagePath(`progress/${app.memberId}/`), { replaceState: true });
+	});
+
 	// Beacon Reference installs as its own app from /reference/, with its own name and icon
 	const isReferenceApp = $derived(path.startsWith('/reference/'));
 	const appName = $derived(isReferenceApp ? 'Beacon Reference' : 'Beacon');
@@ -47,13 +69,19 @@
 
 	// How many approvals wait for the leader's vote, for the badge on More and Approvals
 	$effect(() => {
-		if (app.isSignedIn && !app.isYouth && app.profiles && app.chosenUnits.length > 0)
+		if (
+			app.isSignedIn &&
+			(!app.isYouth || app.onUnitCouncil) &&
+			app.profiles &&
+			app.chosenUnits.length > 0
+		)
 			approvalsBadge.loadIfNeeded(app.chosenUnits);
 	});
 
 	const navOptions = $derived({
 		signedIn: app.isSignedIn,
 		isYouth: app.isYouth,
+		onUnitCouncil: app.onUnitCouncil,
 		logging: requestLog.enabled,
 		approvalsWaiting: approvalsBadge.key === unitsKey(app.chosenUnits) ? approvalsBadge.waiting : 0
 	});

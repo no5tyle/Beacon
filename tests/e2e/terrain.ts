@@ -9,6 +9,13 @@ export interface FakeOptions {
 	refuseLogin?: string;
 	/** Log in as a youth member rather than a leader */
 	youth?: boolean;
+	/**
+	 * Units the member is youth in, as Ava (the first one's m0), and a leader in the rest, as Terrain lists
+	 * a youth who's also a leader elsewhere
+	 */
+	youthIn?: string[];
+	/** Units whose Unit Council the youth is on */
+	councilIn?: string[];
 	/** Ava's special interest area plan (sub-3) has Kim's approval, and waits for this leader's */
 	siaPlan?: boolean;
 	/** Units whose approvals Terrain refuses to list, as for a leader not on their Unit Council */
@@ -385,6 +392,7 @@ function submissions(unitId: string) {
 export async function fakeTerrain(page: Page, options: FakeOptions = {}): Promise<FakeTerrain> {
 	const units = options.units ?? [{ id: 'unit-1', name: 'Mt Example Scouts', section: 'scout' }];
 	const fake: FakeTerrain = { requests: [], writes: [] };
+	const youthIn = options.youthIn ?? [];
 	const store = units.flatMap((unit) => records(unit.id));
 	// Each unit's own submission ids; the first unit's are plain, e.g. "sub-2"
 	const approvals = units.flatMap((unit, i) =>
@@ -472,18 +480,35 @@ export async function fakeTerrain(page: Page, options: FakeOptions = {}): Promis
 		if (url.pathname === '/profiles')
 			return json(route, {
 				username: 'SA-1234567',
-				profiles: units.map((unit) => ({
-					member: {
-						id: options.youth ? 'unit-1-m0' : 'leader-1',
-						name: options.youth ? 'Ava Nguyen' : 'Sam Leader'
-					},
-					unit: { ...unit, roles: options.youth ? [] : ['unit-council'] },
-					group: {
-						id: 'group-1',
-						name: '1st Example',
-						roles: options.youth ? [] : ['group-leader']
-					}
-				}))
+				// Roles as Terrain gives them: a leader's unit has unit-write, a youth's unit-submission-write
+				profiles: units.map((unit) => {
+					const youthHere = options.youth || youthIn.includes(unit.id);
+					const council = !youthHere || options.councilIn?.includes(unit.id);
+					return {
+						member: {
+							id: options.youth
+								? 'unit-1-m0'
+								: youthIn.length > 0
+									? `${youthIn[0]}-m0`
+									: 'leader-1',
+							name: options.youth || youthIn.length > 0 ? 'Ava Nguyen' : 'Sam Leader',
+							roles: ['achievement-write', 'member']
+						},
+						unit: {
+							...unit,
+							roles: [
+								...(council ? ['unit-council'] : []),
+								'unit-member',
+								youthHere ? 'unit-submission-write' : 'unit-write'
+							]
+						},
+						group: {
+							id: 'group-1',
+							name: '1st Example',
+							roles: options.youth ? [] : ['group-leader']
+						}
+					};
+				})
 			});
 		const unitMembers = url.pathname.match(/^\/units\/([^/]+)\/members$/);
 		if (unitMembers) {

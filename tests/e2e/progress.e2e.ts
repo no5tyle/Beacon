@@ -115,9 +115,8 @@ test('milestones just say Completed once all three are awarded', async ({ page }
 test('a youth member sees their own progress, without recording', async ({ page }) => {
 	await fakeTerrain(page, { youth: true });
 	await logIn(page);
-	await navigate(page, 'progress/');
-	await expect(page.locator('.youth')).toHaveCount(1);
-	await page.locator('.youth').click();
+	// Straight to their own page, not a list
+	await expect(page).toHaveURL(/\/progress\/unit-1-m0\/$/);
 	await expect(page.locator('h2')).toHaveText('Ava Nguyen');
 	await expect(page.locator('.stage-detail').first()).toBeVisible();
 	await expect(page.locator('a[href$="/record-oas/"]')).toHaveCount(0);

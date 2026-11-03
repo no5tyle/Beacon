@@ -326,11 +326,18 @@ test('the SIA plan page says it is under construction and has nothing to fill in
 	expect(terrain.writes).toEqual([]);
 });
 
-test('youth members can’t log activities or plans', async ({ page }) => {
+test('youth members can’t log activities, though they have the SIA page', async ({ page }) => {
 	await fakeTerrain(page, { youth: true });
 	await logIn(page);
-	for (const path of ['record/activity/', 'record/sia-plan/']) {
-		await navigate(page, path);
-		await expect(page).not.toHaveURL(/\/record\//);
-	}
+	await navigate(page, 'record/sia-plan/');
+	await expect(page.locator('h2')).toHaveText('Plan an SIA');
+	await page.evaluate(() => {
+		const home = document.querySelector('a.brand')?.getAttribute('href') ?? '/';
+		const link = document.createElement('a');
+		link.href = home + 'record/activity/';
+		document.body.appendChild(link);
+		link.click();
+		link.remove();
+	});
+	await expect(page).not.toHaveURL(/\/record\//);
 });
