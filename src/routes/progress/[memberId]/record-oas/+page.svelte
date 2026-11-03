@@ -8,6 +8,8 @@
 	import { goto } from '$app/navigation';
 	import BackLink from '#lib/components/BackLink.svelte';
 	import RecordSwitch from '#lib/components/RecordSwitch.svelte';
+	import VerifierLevels from '#lib/components/VerifierLevels.svelte';
+	import { firstStageAboveBase, requirementsAboveBase } from '#lib/model/oas/naaf.js';
 	import { page } from '$app/state';
 	import { dayMonthYear, today } from '#lib/model/dates.js';
 	import { isCoreStream } from '#lib/model/insights/insightsCalculator.js';
@@ -208,6 +210,13 @@
 	}
 
 	const needsVerifier = $derived(tickedStages.some((t) => t.statements.some((s) => !s.isLogbook)));
+	// What NAAF asks of the verifier for the stages with a statement to verify (not just the logbook)
+	const verifierLevels = $derived(
+		requirementsAboveBase(
+			tickedStages.filter((t) => t.statements.some((s) => !s.isLogbook)).map((t) => t.state.stage)
+		)
+	);
+	const shownStage = $derived(allStages.find((s) => s.templateLink === selectedTemplateLink));
 
 	function startSave() {
 		message = '';
@@ -319,6 +328,14 @@
 		OAS</label
 	>
 </div>
+
+{#if shownStage}
+	<VerifierLevels
+		requirements={requirementsAboveBase([shownStage])}
+		stream={shownStage.stream}
+		fromStage={firstStageAboveBase(allStages, shownStage.stream)}
+	/>
+{/if}
 
 {#if message}
 	<div class="alert {messageIsError ? 'alert-danger' : 'alert-success'}">{message}</div>
@@ -449,6 +466,7 @@
 			onclear={clearTicks}
 		/>
 
+		<VerifierLevels requirements={verifierLevels} />
 		<div class="verifier">
 			<div class="field">
 				<label class="form-label small" for="verifierName">Verifier name</label>

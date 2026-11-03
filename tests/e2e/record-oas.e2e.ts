@@ -223,3 +223,21 @@ test('a leader can change the verifier from themselves', async ({ page }) => {
 	const answers = (save!.body as { answers: Record<string, unknown> }).answers;
 	expect(answers['bushwalking_4_review_verifierName']).toBe('Kim Leader');
 });
+
+test('a youth recording a stage that needs more than SA is told what their verifier needs', async ({
+	page
+}) => {
+	await fakeTerrain(page, { youth: true });
+	await logIn(page);
+	await navigate(page, 'progress/unit-1-m0/record-oas/');
+	await page.getByLabel('Include non-core OAS').check();
+	await page.selectOption('#stage', { label: 'Vertical 3' });
+	await expect(page.locator('.verifier-levels').first()).toContainText(
+		'Verifying Vertical Stage 3 needs Safe Participant (SP) or above.'
+	);
+	await page.getByLabel('I can tie a reef knot and a clove hitch.').check();
+	// Beside the verifier too, as they enter who verified it
+	await expect(page.locator('.saving .verifier-levels')).toContainText(
+		'Vertical Stage 3 needs Safe Participant (SP)'
+	);
+});

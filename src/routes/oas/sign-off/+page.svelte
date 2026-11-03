@@ -11,6 +11,8 @@
 	import PickedStages from '#lib/components/PickedStages.svelte';
 	import RecordSwitch from '#lib/components/RecordSwitch.svelte';
 	import StepBar from '#lib/components/StepBar.svelte';
+	import VerifierLevels from '#lib/components/VerifierLevels.svelte';
+	import { firstStageAboveBase, requirementsAboveBase } from '#lib/model/oas/naaf.js';
 	import { isCoreStream } from '#lib/model/insights/insightsCalculator.js';
 	import {
 		MAX_LEADER_VERIFIABLE_STAGE,
@@ -269,6 +271,14 @@
 			p.statements.some((s) => p.inputIds.includes(s.inputId) && !s.isLogbook)
 		)
 	);
+	// Stages with a statement to verify (the logbook has no verifier), for what NAAF asks of the verifier
+	const verifierLevels = $derived(
+		requirementsAboveBase(
+			pickedStages
+				.filter((p) => p.statements.some((s) => p.inputIds.includes(s.inputId) && !s.isLogbook))
+				.map((p) => p.stage)
+		)
+	);
 	const verifierValid = $derived(
 		!needsVerifier || (verifier.name.trim() !== '' && verifier.contact.trim() !== '')
 	);
@@ -470,6 +480,14 @@
 			</div>
 		{/if}
 
+		{#if selectedStream}
+			<VerifierLevels
+				requirements={stage ? requirementsAboveBase([stage]) : []}
+				stream={selectedStream}
+				fromStage={firstStageAboveBase(allStages, selectedStream)}
+			/>
+		{/if}
+
 		{#if loading}
 			<p class="muted">Loading...</p>
 		{:else if stage && statements.length > 0}
@@ -614,6 +632,7 @@
 		</div>
 
 		{#if needsVerifier}
+			<VerifierLevels requirements={verifierLevels} />
 			<div class="field">
 				<label class="form-label small" for="verifierName">Verifier name</label>
 				<input id="verifierName" class="form-control" bind:value={verifier.name} />
