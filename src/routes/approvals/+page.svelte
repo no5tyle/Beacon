@@ -1,7 +1,7 @@
 <!--
-	Approvals: the unit's submissions waiting for the Unit Council, as Terrain's Approvals tab lists them,
-	with an Approve button on reviews and an Award button on awards Terrain lets the leader action, and a
-	history of those it has finished with.
+	Approvals: the chosen unit's submissions in three tabs. Approve lists reviews waiting for the Unit
+	Council's votes, Award those approved to hand out, and Submit the milestones and OAS stages done but
+	not yet submitted. A filter picks youth and the grouping, and leads to the history page.
 -->
 <script lang="ts">
 	import { untrack } from 'svelte';
@@ -17,19 +17,15 @@
 		approvalTitle,
 		canApproveInBeacon,
 		canAwardInBeacon,
-		decidedWithin,
 		hasVoted,
 		isAwardDate,
 		localDate,
 		mayMoveToReview,
-		outcomeDisplay,
-		RECENT_DAYS,
 		isDecidingVote,
 		submittedDisplay,
 		VOTES_NEEDED,
 		withActioned,
 		type Actioned,
-		type DecidedSubmission,
 		type PendingApproval
 	} from '#lib/model/approvals.js';
 	import { milestonesReady } from '#lib/model/insights/memberInsightsCalculator.js';
@@ -63,17 +59,16 @@
 	let moveToReview = $state(true);
 	let working = $state('');
 	let message = $state<{ text: string; isError: boolean } | null>(null);
-	let tab = $state<'waiting' | 'history'>('waiting');
+	type Tab = 'approve' | 'award' | 'submit';
+	let tab = $state<Tab>('approve');
+	// Filters: a few youth to show (none picked means everyone), and whether the panel is open
+	let showFilters = $state(false);
+	let youthFilter = $state<string[]>([]);
+	const shownName = (name: string) => youthFilter.length === 0 || youthFilter.includes(name);
 	// The units Terrain listed approvals for (those whose Unit Council the leader is on), and those it
 	// couldn't be reached for
 	let loadedUnits = $state<ApprovalsUnit[]>([]);
 	let failedUnits = $state<ApprovalsUnit[]>([]);
-	// The history loads the first time its tab is opened, for the units it was loaded for
-	let history = $state<DecidedSubmission[]>([]);
-	let historyFor = $state('');
-	let historyLoading = $state(false);
-	let historyError = $state('');
-	let showOlder = $state(false);
 	// Milestones with every requirement done but not submitted, so not in Terrain's list. Found from the
 	// youth's activity counts, the progress Insights and Progress load
 	// and OAS stages with every statement and the logbook ticked, from the unit's records of each stage
@@ -260,37 +255,12 @@
 		for (const approval of list)
 			actioned.set(approval.submissionId, { action, wasAward: approval.isAward });
 		showList(unitsId, withActioned(pending, actioned, approvals.leader()).list);
-		// Something that went through belongs in the history now: read it again when it's next shown,
-		// marked before the reload so opening History straight away doesn't show it as it was
-		if (historyFor) historyFor = '';
 		checksAgain = 0;
 		await load();
 	}
 
-	async function loadHistory() {
-		const id = unitsId;
-		if (!id || historyLoading) return;
-		historyLoading = true;
-		historyError = '';
-		try {
-			const found = await approvals.historyIn(units);
-			if (id !== unitsId) return;
-			history = found.list;
-			historyFor = id;
-		} catch {
-			historyError = "Couldn't load the history from Terrain. Try again in a moment.";
-		} finally {
-			historyLoading = false;
-		}
-	}
-
-	// Refresh and pull to refresh reload whichever tab is showing
-	const refresh = () => (tab === 'history' ? loadHistory() : load());
-
-	function showTab(next: 'waiting' | 'history') {
-		tab = next;
-		if (next === 'history' && historyFor !== unitsId) loadHistory();
-	}
+	// Refresh and pull to refresh read Terrain again
+	const refresh = () => load();
 
 	// No more checking once the page closes
 	$effect(() => () => clearTimeout(checkTimer));
@@ -309,13 +279,9 @@
 		failedUnits = [];
 		clearTimeout(checkTimer);
 		pending = [];
-		history = [];
-		historyFor = '';
-		showOlder = false;
-		historyYouth = [];
+		youthFilter = [];
 		message = null;
 		confirming = '';
-		if (untrack(() => tab) === 'history') untrack(loadHistory);
 		// Only the unit reloads the list; what load() reads, such as whether it is loading, mustn't
 		untrack(load);
 	});
@@ -344,11 +310,15 @@
 	const unitViews = $derived(
 		loadedUnits
 			.map((unit) => {
-				const items = pending.filter((a) => a.unitId === unit.id);
+				const items = pending.filter((a) => a.unitId === unit.id && shownName(a.memberName));
 				const toAward = items.filter((a) => a.isAward);
 				const unitReady = sortBy(
 					ready.filter(
-						(r) => r.unitId === unit.id && !submitted(r) && !submittedHere.has(readyKey(r))
+						(r) =>
+							r.unitId === unit.id &&
+							shownName(r.name) &&
+							!submitted(r) &&
+							!submittedHere.has(readyKey(r))
 					),
 					asc((r) => (groupByMember ? r.name : r.title)),
 					asc((r) => (groupByMember ? r.title : r.name))
@@ -377,6 +347,24 @@
 	// Units get a heading of their own once the leader has more than one listed
 	const severalUnits = $derived(loadedUnits.length > 1);
 	const countText = $derived(counts(pending));
+	// Each tab's count, of those the filter shows
+	const tabCounts = $derived({
+		approve: unitViews.reduce((n, v) => n + v.toApprove.length, 0),
+		award: unitViews.reduce((n, v) => n + v.toAward.length, 0),
+		submit: unitViews.reduce((n, v) => n + v.ready.length, 0)
+	});
+	const TABS: { key: Tab; label: string }[] = [
+		{ key: 'approve', label: 'Approve' },
+		{ key: 'award', label: 'Award' },
+		{ key: 'submit', label: 'Submit' }
+	];
+	// Every youth with something listed, to filter by
+	const youthNames = $derived(
+		sortBy(
+			distinct([...pending.map((a) => a.memberName), ...ready.map((r) => r.name)]),
+			asc((n) => n)
+		)
+	);
 	// The unit, or the group when several units are listed together
 	const summaryName = $derived(
 		loadedUnits.length === 1
@@ -385,23 +373,7 @@
 				? app.groupName
 				: app.unitName
 	);
-	const historyUnits = $derived(distinct(history.map((h) => h.unitId)).length > 1);
 	const names = (voters: { name: string }[]) => voters.map((v) => v.name).join(', ');
-
-	const recentHistory = $derived(history.filter((h) => decidedWithin(h, RECENT_DAYS)));
-	// Youth to show in the history; none picked means everyone
-	let historyYouth = $state<string[]>([]);
-	const historyNames = $derived(
-		sortBy(
-			distinct(history.map((h) => h.memberName)),
-			asc((n) => n)
-		)
-	);
-	const shownHistory = $derived(
-		(showOlder ? history : recentHistory).filter(
-			(h) => historyYouth.length === 0 || historyYouth.includes(h.memberName)
-		)
-	);
 
 	async function approve(approval: PendingApproval) {
 		if (working) return;
@@ -611,15 +583,16 @@
 {/snippet}
 
 {#snippet unitSections(view: UnitView)}
-	{#if view.reviewGroups.length > 0}
+	{#if tab === 'approve' && view.reviewGroups.length > 0}
 		<section class="approval-section" aria-label="To approve">
-			<h3>To approve <span class="muted">({view.toApprove.length})</span></h3>
+			<p class="small muted">
+				Submitted for the Unit Council's review: approve each after a confirm.
+			</p>
 			{@render approvalGroups(view.reviewGroups)}
 		</section>
 	{/if}
-	{#if view.awardGroups.length > 0}
+	{#if tab === 'award' && view.awardGroups.length > 0}
 		<section class="approval-section" aria-label="Ready to award">
-			<h3>Ready to award <span class="muted">({view.toAward.length})</span></h3>
 			<p class="small muted">
 				Approved by the Unit Council. Tick the ones handed out to award them together.
 			</p>
@@ -691,9 +664,8 @@
 			{@render approvalGroups(view.awardGroups)}
 		</section>
 	{/if}
-	{#if view.ready.length > 0}
+	{#if tab === 'submit' && view.ready.length > 0}
 		<section class="approval-section" aria-label="Ready to submit">
-			<h3>Ready to submit <span class="muted">({view.ready.length})</span></h3>
 			<p class="small muted">
 				Milestones and OAS stages with every requirement done, but not submitted for review yet.
 				Tick the ones to submit together.
@@ -788,88 +760,32 @@
 	{/if}
 {/snippet}
 
-{#snippet historyTab()}
-	{#if historyLoading && history.length === 0}
-		<p class="muted">Loading the history from Terrain...</p>
-	{:else if historyError}
-		<div class="alert alert-danger">{historyError}</div>
-	{:else if history.length === 0}
-		<div class="approvals-empty">Nothing has been through the Unit Council yet.</div>
-	{:else}
-		{#if historyNames.length > 1}
-			<div class="history-filter">
-				<MultiSelect
-					id="historyYouth"
-					label="Youth"
-					options={historyNames}
-					bind:selected={historyYouth}
-					noun="youth"
-				/>
-			</div>
-		{/if}
-		<p class="small muted">
-			{showOlder
-				? `All ${history.length} the Unit Council has finished with, most recent first.`
-				: `Finished with in the last ${RECENT_DAYS} days, most recent first.`}
-		</p>
-		{#if shownHistory.length === 0}
-			<p class="muted">
-				Nothing{historyYouth.length > 0 ? ' for the youth picked' : ''}{showOlder
-					? ''
-					: ` in the last ${RECENT_DAYS} days`}.
-			</p>
-		{/if}
-		{#each shownHistory as item (item.submissionId)}
-			<div class="approval-card history-card">
-				<div class="history-title">
-					<span class="strong">{item.memberName}</span>
-					<span class="badge {item.outcome === 'approved' ? 'badge-success' : 'badge-muted'}"
-						>{outcomeDisplay(item.outcome)}</span
-					>
-				</div>
-				<div>{item.achievementName}</div>
-				<div class="small muted">
-					{historyUnits ? `${item.unitName} · ` : ''}{item.submissionType} · decided {submittedDisplay(
-						item.decidedOn
-					)} · submitted {submittedDisplay(item.submittedOn)}
-				</div>
-				{#if item.approvedBy.length > 0 || item.improveBy.length > 0}
-					<div class="small votes">
-						{#if item.approvedBy.length > 0}
-							<span class="text-success"
-								><Icon name="check" /> Approved by {names(item.approvedBy)}</span
-							>
-						{/if}
-						{#if item.improveBy.length > 0}
-							<span class="text-danger"
-								><Icon name="action-undo" /> Improvement asked by {names(item.improveBy)}</span
-							>
-						{/if}
-					</div>
-				{/if}
-			</div>
-		{/each}
-		{#if !showOlder && history.length > recentHistory.length}
-			<button type="button" class="btn btn-outline-secondary" onclick={() => (showOlder = true)}
-				>Show older ({history.length - recentHistory.length})</button
-			>
-		{/if}
-	{/if}
-{/snippet}
-
 <div use:pullToRefresh={refresh}>
 	<div class="approvals-header">
 		<h2>Approvals</h2>
-		<button
-			type="button"
-			class="btn icon-btn btn-outline-secondary"
-			onclick={refresh}
-			disabled={(tab === 'history' ? historyLoading : loading) || !unitsId}
-			title="Check Terrain again"
-			aria-label="Refresh"
-		>
-			<Icon name="reload" />
-		</button>
+		<span class="header-buttons">
+			<button
+				type="button"
+				class="btn icon-btn {showFilters ? 'btn-primary' : 'btn-outline-secondary'}"
+				onclick={() => (showFilters = !showFilters)}
+				disabled={!unitsId}
+				aria-expanded={showFilters}
+				title="Filters"
+				aria-label="Filters"
+			>
+				<Icon name="list" />
+			</button>
+			<button
+				type="button"
+				class="btn icon-btn btn-outline-secondary"
+				onclick={refresh}
+				disabled={loading || !unitsId}
+				title="Check Terrain again"
+				aria-label="Refresh"
+			>
+				<Icon name="reload" />
+			</button>
+		</span>
 	</div>
 
 	{#if !unitsId}
@@ -878,7 +794,46 @@
 		<p class="small muted summary">
 			{summaryName}{loading || !countText ? '' : ` · ${countText}`}
 		</p>
-		{#if tab === 'waiting'}
+
+		{#if showFilters}
+			<div class="card filters">
+				{#if youthNames.length > 1}
+					<MultiSelect
+						id="approvalsYouth"
+						label="Youth"
+						options={youthNames}
+						bind:selected={youthFilter}
+						noun="youth"
+					/>
+				{/if}
+				<div class="field group-by">
+					<label class="form-label small" for="groupBy">Group by</label>
+					<select
+						id="groupBy"
+						class="form-select"
+						value={groupByMember ? 'member' : 'achievement'}
+						onchange={(e) => (groupByMember = e.currentTarget.value === 'member')}
+					>
+						<option value="member">Youth</option>
+						<option value="achievement">Achievement</option>
+					</select>
+				</div>
+				<a class="btn btn-outline-secondary btn-sm" href={pagePath('approvals/history/')}
+					>View history</a
+				>
+			</div>
+		{/if}
+
+		<div class="tabs" role="tablist">
+			{#each TABS as t (t.key)}
+				<button type="button" role="tab" aria-selected={tab === t.key} onclick={() => (tab = t.key)}
+					>{t.label}{#if tabCounts[t.key] > 0}
+						&nbsp;<span class="badge">{tabCounts[t.key]}</span>{/if}</button
+				>
+			{/each}
+		</div>
+
+		{#if tab === 'submit'}
 			<YouthLoadProgress
 				unitId={app.unitId}
 				label="Loading youth to find what's ready to submit:"
@@ -887,23 +842,6 @@
 				<p class="small muted">Checking for milestones and stages ready to submit...</p>
 			{/if}
 		{/if}
-
-		<div class="tabs" role="tablist">
-			<button
-				type="button"
-				role="tab"
-				aria-selected={tab === 'waiting'}
-				onclick={() => showTab('waiting')}
-				>Waiting{#if pending.length > 0}
-					&nbsp;<span class="badge">{pending.length}</span>{/if}</button
-			>
-			<button
-				type="button"
-				role="tab"
-				aria-selected={tab === 'history'}
-				onclick={() => showTab('history')}>History</button
-			>
-		</div>
 
 		{#if message}
 			<div class="alert {message.isError ? 'alert-danger' : 'alert-success'}" role="status">
@@ -917,37 +855,25 @@
 			</div>
 		{/if}
 
-		{#if tab === 'history'}
-			{@render historyTab()}
-		{:else if loading && pending.length === 0}
+		{#if loading && pending.length === 0 && tab !== 'submit'}
 			<p class="muted">Loading approvals from Terrain...</p>
 		{:else if errorMessage}
 			<div class="alert alert-danger">{errorMessage}</div>
-		{:else if pending.length === 0 && unitViews.length === 0}
+		{:else if loadedUnits.length === 0 && failedUnits.length === 0 && !loading}
 			<div class="approvals-empty">
 				<Icon name="circle-check" />
-				{loadedUnits.length === 0 && failedUnits.length === 0
-					? "Terrain doesn't list approvals for you in any of your units: they're for Unit Council members."
-					: 'Nothing is waiting for approval.'}
+				Terrain doesn't list approvals for you in this unit: they're for its Unit Council members.
+			</div>
+		{:else if tabCounts[tab] === 0 && !(tab === 'submit' && readyChecking)}
+			<div class="approvals-empty">
+				<Icon name="circle-check" />
+				{youthFilter.length > 0 ? 'Nothing for the youth picked ' : 'Nothing '}{tab === 'approve'
+					? 'waiting for approval.'
+					: tab === 'award'
+						? 'approved and waiting to be awarded.'
+						: 'ready to submit.'}
 			</div>
 		{:else}
-			{#if pending.length > 1}
-				<div class="filters">
-					<div class="field group-by">
-						<label class="form-label small" for="groupBy">Group by</label>
-						<select
-							id="groupBy"
-							class="form-select"
-							value={groupByMember ? 'member' : 'achievement'}
-							onchange={(e) => (groupByMember = e.currentTarget.value === 'member')}
-						>
-							<option value="member">Youth</option>
-							<option value="achievement">Achievement</option>
-						</select>
-					</div>
-				</div>
-			{/if}
-
 			{#each unitViews as view (view.unit.id)}
 				{#if severalUnits}
 					<section class="unit-section" aria-label={view.unit.name}>
@@ -1001,23 +927,17 @@
 		margin-bottom: 0.75rem;
 	}
 
-	.history-title {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
+	.header-buttons {
+		display: inline-flex;
 		gap: 0.5rem;
 	}
 
-	.badge-muted {
-		background: var(--faint);
-	}
-
 	.filters {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 0.75rem;
 		margin-bottom: 1rem;
-	}
-
-	.history-filter {
-		margin-bottom: 0.75rem;
 	}
 
 	.group-by {
@@ -1069,10 +989,6 @@
 
 	.approval-section + .approval-section {
 		margin-top: 1.5rem;
-	}
-
-	.approval-section h3 {
-		margin-bottom: 0.25rem;
 	}
 
 	.award-bar {
