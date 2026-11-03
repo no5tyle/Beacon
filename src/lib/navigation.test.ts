@@ -21,8 +21,14 @@ describe('navigation', () => {
 		]);
 	});
 
-	it('gives youth only Progress and Reference', () => {
-		expect(mainPages(youth).map((p) => p.shortTitle)).toEqual(['Progress', 'Reference']);
+	it('gives youth Record (for SIAs) and Progress, and Approvals on the Unit Council', () => {
+		expect(mainPages(youth).map((p) => p.shortTitle)).toEqual(['Record', 'Progress']);
+		expect(mainPages(youth)[0].href).toBe('record/sia-plan/');
+		expect(mainPages({ ...youth, onUnitCouncil: true }).map((p) => p.shortTitle)).toEqual([
+			'Record',
+			'Progress',
+			'Approvals'
+		]);
 	});
 
 	it('puts Patrols and Approvals (leaders only), Info and Logout under More, with logging left to the version', () => {
@@ -38,7 +44,7 @@ describe('navigation', () => {
 			'Info',
 			'Logout'
 		]);
-		expect(morePages(youth).map((p) => p.title)).toEqual(['Info', 'Logout']);
+		expect(morePages(youth).map((p) => p.title)).toEqual(['Reference', 'Logout']);
 	});
 
 	it('shows how many approvals wait for the leader on Approvals, and in total on More', () => {
@@ -89,13 +95,13 @@ describe('navigation', () => {
 			});
 		});
 
-		it('keep Progress in the bar for youth, as their main page', () => {
+		it('give youth Record, Progress and Approvals in the bar, Reference and Logout under More', () => {
 			expect(titles(phoneTabs(youth, '/progress/'))).toEqual({
-				main: ['Progress', 'Reference'],
-				more: ['Info', 'Logout']
+				main: ['Record', 'Progress'],
+				more: ['Reference', 'Logout']
 			});
-			expect(titles(phoneTabs(youth, '/info/'))).toEqual({
-				main: ['Progress', 'Info'],
+			expect(titles(phoneTabs({ ...youth, onUnitCouncil: true }, '/oas-reference/'))).toEqual({
+				main: ['Record', 'Progress', 'Approvals'],
 				more: ['Reference', 'Logout']
 			});
 		});

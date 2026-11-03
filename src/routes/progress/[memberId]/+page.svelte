@@ -232,7 +232,8 @@
 	<title>Beacon / {name || 'Progress'}</title>
 </svelte:head>
 
-<BackLink href={pagePath('progress/')} label="Progress" />
+<!-- Youth see only their own progress, so there's no list to go back to -->
+{#if !app.isYouth}<BackLink href={pagePath('progress/')} label="Progress" />{/if}
 
 <div class="person-head">
 	<div class="person-name">

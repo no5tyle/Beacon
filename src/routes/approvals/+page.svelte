@@ -228,9 +228,12 @@
 		}
 	}
 
+	// Youth on the Unit Council approve and award; submitting for others is the leaders'
+	const youthView = $derived(app.isYouth);
+
 	$effect(() => {
 		const loaded = loadedUnits;
-		if (loaded.length > 0) untrack(() => loadReady(loaded));
+		if (loaded.length > 0 && !youthView) untrack(() => loadReady(loaded));
 	});
 
 	// Once submitted, a milestone is in Terrain's list, to approve or award there instead. A submitted
@@ -266,12 +269,14 @@
 	$effect(() => () => clearTimeout(checkTimer));
 
 	$effect(() => {
-		// Approvals are for leaders on the Unit Council; a youth goes back to Home
-		if (app.isYouth) {
+		// Approvals are for the Unit Council; a youth not on it goes back to Home
+		if (app.isYouth && !app.onUnitCouncil) {
 			goto(pagePath(''), { replaceState: true });
 			return;
 		}
 		void unitsId;
+		// Youth have no Submit tab
+		if (app.isYouth && untrack(() => tab) === 'submit') tab = 'approve';
 		actioned = new SvelteMap();
 		ticked.clear();
 		confirmingAwards = '';
@@ -353,11 +358,11 @@
 		award: unitViews.reduce((n, v) => n + v.toAward.length, 0),
 		submit: unitViews.reduce((n, v) => n + v.ready.length, 0)
 	});
-	const TABS: { key: Tab; label: string }[] = [
+	const TABS: { key: Tab; label: string }[] = $derived([
 		{ key: 'approve', label: 'Approve' },
 		{ key: 'award', label: 'Award' },
-		{ key: 'submit', label: 'Submit' }
-	];
+		...(youthView ? [] : [{ key: 'submit' as const, label: 'Submit' }])
+	]);
 	// Every youth with something listed, to filter by
 	const youthNames = $derived(
 		sortBy(
@@ -382,7 +387,7 @@
 		const result = await approvals.approve(approval);
 		// Only once the approval is in: a plan Terrain hasn't approved can't move on
 		const moved =
-			result.success && moveToReview && mayMoveToReview(approval)
+			result.success && moveToReview && !youthView && mayMoveToReview(approval)
 				? await approvals.moveToReview(approval)
 				: null;
 		working = '';
@@ -533,7 +538,7 @@
 						members have approved; this would be approval {approval.approvedBy.length + 1} of
 						{VOTES_NEEDED}.
 					</p>
-					{#if mayMoveToReview(approval)}
+					{#if mayMoveToReview(approval) && !youthView}
 						<label class="small move-to-review"
 							><input type="checkbox" class="form-check-input" bind:checked={moveToReview} />
 							If it's the plan, move it on to the review for {approval.memberName}</label

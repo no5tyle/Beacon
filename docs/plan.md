@@ -177,6 +177,7 @@ These are the features to tick off in Phase 5. Ticked items are covered by the a
 
 - [ ] Login: branch remembered, autofill auto-login on iOS and Android, version line, diagnostics panel, errors (all but the real autofill on iOS and Android are page tested)
 - [x] Signed out goes to login; youth members see only Home, Progress and Reference
+- [x] Youth view per unit (from the unit's Terrain roles: unit-write is a leader, unit-submission-write youth): Record for SIAs, their own Progress, Approvals (Approve and Award) on the Unit Council, Reference and Logout under the menu
 - [x] Home: group and unit selectors, unit remembered, help text, link to Topo
 - [x] Tab bar: Home, Insights, Record, Progress, Reference, More; More has logging, Logout and the version
 - [x] Background preload of the unit's progress once a unit is chosen

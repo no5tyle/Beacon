@@ -14,6 +14,7 @@ import type {
 	AssessmentOutcome,
 	AuthenticationResult,
 	LogbookMetric,
+	Profile,
 	Profiles,
 	TerrainAchievement,
 	TerrainSubmission,
@@ -47,6 +48,8 @@ export interface Session {
 	expiresAt: number;
 	/** A youth member logged in: they act as themselves, so there's no profile to switch to */
 	isYouth: boolean;
+	/** The signed in member's own ids: acting as themselves needs no profile switch either */
+	ownMemberIds?: string[];
 }
 
 export type LoginResult =
@@ -112,9 +115,15 @@ export class Terrain {
 		return this.shared.session !== null;
 	}
 
-	/** Marks the login as a youth member's or a leader's, once their profiles are known */
-	setYouth(isYouth: boolean): void {
-		if (this.shared.session) this.shared.session.isYouth = isYouth;
+	/**
+	 * Marks the login as a youth member's or a leader's, once their profiles are known, with the member's
+	 * own ids, e.g. a leader in one unit who is youth in another
+	 */
+	setYouth(isYouth: boolean, ownMemberIds: string[] = []): void {
+		if (this.shared.session) {
+			this.shared.session.isYouth = isYouth;
+			this.shared.session.ownMemberIds = ownMemberIds;
+		}
 	}
 
 	/** Called when Terrain won't renew the login, so the app can ask the leader to log in again */
@@ -475,7 +484,8 @@ export class Terrain {
 
 	/** Switches Terrain to a youth's profile. Says whether Terrain agreed, so nothing is sent as the leader by mistake */
 	assumeProfile(memberId: string): Promise<TerrainWriteResult> {
-		if (this.requireSession().isYouth)
+		const session = this.requireSession();
+		if (session.isYouth || session.ownMemberIds?.includes(memberId))
 			return Promise.resolve({ success: true, status: 0, body: '' });
 		return this.write(
 			'POST',
@@ -513,12 +523,29 @@ export class Terrain {
 	}
 }
 
-/** A leader, rather than a youth member: a group leader, group support leader or on a Unit Council */
-export function isLeader(profiles: Profiles | null | undefined): boolean {
-	return (profiles?.profiles ?? []).some(
-		(profile) =>
-			(profile.group?.roles ?? []).some(
-				(role) => role === 'group-leader' || role.startsWith('support-leader-group-')
-			) || (profile.unit?.roles ?? []).some((role) => role === 'unit-council')
+/**
+ * Whether the member is youth in this profile's unit. Terrain gives a leader's unit "unit-write" (e.g.
+ * ["unit-council", "unit-member", "unit-write"]) and a youth's unit only "unit-member" and
+ * "unit-submission-write", with "unit-council" when they're on its Unit Council. The group's roles are
+ * the member's across the group (a youth who is a leader elsewhere has "group-leader" on every profile),
+ * so they only decide a profile without either unit role
+ */
+export function isYouthProfile(profile: Profile): boolean {
+	const unitRoles = profile.unit?.roles ?? [];
+	if (unitRoles.includes('unit-write')) return false;
+	if (unitRoles.includes('unit-member')) return true;
+	return !(
+		(profile.group?.roles ?? []).some(
+			(role) => role === 'group-leader' || role.startsWith('support-leader-group-')
+		) || unitRoles.includes('unit-council')
 	);
+}
+
+/** On the unit's Unit Council: a leader on it, or a youth voted on to it */
+export const onUnitCouncil = (profile: Profile | undefined) =>
+	(profile?.unit?.roles ?? []).includes('unit-council');
+
+/** A leader, rather than a youth member, in at least one of their units */
+export function isLeader(profiles: Profiles | null | undefined): boolean {
+	return (profiles?.profiles ?? []).some((profile) => !isYouthProfile(profile));
 }

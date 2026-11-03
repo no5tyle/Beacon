@@ -48,8 +48,8 @@
 	}
 
 	$effect(() => {
-		// The history is for leaders on the Unit Council; a youth goes back to Home
-		if (app.isYouth) {
+		// The history is for the Unit Council; a youth not on it goes back to Home
+		if (app.isYouth && !app.onUnitCouncil) {
 			goto(pagePath(''), { replaceState: true });
 			return;
 		}

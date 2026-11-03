@@ -85,7 +85,7 @@ test('a youth member opens at their Progress and sees only their own pages', asy
 	await expect(page).toHaveURL(/\/progress\//);
 	const links = isMobile ? page.locator('.tab-bar .tab') : page.locator('.side-link');
 	await expect(links.filter({ hasText: 'Insights' })).toHaveCount(0);
-	await expect(links.filter({ hasText: /^Record/ })).toHaveCount(0);
+	await expect(links.filter({ hasText: 'Patrols' })).toHaveCount(0);
 	await navigate(page, 'info/');
 	await expect(page.locator('main')).toContainText('Signed in as Ava Nguyen');
 });

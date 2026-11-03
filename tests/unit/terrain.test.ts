@@ -5,6 +5,8 @@ import {
 	CLIENT_IDS,
 	COGNITO_ADDRESS,
 	isLeader,
+	isYouthProfile,
+	onUnitCouncil,
 	MEMBERS_ADDRESS,
 	Terrain,
 	TEMPLATES_ADDRESS,
@@ -190,6 +192,39 @@ describe('logging in', () => {
 		expect(isLeader(of(profile([], ['unit-council'])))).toBe(true);
 		expect(isLeader(of(profile([], ['member'])))).toBe(false);
 		expect(isLeader(of())).toBe(false);
+	});
+
+	it('tells youth from leaders unit by unit, as Terrain gives a Joey who leads Cubs', () => {
+		// Terrain's own profiles for one member (ids and names changed): youth in Joeys, a leader in Cubs.
+		// The group's "group-leader" is on both, so only the unit's roles decide
+		const group = { id: 'g', name: 'Example Group', roles: ['group-leader'] };
+		const member = { id: 'm', name: 'Pat', roles: ['achievement-write', 'member'] };
+		const joeys = {
+			member,
+			unit: { id: 'u1', name: 'Joey Scouts', roles: ['unit-member', 'unit-submission-write'] },
+			group
+		};
+		const cubs = {
+			member,
+			unit: {
+				id: 'u2',
+				name: 'Cub Scouts',
+				roles: ['unit-council', 'unit-member', 'unit-write']
+			},
+			group
+		};
+		const council = {
+			...joeys,
+			unit: { ...joeys.unit, roles: ['unit-council', ...joeys.unit.roles] }
+		};
+		expect(isYouthProfile(joeys)).toBe(true);
+		expect(isYouthProfile(council)).toBe(true);
+		expect(onUnitCouncil(council)).toBe(true);
+		expect(onUnitCouncil(joeys)).toBe(false);
+		expect(isYouthProfile(cubs)).toBe(false);
+		expect(onUnitCouncil(cubs)).toBe(true);
+		expect(isLeader({ username: 'x', profiles: [joeys, cubs] })).toBe(true);
+		expect(isLeader({ username: 'x', profiles: [council] })).toBe(false);
 	});
 });
 
@@ -457,6 +492,16 @@ describe('acting as a youth', () => {
 
 		expect(result).toEqual({ acted: true, value: 'mine' });
 		expect(calls.some((c) => c.url.endsWith('/assume-profiles'))).toBe(false);
+	});
+
+	it('doesn’t switch profiles for a leader acting as themselves, e.g. youth in another unit', async () => {
+		const { terrain, calls } = await signedIn(() => ({ body: {} }));
+		terrain.setYouth(false, ['me']);
+
+		await terrain.actAsYouth('me', async () => 'mine');
+		expect(calls.some((c) => c.url.endsWith('/assume-profiles'))).toBe(false);
+		await terrain.actAsYouth('m1', async () => 'theirs');
+		expect(calls.some((c) => c.url.endsWith('m1/assume-profiles'))).toBe(true);
 	});
 
 	it('waits for requests already under way, and holds new ones back until it is done', async () => {

@@ -1,9 +1,9 @@
 // Who is signed in, their groups and units, and the chosen unit. Held in memory only, apart from the
 // chosen unit and branch, which are remembered on the device. Ported from Beacon's C# StorageService.
 
-import { isLeader, Terrain, type LoginResult } from '#lib/terrain/client.js';
+import { isYouthProfile, onUnitCouncil, Terrain, type LoginResult } from '#lib/terrain/client.js';
 import { SessionExpiredError, TerrainError } from '#lib/terrain/errors.js';
-import type { Profiles, TerrainUser } from '#lib/terrain/types.js';
+import type { Profile, Profiles, TerrainUser } from '#lib/terrain/types.js';
 import { compareText, distinctBy } from '#lib/model/util.js';
 import { sectionFromProfiles, type BeaconContext } from '#lib/services/context.js';
 import { requestLog } from './log.svelte.js';
@@ -19,7 +19,6 @@ export const VERSION = __BEACON_VERSION__;
 export class AppState implements BeaconContext {
 	terrain: Terrain;
 	isSignedIn = $state(false);
-	isYouth = $state(false);
 	profiles = $state<Profiles | null>(null);
 	user = $state<TerrainUser | null>(null);
 	memberName = $state('');
@@ -74,6 +73,37 @@ export class AppState implements BeaconContext {
 		return this.units.find((u) => u.id === this.unitId)?.name ?? '';
 	}
 
+	/** The member's profile for a unit of theirs */
+	profileFor(unitId: string): Profile | undefined {
+		return this.profiles?.profiles.find((p) => p.group && p.unit?.id === unitId);
+	}
+
+	/** Whether the member is youth in the unit, rather than a leader */
+	youthIn(unitId: string): boolean {
+		const profile = this.profileFor(unitId);
+		return profile ? isYouthProfile(profile) : false;
+	}
+
+	/**
+	 * Youth in the chosen unit: Beacon shows them their own progress, recording SIAs, and Approvals if
+	 * they're on its Unit Council. With no unit chosen, youth only when they're youth in every unit
+	 */
+	get isYouth(): boolean {
+		if (!this.isSignedIn || !this.profiles) return false;
+		if (this.unitId) return this.youthIn(this.unitId);
+		return this.profiles.profiles.length > 0 && this.profiles.profiles.every(isYouthProfile);
+	}
+
+	/** On the chosen unit's Unit Council */
+	get onUnitCouncil(): boolean {
+		return onUnitCouncil(this.profileFor(this.unitId));
+	}
+
+	/** The signed in member's id in the chosen unit (or their first profile's) */
+	get memberId(): string {
+		return (this.profileFor(this.unitId) ?? this.profiles?.profiles[0])?.member.id ?? '';
+	}
+
 	sectionOf(unitId: string): string {
 		return sectionFromProfiles(this.profiles, unitId);
 	}
@@ -113,8 +143,11 @@ export class AppState implements BeaconContext {
 			const first = profiles.profiles[0];
 			if (first) {
 				this.memberName = first.member.name ?? '';
-				this.isYouth = !isLeader(profiles);
-				this.terrain.setYouth(this.isYouth);
+				// Acting as a youth switches profile unless the member is youth everywhere, or it's themselves
+				this.terrain.setYouth(
+					profiles.profiles.every(isYouthProfile),
+					profiles.profiles.map((p) => p.member.id)
+				);
 			}
 			const groups = this.groups;
 			this.groupId = groups.length === 1 ? groups[0].id : '';
@@ -162,7 +195,6 @@ export class AppState implements BeaconContext {
 	logout(): void {
 		this.terrain.logout();
 		this.isSignedIn = false;
-		this.isYouth = false;
 		this.profiles = null;
 		this.user = null;
 		this.memberName = '';
