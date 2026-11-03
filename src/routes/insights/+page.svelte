@@ -20,7 +20,6 @@
 		outstandingPercent,
 		type InsightsReport,
 		type RequirementGap,
-		type TaskCategory,
 		type Urgency
 	} from '#lib/model/insights/models.js';
 	import { rulesFor, type SectionRules } from '#lib/model/insights/settings.js';
@@ -238,9 +237,6 @@
 			: urgency === 'Medium'
 				? 'badge badge-warning'
 				: 'badge badge-muted';
-
-	const categoryDisplay = (category: TaskCategory) =>
-		category === 'PeakAward' ? 'Peak award' : category;
 
 	function monthsDisplay(months: number | null): string {
 		if (months === null) return 'no birth date';
@@ -679,30 +675,10 @@
 					months. Pick focus youth above to track others here.
 				</p>
 			{:else}
-				<h3>{report.rules.peakAwardName}: high priority tasks</h3>
-				<p class="muted">
-					Outstanding items for youth moving up within {settings.moveUpWindowMonths} months and focus
-					youth, most urgent first.
-				</p>
-				<div class="task-grid section-gap">
-					{#each report.priorityTaskBoard as task (task.key)}
-						<div class="task-card" class:urgent={task.highUrgencyCount > 0}>
-							<div class="task-title">
-								<strong>{task.title}</strong>
-								<span class="badge badge-dark">{task.memberNames.length}</span>
-							</div>
-							<div class="small muted">
-								{categoryDisplay(task.category)}
-								{#if task.highUrgencyCount > 0}
-									<span class="text-danger"> · {task.highUrgencyCount} within 3 months</span>
-								{/if}
-							</div>
-							<div class="small">{task.memberNames.join(', ')}</div>
-						</div>
-					{/each}
-				</div>
-
 				<h3>Priority youth</h3>
+				<p class="muted">
+					Youth moving up within {settings.moveUpWindowMonths} months and focus youth, most urgent first.
+				</p>
 				<div class="candidate-grid card-grid section-gap">
 					{#each report.moveUpCandidates as candidate (candidate.memberId)}
 						<div class="card candidate-card">
@@ -1189,7 +1165,6 @@
 		background: #0d6efd;
 	}
 
-	.task-grid,
 	.candidate-grid {
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
@@ -1200,18 +1175,6 @@
 		grid-template-columns: repeat(auto-fill, minmax(min(100%, 24rem), 1fr));
 	}
 
-	.task-card {
-		padding: 0.6rem 0.8rem;
-		border: 1px solid var(--border);
-		border-left: 4px solid #6c757d;
-		border-radius: 0.4rem;
-	}
-
-	.task-card.urgent {
-		border-left-color: #d9534f;
-	}
-
-	.task-title,
 	.candidate-head {
 		display: flex;
 		align-items: flex-start;
