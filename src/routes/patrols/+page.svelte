@@ -5,6 +5,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import ChooseUnit from '#lib/components/ChooseUnit.svelte';
+	import YouthLoadProgress from '#lib/components/YouthLoadProgress.svelte';
 	import { pullToRefresh } from '#lib/actions/pullToRefresh.js';
 	import { today } from '#lib/model/dates.js';
 	import { moveUpBadge } from '#lib/model/insights/insightsCalculator.js';
@@ -101,6 +102,11 @@
 
 <div use:pullToRefresh={refresh}>
 	<h2>Patrols{app.unitName ? ` (${app.unitName})` : ''}</h2>
+
+	{#if app.unitId}<YouthLoadProgress
+			unitId={app.unitId}
+			label="Loading award progress for youth"
+		/>{/if}
 
 	{#if !app.unitId}
 		<ChooseUnit />
