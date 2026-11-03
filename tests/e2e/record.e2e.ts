@@ -314,27 +314,15 @@ test('says when Terrain won’t take the activity, and keeps it to try again', a
 	await expect(page.getByRole('button', { name: 'Save to Terrain' })).toBeEnabled();
 });
 
-test('enters an SIA plan: youth, area and project, then a review that sends nothing', async ({
+test('the SIA plan page says it is under construction and has nothing to fill in', async ({
 	page
 }) => {
 	const terrain = await fakeTerrain(page);
 	await logIn(page);
 	await navigate(page, 'record/sia-plan/');
-	const next = page.getByRole('button', { name: /^Next/ });
-	await expect(next).toBeDisabled();
-	await page.getByLabel('Mia Brown').check();
-	await next.click();
-
-	await expect(next).toBeDisabled();
-	await page.getByRole('button', { name: 'Arts & Literature' }).click();
-	await page.getByLabel('Project name').fill('Puppet show');
-	await next.click();
-
-	const review = page.locator('.review');
-	await expect(review.locator('h3')).toHaveText('Puppet show');
-	await expect(review).toContainText('Mia Brown');
-	await expect(review).toContainText('Arts & Literature');
-	await expect(page.getByRole('button', { name: 'Save to Terrain' })).toBeDisabled();
+	await expect(page.locator('h2')).toHaveText('Plan an SIA');
+	await expect(page.locator('.construction')).toContainText('under construction');
+	await expect(page.locator('.sia-plan input, .sia-plan .action-bar')).toHaveCount(0);
 	expect(terrain.writes).toEqual([]);
 });
 
