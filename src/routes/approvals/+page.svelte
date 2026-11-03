@@ -154,8 +154,8 @@
 	// A load asked for while one was running, e.g. straight after an approval, runs once it's finished
 	let loadAgain = false;
 
-	// Every unit the leader has in the chosen group, listed together
-	const units = $derived(app.units);
+	// The chosen unit's approvals, like the rest of the app (switching units switches the list)
+	const units = $derived(app.chosenUnits);
 	const unitsId = $derived(unitsKey(units));
 	const me = $derived(approvals.leaderMemberId());
 

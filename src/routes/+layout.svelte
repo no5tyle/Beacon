@@ -47,15 +47,15 @@
 
 	// How many approvals wait for the leader's vote, for the badge on More and Approvals
 	$effect(() => {
-		if (app.isSignedIn && !app.isYouth && app.profiles && app.units.length > 0)
-			approvalsBadge.loadIfNeeded(app.units);
+		if (app.isSignedIn && !app.isYouth && app.profiles && app.chosenUnits.length > 0)
+			approvalsBadge.loadIfNeeded(app.chosenUnits);
 	});
 
 	const navOptions = $derived({
 		signedIn: app.isSignedIn,
 		isYouth: app.isYouth,
 		logging: requestLog.enabled,
-		approvalsWaiting: approvalsBadge.key === unitsKey(app.units) ? approvalsBadge.waiting : 0
+		approvalsWaiting: approvalsBadge.key === unitsKey(app.chosenUnits) ? approvalsBadge.waiting : 0
 	});
 </script>
 
