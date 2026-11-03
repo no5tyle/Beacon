@@ -7,7 +7,8 @@
 	import { asc, sortBy } from '#lib/model/util.js';
 	import { pagePath } from '#lib/paths.js';
 	import { today } from '#lib/model/dates.js';
-	import { moveUpBadge, peakAwardBreakdown } from '#lib/model/insights/insightsCalculator.js';
+	import { moveUpBadge } from '#lib/model/insights/insightsCalculator.js';
+	import { youthSummaries, type YouthSummary } from '#lib/model/insights/youthSummary.js';
 	import { rulesFor } from '#lib/model/insights/settings.js';
 	import { app, members, unitProgress } from '#lib/services/index.js';
 	import type { MemberSummary } from '#lib/services/members.js';
@@ -18,7 +19,7 @@
 	let message = $state('');
 	// Each youth's award progress and logbook, once the unit's progress is loaded (by Insights, or in the
 	// background). Nothing is loaded just for this
-	let loaded = $state<Record<string, { percent: number; nights: number; kms: number }>>({});
+	let loaded = $state<Record<string, YouthSummary>>({});
 	const settings = readInsightsSettings();
 	const now = today();
 	const rules = $derived(rulesFor(settings, app.section));
@@ -30,18 +31,7 @@
 		if (!unitProgress.isCached(unitId) && !finished) return;
 		const all = await unitProgress.get(unitId);
 		if (unitId !== app.unitId) return;
-		loaded = Object.fromEntries(
-			all.map((p) => [
-				p.memberId,
-				{
-					percent: Math.round(
-						peakAwardBreakdown(p, rules).reduce((total, c) => total + c.earned, 0)
-					),
-					nights: p.nightsCamped,
-					kms: p.kMsHiked
-				}
-			])
-		);
+		loaded = youthSummaries(all, rules);
 	}
 
 	$effect(() => {
