@@ -8,6 +8,7 @@
 	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 	import { goto } from '$app/navigation';
 	import ChooseUnit from '#lib/components/ChooseUnit.svelte';
+	import YouthLoadProgress from '#lib/components/YouthLoadProgress.svelte';
 	import Icon from '#lib/components/Icon.svelte';
 	import MultiSelect from '#lib/components/MultiSelect.svelte';
 	import { pullToRefresh } from '#lib/actions/pullToRefresh.js';
@@ -89,6 +90,8 @@
 	}
 	let ready = $state<Ready[]>([]);
 	let readyFor = '';
+	// Looking for milestones and stages ready to submit, after the youth's progress has loaded
+	let readyChecking = $state(false);
 	// Ready milestones ticked to submit together, the unit whose ticked ones are being confirmed, and those
 	// submitted here, until Terrain lists them
 	const readyKey = (r: Ready) => r.key;
@@ -196,6 +199,7 @@
 		if (key === readyFor) return;
 		readyFor = key;
 		const found: Ready[] = [];
+		readyChecking = true;
 		for (const unit of loaded) {
 			try {
 				for (const p of await unitProgress.get(unit.id))
@@ -223,7 +227,10 @@
 				// Without the unit's progress, there's just nothing to add
 			}
 		}
-		if (key === readyFor) ready = found;
+		if (key === readyFor) {
+			ready = found;
+			readyChecking = false;
+		}
 	}
 
 	$effect(() => {
@@ -871,6 +878,15 @@
 		<p class="small muted summary">
 			{summaryName}{loading || !countText ? '' : ` · ${countText}`}
 		</p>
+		{#if tab === 'waiting'}
+			<YouthLoadProgress
+				unitId={app.unitId}
+				label="Loading youth to find what's ready to submit:"
+			/>
+			{#if readyChecking}
+				<p class="small muted">Checking for milestones and stages ready to submit...</p>
+			{/if}
+		{/if}
 
 		<div class="tabs" role="tablist">
 			<button

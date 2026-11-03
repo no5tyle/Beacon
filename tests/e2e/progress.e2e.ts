@@ -168,3 +168,21 @@ test('each youth shows how long until they move up', async ({ page }) => {
 		/badge-plain/
 	);
 });
+
+test("while the unit's progress loads, Progress shows how far through the youth it is", async ({
+	page
+}) => {
+	await fakeTerrain(page);
+	// Each youth's records come slowly, so the load can be seen
+	await page.route('**/members/*/achievements*', async (route) => {
+		await new Promise((resolve) => setTimeout(resolve, 400));
+		await route.fallback();
+	});
+	await logIn(page);
+	await navigate(page, 'progress/');
+	const loading = page.locator('.youth-load');
+	await expect(loading).toContainText(/Loading award progress for youth \d of 4 from Terrain/);
+	// Gone once loaded, with each youth's award progress showing
+	await expect(loading).toHaveCount(0, { timeout: 20000 });
+	await expect(page.locator('.youth .award')).toHaveCount(4);
+});
