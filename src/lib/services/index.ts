@@ -2,6 +2,7 @@
 
 import { ApprovalsBadge } from '#lib/stores/approvals.svelte.js';
 import { AppState } from '#lib/stores/app.svelte.js';
+import { ReadyToSubmit } from '#lib/stores/readyToSubmit.svelte.js';
 import { ActivitiesService } from './activities.js';
 import { ApprovalsService } from './approvals.js';
 import { InsightsService } from './insights.js';
@@ -26,6 +27,7 @@ export const reference = new ReferenceService(() => app.terrain);
 export const preload = new PreloadService(app, unitProgress, oas);
 export const approvals = new ApprovalsService(app);
 export const approvalsBadge = new ApprovalsBadge(approvals);
+export const readyToSubmit = new ReadyToSubmit(unitProgress, recording, oas);
 export const activities = new ActivitiesService(app);
 export const reports = new ReportService(app);
 export const statementCounts = new StatementCountsService(app, members);
@@ -36,4 +38,5 @@ app.onReset(() => {
 	unitProgress.clear();
 	insights.clear();
 	approvalsBadge.clear();
+	readyToSubmit.clear();
 });

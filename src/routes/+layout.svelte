@@ -1,13 +1,14 @@
 <script lang="ts">
 	import '#lib/styles/theme.css';
 	import '#lib/styles/base.css';
+	import { untrack } from 'svelte';
 	import { asset } from '$app/paths';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import AppNav from '#lib/components/AppNav.svelte';
 	import InstallHint from '#lib/components/InstallHint.svelte';
 	import { pagePath } from '#lib/paths.js';
-	import { app, approvalsBadge, preload } from '#lib/services/index.js';
+	import { app, approvalsBadge, preload, readyToSubmit } from '#lib/services/index.js';
 	import { unitsKey } from '#lib/stores/approvals.svelte.js';
 	import { VERSION } from '#lib/stores/app.svelte.js';
 	import { requestLog } from '#lib/stores/log.svelte.js';
@@ -71,15 +72,14 @@
 		preload.startIfReady();
 	});
 
-	// How many approvals wait for the leader's vote, for the badge on More and Approvals
+	// What's on Approvals' tabs, for the badge on More and Approvals: the approvals list, and what's ready
+	// to submit, found in the background once the unit's progress loads (checked again on each page, as
+	// a save elsewhere means finding it again)
 	$effect(() => {
-		if (
-			app.isSignedIn &&
-			(!app.isYouth || app.onUnitCouncil) &&
-			app.profiles &&
-			app.chosenUnits.length > 0
-		)
-			approvalsBadge.loadIfNeeded(app.chosenUnits);
+		void path;
+		if (!app.isSignedIn || !app.profiles || app.chosenUnits.length === 0) return;
+		if (!app.isYouth || app.onUnitCouncil) approvalsBadge.loadIfNeeded(app.chosenUnits);
+		if (!app.isYouth) untrack(() => readyToSubmit.loadIfNeeded(app.unitId));
 	});
 
 	const navOptions = $derived({
@@ -88,7 +88,7 @@
 		onUnitCouncil: app.onUnitCouncil,
 		memberId: app.memberId,
 		logging: requestLog.enabled,
-		approvalsWaiting: approvalsBadge.key === unitsKey(app.chosenUnits) ? approvalsBadge.waiting : 0
+		approvalsWaiting: approvalsBadge.count(unitsKey(app.chosenUnits), readyToSubmit)
 	});
 </script>
 

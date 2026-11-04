@@ -195,6 +195,11 @@ export class UnitProgressService {
 		return this.cache.has(unitId);
 	}
 
+	/** The unit's progress if it's loaded, without loading it */
+	peek(unitId: string): readonly YouthProgress[] | undefined {
+		return this.cache.get(unitId);
+	}
+
 	isLoading(unitId: string): boolean {
 		return this.loading.has(unitId);
 	}
