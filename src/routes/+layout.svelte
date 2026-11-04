@@ -56,9 +56,13 @@
 	const appName = $derived(isReferenceApp ? 'Beacon Reference' : 'Beacon');
 	const iconDir = $derived(isReferenceApp ? 'reference/' : '');
 
+	// A login kept on this device ("Keep me signed in") signs back in as Beacon opens
+	if (app.resuming) void app.resume();
+
 	// Signed out, every other page is the login page. Replacing the history entry keeps Back from bouncing back
 	$effect(() => {
-		if (!app.isSignedIn && !isPublic) goto(pagePath('login/'), { replaceState: true });
+		if (!app.isSignedIn && !app.resuming && !isPublic)
+			goto(pagePath('login/'), { replaceState: true });
 	});
 
 	// Start loading the unit's progress in the background once a leader is signed in with a unit chosen
@@ -101,7 +105,9 @@
 	<div class="page">
 		<AppNav options={navOptions} version={VERSION} />
 		<main>
-			{#if app.isSignedIn || isPublic}
+			{#if app.resuming && !isPublic}
+				<p class="muted resuming" role="status">Signing you back in to Terrain...</p>
+			{:else if app.isSignedIn || isPublic}
 				{#if app.isSignedIn && onLanding}<InstallHint />{/if}
 				{@render children()}
 			{/if}
@@ -110,6 +116,11 @@
 {/if}
 
 <style>
+	.resuming {
+		margin-top: 2rem;
+		text-align: center;
+	}
+
 	.page {
 		display: flex;
 		flex-direction: column;

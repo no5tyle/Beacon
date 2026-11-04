@@ -18,6 +18,8 @@
 	let error = $state('');
 	let loggingIn = $state(false);
 	let showDiagnostics = $state(false);
+	// Keep the login on this device, so reopening or reloading Beacon doesn't sign out
+	let keepSignedIn = $state(false);
 	let diagnostics = $state<string[]>([]);
 
 	// Already signed in: straight to Home
@@ -60,7 +62,12 @@
 		}
 		loggingIn = true;
 		error = '';
-		const result = await app.login(chosenBranch, memberField.value.trim(), passwordField.value);
+		const result = await app.login(
+			chosenBranch,
+			memberField.value.trim(),
+			passwordField.value,
+			keepSignedIn
+		);
 		loggingIn = false;
 		if (!result.ok) {
 			error = result.message;
@@ -117,8 +124,26 @@
 				bind:this={passwordField}
 			/>
 		</div>
+		<label class="keep">
+			<input
+				id="keepSignedIn"
+				type="checkbox"
+				class="form-check-input"
+				bind:checked={keepSignedIn}
+			/>
+			<span>
+				Keep me signed in on this device
+				<small class="muted">Until you log out. Only tick it on your own phone or computer.</small>
+			</span>
+		</label>
 		{#if error}
 			<div class="alert alert-danger" role="alert">{error}</div>
+		{:else if app.resumeFailed}
+			<div class="alert alert-info" role="status">
+				Couldn't reach Terrain to sign you back in.
+				<button type="button" class="retry" onclick={() => app.retryResume()}>Try again</button>, or
+				log in.
+			</div>
 		{:else if app.sessionExpired}
 			<div class="alert alert-info" role="status">
 				Your Terrain login expired. Log in again to carry on.
@@ -130,7 +155,8 @@
 	</form>
 
 	<p class="small muted privacy">
-		Your password goes only to Terrain and is never saved.
+		Your password goes only to Terrain and is never saved. Keeping you signed in keeps only
+		Terrain's renewal token, encrypted, on this device.
 		<a href="https://github.com/no5tyle/Beacon/blob/main/PRIVACY.md" target="_blank" rel="noopener"
 			>How Beacon handles your information</a
 		>
@@ -177,6 +203,33 @@
 
 	.login {
 		margin-top: 1rem;
+	}
+
+	.retry {
+		padding: 0;
+		border: 0;
+		background: none;
+		color: inherit;
+		font: inherit;
+		text-decoration: underline;
+	}
+
+	.keep {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.6rem;
+		min-height: 44px;
+		margin: 0.25rem 0 0.75rem;
+		cursor: pointer;
+	}
+
+	.keep input {
+		flex-shrink: 0;
+		margin-top: 0.15rem;
+	}
+
+	.keep small {
+		display: block;
 	}
 
 	.log-in {

@@ -357,6 +357,62 @@ describe('renewing the login', () => {
 		).toBe(true);
 	});
 
+	it('keeps the login when a renewal gets an answer that isn’t Terrain’s, e.g. a Wi-Fi login page', async () => {
+		let time = 0;
+		const { terrain } = await signedIn(
+			(call) =>
+				isCognito(call, 'InitiateAuth') ? { body: '<html>Accept terms</html>' } : { body: {} },
+			{ now: () => time }
+		);
+		let told = 0;
+		terrain.onSessionExpired(() => told++);
+		time = 3600 * 1000;
+
+		const failure = await terrain.profiles().catch((error: unknown) => error);
+		expect(failure).toBeInstanceOf(TerrainError);
+		expect(failure).not.toBeInstanceOf(SessionExpiredError);
+		expect(terrain.isSignedIn).toBe(true);
+		expect(told).toBe(0);
+	});
+
+	it('signs back in from a kept refresh token, and passes on a new one', async () => {
+		const fake = fakeTerrain((call) =>
+			isCognito(call, 'InitiateAuth')
+				? {
+						body: {
+							AuthenticationResult: {
+								...tokens('id-9').AuthenticationResult,
+								RefreshToken: 'refresh-2'
+							}
+						}
+					}
+				: { body: { results: [] } }
+		);
+		const terrain = new Terrain({ fetch: fake.fetch });
+		const kept: string[] = [];
+		terrain.onRefreshToken((token) => kept.push(token));
+
+		expect(await terrain.resume(CLIENT_IDS[1], 'refresh-1')).toBe('ok');
+		expect(fake.calls[0].body).toBe(
+			`{"AuthFlow":"REFRESH_TOKEN_AUTH","ClientId":"${CLIENT_IDS[1]}","AuthParameters":{"USERNAME":null,"PASSWORD":null,"DEVICE_KEY":null,"REFRESH_TOKEN":"refresh-1"},"ClientMetadata":{}}`
+		);
+		await terrain.unitMembers('u');
+		expect(fake.calls.at(-1)!.headers.authorization).toBe('id-9');
+		expect(kept).toEqual(['refresh-2']);
+	});
+
+	it('says whether a kept login was refused or Terrain couldn’t be reached', async () => {
+		const refused = new Terrain({
+			fetch: fakeTerrain(() => ({ status: 400, body: { __type: 'NotAuthorizedException' } })).fetch
+		});
+		expect(await refused.resume(CLIENT_IDS[0], 'old')).toBe('refused');
+		expect(refused.isSignedIn).toBe(false);
+
+		const offline = new Terrain({ fetch: fakeTerrain(() => new Error('offline')).fetch });
+		expect(await offline.resume(CLIENT_IDS[0], 'refresh-1')).toBe('unreachable');
+		expect(offline.isSignedIn).toBe(false);
+	});
+
 	it('signs out when Terrain won’t renew the login', async () => {
 		let time = 0;
 		const { terrain } = await signedIn(
