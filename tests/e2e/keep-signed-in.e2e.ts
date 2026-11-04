@@ -77,3 +77,20 @@ test('a kept login Terrain won’t renew is forgotten, and asks to log in again'
 	await expect(page.locator('.alert-info')).toContainText('Your Terrain login expired');
 	expect(await page.evaluate(() => localStorage.getItem('beacon-keep-signed-in'))).toBeNull();
 });
+
+test('the info button beside Keep me signed in explains the stored refresh token', async ({
+	page
+}) => {
+	await fakeTerrain(page);
+	await page.goto('login/');
+	const info = page.getByRole('button', { name: 'About keeping you signed in' });
+	await expect(page.locator('#keepInfo')).toHaveCount(0);
+	await info.click();
+	await expect(info).toHaveAttribute('aria-expanded', 'true');
+	await expect(page.locator('#keepInfo')).toContainText('stores a refresh token from Terrain');
+	await expect(page.locator('#keepInfo')).toContainText('Consider that before ticking it');
+	// It explains; it doesn't tick the box
+	await expect(page.locator('#keepSignedIn')).not.toBeChecked();
+	await info.click();
+	await expect(page.locator('#keepInfo')).toHaveCount(0);
+});
