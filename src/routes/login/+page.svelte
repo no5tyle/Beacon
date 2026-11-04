@@ -2,6 +2,7 @@
 	import { onMount, tick } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { asset } from '$app/paths';
+	import Icon from '#lib/components/Icon.svelte';
 	import InstallHint from '#lib/components/InstallHint.svelte';
 	import { watchLoginAutofill } from '#lib/loginAutofill.js';
 	import { pagePath } from '#lib/paths.js';
@@ -20,6 +21,7 @@
 	let showDiagnostics = $state(false);
 	// Keep the login on this device, so reopening or reloading Beacon doesn't sign out
 	let keepSignedIn = $state(false);
+	let showKeepInfo = $state(false);
 	let diagnostics = $state<string[]>([]);
 
 	// Already signed in: straight to Home
@@ -124,18 +126,44 @@
 				bind:this={passwordField}
 			/>
 		</div>
-		<label class="keep">
-			<input
-				id="keepSignedIn"
-				type="checkbox"
-				class="form-check-input"
-				bind:checked={keepSignedIn}
-			/>
-			<span>
-				Keep me signed in on this device
-				<small class="muted">Until you log out. Only tick it on your own phone or computer.</small>
-			</span>
-		</label>
+		<div class="keep-row">
+			<label class="keep">
+				<input
+					id="keepSignedIn"
+					type="checkbox"
+					class="form-check-input"
+					bind:checked={keepSignedIn}
+				/>
+				<span>
+					Keep me signed in on this device
+					<small class="muted">Until you log out. Only tick it on your own phone or computer.</small
+					>
+				</span>
+			</label>
+			<!-- Outside the label, so it explains rather than ticks the box -->
+			<button
+				type="button"
+				class="keep-info-button"
+				aria-label="About keeping you signed in"
+				aria-expanded={showKeepInfo}
+				aria-controls="keepInfo"
+				onclick={() => (showKeepInfo = !showKeepInfo)}><Icon name="info" /></button
+			>
+		</div>
+		{#if showKeepInfo}
+			<div id="keepInfo" class="alert alert-info small keep-info">
+				<p>
+					Ticked, Beacon stores a <strong>refresh token</strong> from Terrain on this device: what Terrain
+					uses to renew your login without your password. It's encrypted, and kept until you log out or
+					Terrain stops accepting it.
+				</p>
+				<p>
+					While it's stored, anyone who can open Beacon on this device can use Terrain as you,
+					including recording and approving for your youth members. Consider that before ticking it:
+					leave it unticked on a shared or borrowed device, and keep your device locked.
+				</p>
+			</div>
+		{/if}
 		{#if error}
 			<div class="alert alert-danger" role="alert">{error}</div>
 		{:else if app.resumeFailed}
@@ -214,7 +242,37 @@
 		text-decoration: underline;
 	}
 
+	.keep-row {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.25rem;
+	}
+
+	.keep-info-button {
+		display: inline-flex;
+		flex-shrink: 0;
+		align-items: center;
+		justify-content: center;
+		width: 44px;
+		height: 44px;
+		margin-top: -0.6rem;
+		border: 0;
+		border-radius: 50%;
+		background: none;
+		color: var(--tint);
+		font-size: 1.1rem;
+	}
+
+	.keep-info p {
+		margin: 0;
+	}
+
+	.keep-info p + p {
+		margin-top: 0.4rem;
+	}
+
 	.keep {
+		flex: 1;
 		display: flex;
 		align-items: flex-start;
 		gap: 0.6rem;
