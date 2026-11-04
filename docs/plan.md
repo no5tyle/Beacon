@@ -21,7 +21,7 @@ Beacon keeps working exactly as it does today throughout the move. The new app i
 
 1. **Same behaviour first, improvements after.** Each page is ported to match what Beacon does today, apart from the decisions above, with no redesign along the way. Changes come after the switch, so a difference is always a bug.
 2. **Logic and its tests move before any page.** The Insights, OAS recording and sign off rules move to plain TypeScript with no Svelte in them, along with their tests. That way the parts that write to Terrain are proven identical before anything uses them.
-3. **Nothing new is stored.** Passwords and tokens are still never kept on the device. Only the same preferences as today are stored: branch, chosen unit, focus youth and similar.
+3. **Nothing new is stored.** Passwords are never kept on the device, and tokens only when the member ticks "Keep me signed in": then Terrain's refresh token, encrypted with a non-extractable key, until Logout. Otherwise only the same preferences as today are stored: branch, chosen unit, focus youth and similar.
 4. **Writes to Terrain stay byte-for-byte the same.** Saving, creating and submitting OAS records, and switching to act as a youth, must send exactly what the current app sends. Tests compare request bodies against the C# output.
 
 ## Stack

@@ -7,6 +7,7 @@ import type { Profile, Profiles, TerrainUser } from '#lib/terrain/types.js';
 import { compareText, distinctBy } from '#lib/model/util.js';
 import { sectionFromProfiles, type BeaconContext } from '#lib/services/context.js';
 import { requestLog } from './log.svelte.js';
+import { forgetLogin, hasSavedLogin, readSavedLogin, saveLogin } from './savedLogin.js';
 import { readSetting, UNIT_KEY, writeSetting } from './storage.js';
 
 export interface NamedItem {
@@ -27,6 +28,10 @@ export class AppState implements BeaconContext {
 	suppressLastName = $state(false);
 	/** Set when Terrain wouldn't renew the login, so the login page can say why the leader is back there */
 	sessionExpired = $state(false);
+	/** Signing back in from a login kept on this device, so pages wait rather than going to the login */
+	resuming = $state(hasSavedLogin());
+	/** Set when a kept login couldn't be used because Terrain couldn't be reached */
+	resumeFailed = $state(false);
 	private chosenUnitId = $state('');
 	/** Called when the signed in leader changes or logs out, so services can forget what they loaded */
 	private resetListeners: (() => void)[] = [];
@@ -34,6 +39,11 @@ export class AppState implements BeaconContext {
 	constructor(terrain?: Terrain) {
 		this.terrain = terrain ?? new Terrain({ log: (entry) => requestLog.add(entry, VERSION) });
 		this.terrain.onSessionExpired(() => this.expireSession());
+		// Terrain can hand out a new refresh token as it renews the login; a kept login keeps the latest
+		this.terrain.onRefreshToken((refreshToken) => {
+			const session = this.terrain.session;
+			if (hasSavedLogin() && session) void saveLogin({ clientId: session.clientId, refreshToken });
+		});
 	}
 
 	/** The leader's groups, in name order */
@@ -124,9 +134,10 @@ export class AppState implements BeaconContext {
 	async login(
 		branch: string,
 		memberNumber: string,
-		password: string
+		password: string,
+		keepSignedIn = false
 	): Promise<{ ok: true } | { ok: false; message: string }> {
-		this.logout();
+		this.signOut();
 		let result: LoginResult;
 		try {
 			result = await this.terrain.login(branch, memberNumber, password);
@@ -136,6 +147,53 @@ export class AppState implements BeaconContext {
 		if (!result.ok)
 			return { ok: false, message: result.message || "Terrain didn't accept the login." };
 
+		const finished = await this.loadMember();
+		if (!finished.ok) return finished;
+		// Kept on this device only when asked; logging in without the box forgets any kept before
+		const session = this.terrain.session;
+		if (keepSignedIn && session?.refreshToken)
+			await saveLogin({ clientId: session.clientId, refreshToken: session.refreshToken });
+		else await forgetLogin();
+		return finished;
+	}
+
+	/**
+	 * Signs back in from the login kept on this device, if there is one. A login Terrain won't renew is
+	 * forgotten; one that couldn't be tried (no signal) is kept for next time
+	 */
+	async resume(): Promise<void> {
+		try {
+			const saved = await readSavedLogin();
+			if (!saved) {
+				await forgetLogin();
+				return;
+			}
+			const outcome = await this.terrain.resume(saved.clientId, saved.refreshToken);
+			if (outcome === 'refused') {
+				await forgetLogin();
+				this.sessionExpired = true;
+				return;
+			}
+			if (outcome === 'unreachable') {
+				this.resumeFailed = true;
+				return;
+			}
+			const finished = await this.loadMember();
+			if (!finished.ok) this.resumeFailed = true;
+		} finally {
+			this.resuming = false;
+		}
+	}
+
+	/** Tries the kept login again, after Terrain couldn't be reached */
+	retryResume(): void {
+		if (this.resuming || !hasSavedLogin()) return;
+		this.resuming = true;
+		void this.resume();
+	}
+
+	/** Once Terrain has given tokens: the member's details, profiles, groups and remembered unit */
+	private async loadMember(): Promise<{ ok: true } | { ok: false; message: string }> {
 		try {
 			this.user = await this.terrain.user();
 			const profiles = await this.terrain.profiles();
@@ -155,9 +213,10 @@ export class AppState implements BeaconContext {
 			this.useRememberedUnit();
 			this.isSignedIn = true;
 			this.sessionExpired = false;
+			this.resumeFailed = false;
 			return { ok: true };
 		} catch (error) {
-			this.logout();
+			this.signOut();
 			const message =
 				error instanceof SessionExpiredError || !(error instanceof Error)
 					? "Couldn't finish logging in. Try again."
@@ -192,7 +251,8 @@ export class AppState implements BeaconContext {
 		this.sessionExpired = true;
 	}
 
-	logout(): void {
+	/** Signs out of this tab without touching a login kept on the device */
+	private signOut(): void {
 		this.terrain.logout();
 		this.isSignedIn = false;
 		this.profiles = null;
@@ -202,5 +262,11 @@ export class AppState implements BeaconContext {
 		this.groupName = '';
 		this.chosenUnitId = '';
 		this.resetListeners.forEach((listener) => listener());
+	}
+
+	/** Logout: signs out and forgets any login kept on this device */
+	logout(): void {
+		this.signOut();
+		void forgetLogin();
 	}
 }

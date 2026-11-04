@@ -7,6 +7,8 @@ export interface FakeOptions {
 	units?: { id: string; name: string; section: string }[];
 	/** Refuse the login with this message */
 	refuseLogin?: string;
+	/** Refuse to renew a login, as Terrain does once a refresh token is no longer valid */
+	refuseRefresh?: boolean;
 	/** Log in as a youth member rather than a leader */
 	youth?: boolean;
 	/**
@@ -471,6 +473,12 @@ export async function fakeTerrain(page: Page, options: FakeOptions = {}): Promis
 					Username: 'sa-1234567',
 					UserAttributes: [{ Name: 'email', Value: 'sam@example.com' }]
 				});
+			if (options.refuseRefresh && (request.postData() ?? '').includes('REFRESH_TOKEN_AUTH'))
+				return json(
+					route,
+					{ __type: 'NotAuthorizedException', message: 'Refresh Token has expired' },
+					400
+				);
 			if (options.refuseLogin)
 				return json(route, { __type: 'NotAuthorizedException', message: options.refuseLogin }, 400);
 			return json(route, {

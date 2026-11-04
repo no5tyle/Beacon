@@ -22,6 +22,9 @@ import type {
 	UnitMember
 } from './types.js';
 
+const UNREACHABLE_LOGIN =
+	"Couldn't renew your Terrain login: Terrain didn't answer as expected, or there was no signal. Try again in a moment.";
+
 export const COGNITO_ADDRESS = 'https://cognito-idp.ap-southeast-2.amazonaws.com/';
 export const MEMBERS_ADDRESS = 'https://members.terrain.scouts.com.au/';
 export const TEMPLATES_ADDRESS = 'https://templates.terrain.scouts.com.au/';
@@ -81,6 +84,8 @@ interface Shared {
 	now: () => number;
 	log: (entry: RequestLogEntry) => void;
 	onSessionExpired: () => void;
+	/** Told when Terrain hands out a new refresh token, so a kept login can keep the latest */
+	onRefreshToken: (refreshToken: string) => void;
 	gate: ProfileGate;
 }
 
@@ -102,6 +107,7 @@ export class Terrain {
 			now: options.now ?? (() => Date.now()),
 			log: options.log ?? (() => {}),
 			onSessionExpired: () => {},
+			onRefreshToken: () => {},
 			gate: options.gate ?? new ProfileGate()
 		};
 		this.insideYouthSpan = insideYouthSpan;
@@ -129,6 +135,10 @@ export class Terrain {
 	/** Called when Terrain won't renew the login, so the app can ask the leader to log in again */
 	onSessionExpired(listener: () => void): void {
 		this.shared.onSessionExpired = listener;
+	}
+
+	onRefreshToken(listener: (refreshToken: string) => void): void {
+		this.shared.onRefreshToken = listener;
 	}
 
 	logout(): void {
@@ -173,6 +183,29 @@ export class Terrain {
 		return { ok: false, ...lastError };
 	}
 
+	/**
+	 * Signs back in from a refresh token kept on this device ("Keep me signed in"), renewing the tokens
+	 * straight away. Says "refused" when Terrain won't renew it (signed out, or the token's no longer
+	 * valid), or "unreachable" when Terrain couldn't be asked, e.g. no signal
+	 */
+	async resume(clientId: string, refreshToken: string): Promise<'ok' | 'refused' | 'unreachable'> {
+		this.shared.session = {
+			clientId,
+			accessToken: '',
+			idToken: '',
+			refreshToken,
+			expiresAt: 0,
+			isYouth: false
+		};
+		try {
+			await this.refreshIfNeeded();
+			return 'ok';
+		} catch (error) {
+			this.logout();
+			return error instanceof SessionExpiredError ? 'refused' : 'unreachable';
+		}
+	}
+
 	/** The logged in member's details, e.g. their email address for verifying OAS */
 	async user(): Promise<TerrainUser> {
 		const session = this.requireSession();
@@ -211,6 +244,9 @@ export class Terrain {
 		});
 		const tokens = response?.AuthenticationResult as AuthenticationResult | undefined;
 		if (!tokens) {
+			// Only Terrain saying no signs out. Anything else, e.g. a Wi-Fi login page answering instead,
+			// leaves the login as it is to try again on the next request
+			if (!response?.__type) throw new TerrainError(UNREACHABLE_LOGIN);
 			this.logout();
 			this.shared.onSessionExpired();
 			throw new SessionExpiredError();
@@ -218,6 +254,10 @@ export class Terrain {
 		session.accessToken = tokens.AccessToken;
 		session.idToken = tokens.IdToken;
 		session.expiresAt = this.expiry(tokens.ExpiresIn);
+		if (tokens.RefreshToken && tokens.RefreshToken !== session.refreshToken) {
+			session.refreshToken = tokens.RefreshToken;
+			this.shared.onRefreshToken(tokens.RefreshToken);
+		}
 	}
 
 	/** A request to Terrain's login service; null when it gave no usable answer */

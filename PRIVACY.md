@@ -6,7 +6,7 @@ Beacon is an unofficial helper for Scouts Australia leaders and youth members th
 
 - Beacon has no server, database, user accounts, analytics, tracking, cookies or advertising. It runs entirely in your browser.
 - Beacon talks only to Terrain: Terrain's login service and Terrain's own addresses at terrain.scouts.com.au.
-- Your password goes only to Terrain's login service and is never saved. Your login is held in your browser's memory and is gone when you close or reload Beacon.
+- Your password goes only to Terrain's login service and is never saved. Your login is held in your browser's memory and is gone when you close or reload Beacon, unless you tick "Keep me signed in on this device", which keeps Terrain's renewal token, encrypted, until you log out (see [Logging in](#logging-in)).
 - Information about youth members is loaded from Terrain when you need it, held in memory while Beacon is open, and never saved on your device, unless you choose to download a log (see [Logging](#logging)).
 - Beacon keeps a few preferences on your device, such as your branch, your chosen unit and your starred Reference statements. They are all listed [below](#what-beacon-keeps-on-your-device).
 
@@ -14,7 +14,9 @@ Beacon is an unofficial helper for Scouts Australia leaders and youth members th
 
 You enter your branch, member number and password. Beacon sends them directly to Terrain's login service (cognito-idp.ap-southeast-2.amazonaws.com), the same service Terrain's own website uses.
 
-The login service sends back login tokens. Beacon keeps them in your browser's memory only, uses them to load and save information in Terrain, and renews them while you use Beacon. They are never saved to your device. Closing or reloading Beacon, or choosing Logout, discards them.
+The login service sends back login tokens. Beacon keeps them in your browser's memory, uses them to load and save information in Terrain, and renews them while you use Beacon. Closing or reloading Beacon, or choosing Logout, discards them.
+
+If you tick "Keep me signed in on this device" when you log in, Beacon also keeps one of them on your device: the refresh token Terrain uses to renew a login, with which of Terrain's login apps it belongs to. It's kept in your browser's storage for Beacon's website (IndexedDB), encrypted with a key your browser creates and won't let anything read out, not even Beacon. When Beacon opens, it asks Terrain to renew your login with it, so you don't have to log in again. It's kept until you choose Logout, until Terrain won't renew it any more, or until you log in without the box ticked. Anyone who can open Beacon on your unlocked device while it's kept can use Terrain as you, as with Terrain's own app, so only tick it on a device that's yours. Your password is still never kept.
 
 If your password manager fills in the login form, Beacon may log in by itself. The diagnostics shown when you tap the version line record which field events happened and how long the fields are, never what you typed. They are shown on screen only and are not kept.
 
@@ -62,10 +64,11 @@ Beacon keeps these in your browser's storage for its website until you clear you
 | Starred Reference statements                                              | Your starred list                              |
 | When you last saved the Reference for offline use                         | Shown in the Beacon Reference app              |
 | Whether Beacon is installed, and whether you dismissed the install hint   | So the hint isn't shown again                  |
+| Only if you tick "Keep me signed in": Terrain's refresh token, encrypted  | Signs you back in when Beacon opens            |
 
 Insights' filter settings are kept in your browser tab's session storage, and are cleared when you close the tab.
 
-None of these is your password, a login token, or a youth member's name, details or progress.
+None of these is your password or a youth member's name, details or progress, and none is a login token unless you chose to stay signed in.
 
 For use without signal, Beacon keeps its own app files in your browser's cache, and, if you choose "Save everything for offline" in the Beacon Reference app, Terrain's public OAS templates. None of these contains information about any member.
 
