@@ -617,3 +617,30 @@ test('an OAS stage with everything ticked is submitted for review from Approvals
 	expect(submit?.body).toMatchObject({ type: 'review', unit_id: 'unit-1' });
 	expect(terrain.requests).toContain('POST members/members/unit-1-m1/assume-profiles');
 });
+
+test('flags a youth who is also in another of the leader’s units, in case it is still signing them off', async ({
+	page
+}) => {
+	await fakeTerrain(page, {
+		units: [
+			{ id: 'unit-1', name: 'Mt Example Scouts', section: 'scout' },
+			{ id: 'cub-1', name: 'Mt Example Cubs', section: 'cub' }
+		]
+	});
+	await logIn(page);
+	await page.selectOption('#page-unit', 'unit-1');
+	await navigate(page, 'approvals/');
+	// Noah is linking from the Cubs, so he's in both
+	await page.getByRole('tab', { name: /^Award/ }).click();
+	const noah = page
+		.getByRole('region', { name: 'Ready to award' })
+		.getByRole('region', { name: 'Noah Jones' });
+	await expect(noah.locator('.also-in')).toHaveText(
+		"Noah is also in Mt Example Cubs. Check that section isn't still signing off their records."
+	);
+	await page.getByRole('tab', { name: /^Approve/ }).click();
+	await expect(
+		page.getByRole('region', { name: 'Liam Smith' }).locator('.approval-card').first()
+	).toBeVisible();
+	await expect(page.getByRole('region', { name: 'Liam Smith' }).locator('.also-in')).toHaveCount(0);
+});

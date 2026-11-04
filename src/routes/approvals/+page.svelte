@@ -36,6 +36,7 @@
 		app,
 		approvals,
 		approvalsBadge,
+		members,
 		oas,
 		recording,
 		unitProgress
@@ -156,6 +157,31 @@
 	const units = $derived(app.chosenUnits);
 	const unitsId = $derived(unitsKey(units));
 	const me = $derived(approvals.leaderMemberId());
+
+	// Youth also in another of the leader's units, e.g. linking from Cubs to Scouts, with those units'
+	// names: that section may still be signing off their records there
+	let alsoIn = $state<Record<string, string[]>>({});
+	let alsoInFor = '';
+	async function loadAlsoIn(unitId: string) {
+		if (app.isYouth || alsoInFor === unitId) return;
+		alsoInFor = unitId;
+		const found: Record<string, string[]> = {};
+		// Only units the leader leads list their youth
+		for (const other of app.units.filter((u) => u.id !== unitId && !app.youthIn(u.id))) {
+			try {
+				for (const m of await members.youth(other.id)) (found[m.id] ??= []).push(other.name);
+			} catch {
+				// A unit whose youth can't be read just isn't checked
+			}
+		}
+		if (alsoInFor === unitId) alsoIn = found;
+	}
+	$effect(() => {
+		const id = app.unitId;
+		alsoIn = {};
+		alsoInFor = '';
+		if (id) untrack(() => loadAlsoIn(id));
+	});
 
 	async function load() {
 		const id = unitsId;
@@ -483,6 +509,16 @@
 	<title>Beacon / Approvals</title>
 </svelte:head>
 
+{#snippet alsoInNote(memberId: string, name: string)}
+	{#if alsoIn[memberId]?.length}
+		<div class="small also-in">
+			<Icon name="warning" />
+			{name.split(' ')[0]} is also in {alsoIn[memberId].join(' and ')}. Check that section isn't
+			still signing off their records.
+		</div>
+	{/if}
+{/snippet}
+
 {#snippet approvalCard(approval: PendingApproval)}
 	{@const voted = hasVoted(approval, me)}
 	{@const subtitle = groupByMember
@@ -496,6 +532,7 @@
 		<div class="small muted">
 			{approval.submissionType} · submitted {submittedDisplay(approval.submittedOn)}
 		</div>
+		{@render alsoInNote(approval.memberId, approval.memberName)}
 		<div class="small votes">
 			{#if !approval.isAward}
 				<span class={approval.approvedBy.length > 0 ? 'text-success' : 'muted'}>
@@ -740,6 +777,7 @@
 									: 'Every participate and lead done'}
 								· not submitted yet
 							</div>
+							{@render alsoInNote(r.memberId, r.name)}
 							{#if r.blocked}
 								<div class="small muted award-note">{r.blocked}, before Terrain takes it.</div>
 							{:else}
@@ -948,6 +986,14 @@
 	.group-by {
 		max-width: 14rem;
 		margin-bottom: 0;
+	}
+
+	.also-in {
+		margin-top: 0.3rem;
+		padding: 0.3rem 0.5rem;
+		border-radius: var(--radius);
+		background: var(--alert-warning-bg);
+		color: var(--alert-warning-text);
 	}
 
 	.group-heading {
