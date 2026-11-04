@@ -147,3 +147,23 @@ export function isPreviousStageComplete(
 ): boolean {
 	return stage === 1 || completedStagesInStream.includes(stage - 1);
 }
+
+const sameVerifier = (a: OASVerifier, b: OASVerifier) =>
+	a.name.trim() === b.name.trim() && a.contact.trim() === b.contact.trim();
+
+/**
+ * The verifier to show as the stages being recorded change. Where a stage needs more than Scouting
+ * Adventure to verify, the signed in leader isn't assumed: an untouched verifier is cleared for the
+ * leader to enter whoever holds it. Back to SA only, an empty verifier is the signed in leader again.
+ * One the leader typed is kept either way
+ */
+export function verifierFor(
+	current: OASVerifier,
+	aboveBase: boolean,
+	signedIn: OASVerifier
+): OASVerifier {
+	const empty = { ...signedIn, name: '', contact: '' };
+	if (aboveBase && sameVerifier(current, signedIn)) return empty;
+	if (!aboveBase && sameVerifier(current, empty)) return { ...signedIn };
+	return current;
+}

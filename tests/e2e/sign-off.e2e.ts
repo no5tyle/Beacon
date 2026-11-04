@@ -164,17 +164,20 @@ test('warns which verifier each stage needs when it is more than Scouting Advent
 		'Paddling Stage 2: Safe Participant (SP)',
 		'Paddling Stage 3: Trained Participant (TP)'
 	]);
-	await expect(page.locator('#verifierName')).toHaveValue('Sam Leader');
+	// Not assumed to be the signed in leader: whoever holds it is entered
+	await expect(page.locator('#verifierName')).toHaveValue('');
+	await expect(page.locator('#verifierContact')).toHaveValue('');
 	const next = page.getByRole('button', { name: 'Choose youth' });
 	await expect(next).toBeDisabled();
-	await page
-		.getByLabel('Sam Leader holds these, or a youth two stages ahead verified them')
-		.check();
+	await page.locator('#verifierName').fill('Jo Guide');
+	await page.locator('#verifierContact').fill('jo@example.com');
+	await expect(next).toBeDisabled();
+	await page.getByLabel('Jo Guide holds these, or a youth two stages ahead verified them').check();
 	await next.click();
 	await page.locator('.pick-row', { hasText: 'Noah Jones' }).locator('input').check();
 	await page.getByRole('button', { name: /^Review/ }).click();
 	await expect(page.locator('main')).toContainText(
-		'Verified by Sam Leader (sam@example.com), checked against NAAF Appendix 1.'
+		'Verified by Jo Guide (jo@example.com), checked against NAAF Appendix 1.'
 	);
 	await expect(page.getByRole('button', { name: 'Sign off 1 youth' })).toBeEnabled();
 	// Back from the youth goes to the verifier
