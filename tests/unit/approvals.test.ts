@@ -18,7 +18,8 @@ import {
 	type Actioned
 } from '#lib/model/approvals.js';
 import { ApprovalsService } from '#lib/services/approvals.js';
-import { ApprovalsBadge, waitingForLeader } from '#lib/stores/approvals.svelte.js';
+import { ApprovalsBadge } from '#lib/stores/approvals.svelte.js';
+import type { ReadyToSubmit } from '#lib/stores/readyToSubmit.svelte.js';
 import { ACHIEVEMENTS_ADDRESS } from '#lib/terrain/client.js';
 import type { TerrainAchievement, TerrainSubmission } from '#lib/terrain/types.js';
 import { leaderProfiles, signedInTerrain } from './fakeTerrain.js';
@@ -175,7 +176,14 @@ describe('approving', () => {
 	});
 });
 
-describe('the badge for approvals waiting for the leader', () => {
+// What's ready to submit, as ReadyToSubmit gives it for a unit
+const readyOf = (count: number, unitId = 'unit-1') =>
+	({
+		readyIn: (id: string) =>
+			id === unitId ? Array.from({ length: count }, (_, i) => ({ key: `r${i}`, unitId: id })) : []
+	}) as unknown as ReadyToSubmit;
+
+describe('the badge for Approvals’ three tabs', () => {
 	const list = () =>
 		pendingApprovals([
 			submission('mine', { votes: [['l2', 'Kim Leader', 'approved']] }),
@@ -184,10 +192,16 @@ describe('the badge for approvals waiting for the leader', () => {
 			submission('not-mine', { write: false })
 		]);
 
-	it('counts only what the leader may approve and hasn’t voted on', () => {
-		expect(waitingForLeader(list(), 'leader-1')).toBe(1);
-		expect(waitingForLeader(list(), 'someone-else')).toBe(3);
-		expect(waitingForLeader([], 'leader-1')).toBe(0);
+	it('counts everything to approve and award, and what’s ready to submit where Terrain lists approvals', () => {
+		const badge = new ApprovalsBadge({} as never);
+		badge.update('unit-1', list(), [{ id: 'unit-1', name: 'Mt Example Scouts' }]);
+		expect(badge.count('unit-1', readyOf(2))).toBe(6);
+		expect(badge.count('unit-1', readyOf(0))).toBe(4);
+		// Another unit's list isn't counted
+		expect(badge.count('unit-2', readyOf(2))).toBe(0);
+		// Not on the Unit Council: Approvals lists nothing for the unit, so nothing ready is counted either
+		badge.update('unit-1', [], []);
+		expect(badge.count('unit-1', readyOf(2))).toBe(0);
 	});
 
 	it('loads once per unit, and follows what the Approvals page loads', async () => {
@@ -203,13 +217,14 @@ describe('the badge for approvals waiting for the leader', () => {
 		const units = [{ id: 'unit-1', name: 'Mt Example Scouts' }];
 		await badge.loadIfNeeded(units);
 		await badge.loadIfNeeded(units);
-		expect(badge).toMatchObject({ key: 'unit-1', waiting: 2 });
+		expect(badge.count('unit-1', readyOf(1))).toBe(3);
 		expect(calls.filter((c) => c.url.includes('/submissions')).length).toBe(1);
 
-		badge.update('unit-1', list());
-		expect(badge.waiting).toBe(1);
+		badge.update('unit-1', list(), units);
+		expect(badge.count('unit-1', readyOf(0))).toBe(4);
 		badge.clear();
-		expect(badge).toMatchObject({ key: '', waiting: 0 });
+		expect(badge.key).toBe('');
+		expect(badge.count('unit-1', readyOf(1))).toBe(0);
 	});
 
 	it('stays off when Terrain can’t be reached', async () => {
@@ -223,7 +238,8 @@ describe('the badge for approvals waiting for the leader', () => {
 			new ApprovalsService({ terrain, profiles: leaderProfiles() } as never)
 		);
 		await badge.loadIfNeeded([{ id: 'unit-1', name: 'Mt Example Scouts' }]);
-		expect(badge).toMatchObject({ key: '', waiting: 0 });
+		expect(badge.key).toBe('');
+		expect(badge.count('unit-1', readyOf(1))).toBe(0);
 	});
 });
 
@@ -325,7 +341,10 @@ describe('approvals across the leader’s units', () => {
 			new ApprovalsService({ terrain, profiles: leaderProfiles() } as never)
 		);
 		await badge.loadIfNeeded(units);
-		expect(badge).toMatchObject({ key: 'cubs,scouts,joeys', waiting: 3 });
+		expect(badge.key).toBe('cubs,scouts,joeys');
+		expect(badge.loadedIds).toEqual(['cubs', 'scouts']);
+		expect(badge.count('cubs,scouts,joeys', readyOf(1, 'joeys'))).toBe(3);
+		expect(badge.count('cubs,scouts,joeys', readyOf(1, 'cubs'))).toBe(4);
 	});
 });
 
@@ -338,11 +357,10 @@ describe('awards', () => {
 	const awardTerrain = (item = award()) =>
 		signedInTerrain({ profiles: leaderProfiles(), members: [], records: {}, submissions: [item] });
 
-	it('marks Terrain’s award submissions, and counts those the leader can award as waiting', () => {
+	it('marks Terrain’s award submissions', () => {
 		const [item] = pendingApprovals([award()]);
 		expect(item).toMatchObject({ isAward: true, canAction: true, submissionType: 'Award' });
-		expect(waitingForLeader([item], 'leader-1')).toBe(1);
-		expect(waitingForLeader(pendingApprovals([award(false)]), 'leader-1')).toBe(0);
+		expect(pendingApprovals([award(false)])[0].canAction).toBe(false);
 	});
 
 	it('never sends an award a review vote', async () => {

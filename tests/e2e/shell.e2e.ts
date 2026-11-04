@@ -142,14 +142,14 @@ test.describe('phone', () => {
 		await expect(page.locator('.more-item')).toHaveText([
 			/^\s*Reference\s*$/,
 			/^\s*Patrols\s*$/,
-			/^\s*Approvals 3 waiting for you\s*$/,
+			/^\s*Approvals 7 waiting for you\s*$/,
 			/^\s*Info\s*$/,
 			/^\s*Logout\s*$/
 		]);
 		await page.locator('.more-item', { hasText: 'Approvals' }).click();
 		await expect(tabs).toHaveText(['Insights', 'Record', 'Approvals', 'More']);
 		await expect(page.locator('.tab-bar a', { hasText: 'Approvals' })).toHaveAccessibleName(
-			'Approvals, 3 waiting'
+			'Approvals, 7 waiting'
 		);
 		await page.locator('.tab-bar a', { hasText: 'Insights' }).click();
 		await expect(tabs).toHaveText(['Insights', 'Record', 'Reference', 'More']);
@@ -162,7 +162,7 @@ test.describe('phone', () => {
 		await expect(page.locator('.more-item')).toHaveText([
 			/^\s*Progress\s*$/,
 			/^\s*Patrols\s*$/,
-			/^\s*Approvals 3 waiting for you\s*$/,
+			/^\s*Approvals 7 waiting for you\s*$/,
 			/^\s*Info\s*$/,
 			/^\s*Logout\s*$/
 		]);
@@ -196,7 +196,7 @@ test.describe('desktop', () => {
 				'Progress',
 				'Reference',
 				'Patrols',
-				'Approvals 3 waiting for you',
+				'Approvals 7 waiting for you',
 				'Info',
 				'Logout'
 			].map((name) => new RegExp(`^\\s*${name}\\s*$`))

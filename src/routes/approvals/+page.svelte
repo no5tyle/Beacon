@@ -28,8 +28,6 @@
 		type Actioned,
 		type PendingApproval
 	} from '#lib/model/approvals.js';
-	import { milestonesReady } from '#lib/model/insights/memberInsightsCalculator.js';
-	import type { OASStage } from '#lib/model/oas/templates.js';
 	import { asc, distinct, groupBy, sortBy } from '#lib/model/util.js';
 	import { pagePath } from '#lib/paths.js';
 	import {
@@ -37,12 +35,12 @@
 		approvals,
 		approvalsBadge,
 		members,
-		oas,
 		recording,
-		unitProgress
+		readyToSubmit
 	} from '#lib/services/index.js';
 	import type { ApprovalsUnit } from '#lib/services/approvals.js';
 	import { unitsKey } from '#lib/stores/approvals.svelte.js';
+	import { isSubmitted, type ReadyItem } from '#lib/stores/readyToSubmit.svelte.js';
 
 	let pending = $state<PendingApproval[]>([]);
 	let loading = $state(false);
@@ -70,24 +68,12 @@
 	// couldn't be reached for
 	let loadedUnits = $state<ApprovalsUnit[]>([]);
 	let failedUnits = $state<ApprovalsUnit[]>([]);
-	// Milestones with every requirement done but not submitted, so not in Terrain's list. Found from the
-	// youth's activity counts, the progress Insights and Progress load
-	// and OAS stages with every statement and the logbook ticked, from the unit's records of each stage
-	interface Ready {
-		key: string;
-		unitId: string;
-		memberId: string;
-		name: string;
-		title: string;
-		milestone?: number;
-		stage?: OASStage;
-		/** Why Terrain won't take it yet, if it won't */
-		blocked: string;
-	}
-	let ready = $state<Ready[]>([]);
-	let readyFor = '';
+	// Milestones and OAS stages done but not submitted, so not in Terrain's list: found in the background
+	// (ReadyToSubmit), so the Submit tab and its count are ready when the page opens
+	type Ready = ReadyItem;
+	const ready = $derived(readyToSubmit.items);
 	// Looking for milestones and stages ready to submit, after the youth's progress has loaded
-	let readyChecking = $state(false);
+	const readyChecking = $derived(readyToSubmit.checking);
 	// Ready milestones ticked to submit together, the unit whose ticked ones are being confirmed, and those
 	// submitted here, until Terrain lists them
 	const readyKey = (r: Ready) => r.key;
@@ -95,8 +81,6 @@
 	let confirmingSubmit = $state('');
 	const submittedHere = new SvelteSet<string>();
 	const readyTitle = (r: Ready) => r.title;
-	const stageTitle = (stage: OASStage) =>
-		`OAS ${stage.stream} ${stage.stage}${stage.branch && stage.branch !== stage.stream.toLowerCase() ? ` ${stage.stageTitle}` : ''}`;
 
 	function toggleAllReady(view: UnitView) {
 		const all = view.tickedReady.length === view.tickable.length;
@@ -127,6 +111,7 @@
 			tickedReady.delete(readyKey(r));
 			submittedHere.add(readyKey(r));
 		}
+		readyToSubmit.submitted(done.map(({ r }) => readyKey(r)));
 		message = {
 			text: [
 				done.length === 1
@@ -215,68 +200,20 @@
 		}
 	}
 
-	async function loadReady(loaded: ApprovalsUnit[]) {
-		const key = loaded.map((u) => u.id).join(',');
-		if (key === readyFor) return;
-		readyFor = key;
-		const found: Ready[] = [];
-		readyChecking = true;
-		for (const unit of loaded) {
-			try {
-				for (const p of await unitProgress.get(unit.id))
-					for (const milestone of milestonesReady(p))
-						found.push({
-							key: `${p.memberId}-milestone-${milestone}`,
-							unitId: unit.id,
-							memberId: p.memberId,
-							name: p.memberName,
-							title: `Milestone ${milestone}`,
-							milestone,
-							blocked: ''
-						});
-				for (const r of await recording.stagesReadyToSubmit(unit.id, await oas.stageList()))
-					found.push({
-						key: `${r.memberId}-${r.stage.templateLink}`,
-						unitId: unit.id,
-						memberId: r.memberId,
-						name: r.name,
-						title: stageTitle(r.stage),
-						stage: r.stage,
-						blocked: r.blocked
-					});
-			} catch {
-				// Without the unit's progress, there's just nothing to add
-			}
-		}
-		if (key === readyFor) {
-			ready = found;
-			readyChecking = false;
-		}
-	}
-
 	// Youth on the Unit Council approve and award; submitting for others is the leaders'
 	const youthView = $derived(app.isYouth);
 
 	$effect(() => {
 		const loaded = loadedUnits;
-		if (loaded.length > 0 && !youthView) untrack(() => loadReady(loaded));
+		if (!youthView) for (const unit of loaded) untrack(() => readyToSubmit.loadIfNeeded(unit.id));
 	});
 
-	// Once submitted, a milestone is in Terrain's list, to approve or award there instead. A submitted
-	// OAS stage is no longer editable, so it isn't found ready again
-	const submitted = (r: Ready) =>
-		r.milestone !== undefined &&
-		pending.some(
-			(a) =>
-				a.memberId === r.memberId &&
-				a.achievementType === 'milestone' &&
-				a.achievementName.endsWith(` ${r.milestone}`)
-		);
+	const submitted = (r: Ready) => isSubmitted(r, pending);
 
 	function showList(id: string, list: PendingApproval[]) {
 		pending = list;
 		// Keeps the badge on More and Approvals in step, e.g. once the leader has voted
-		approvalsBadge.update(id, list);
+		approvalsBadge.update(id, list, loadedUnits);
 	}
 
 	/** Shows what the leader did straight away, then reloads the list from Terrain */
@@ -289,7 +226,10 @@
 	}
 
 	// Refresh and pull to refresh read Terrain again
-	const refresh = () => load();
+	const refresh = () => {
+		if (!youthView) for (const unit of loadedUnits) readyToSubmit.loadIfNeeded(unit.id, true);
+		return load();
+	};
 
 	// No more checking once the page closes
 	$effect(() => () => clearTimeout(checkTimer));

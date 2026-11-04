@@ -123,41 +123,37 @@ test('youth members don’t see Approvals', async ({ page, isMobile }) => {
 	await expect(page.getByRole('link', { name: 'Approvals' })).toHaveCount(0);
 });
 
-test('a badge on More and Approvals shows what waits for the leader’s vote or award', async ({
+test('a badge on More and Approvals counts all three tabs, ready to submit found before the page opens', async ({
 	page,
 	isMobile
 }) => {
 	await fakeTerrain(page);
 	await logIn(page);
-	// Liam's milestone, Mia's camping and Noah's bushcraft award: Ava's is voted on already, and Noah's intro
-	// isn't this leader's
+	// Four to approve and Noah's bushcraft to award, and ready to submit: Liam's Bushcraft 2 and Mia's
+	// Milestone 3, found in the background without opening Approvals
+	const badge = isMobile
+		? page.locator('.tab-bar .tab-badge')
+		: page.locator('.side-link', { hasText: 'Approvals' }).locator('.nav-badge');
+	await expect(badge).toHaveText(isMobile ? '7' : /^7/);
 	if (isMobile) {
-		const more = page.getByRole('button', { name: 'More, 3 waiting' });
-		await expect(more.locator('.tab-badge')).toHaveText('3');
-		await more.click();
+		await page.getByRole('button', { name: 'More, 7 waiting' }).click();
 		await expect(
 			page.locator('.more-item', { hasText: 'Approvals' }).locator('.nav-badge')
-		).toHaveText(/^3/);
+		).toHaveText(/^7/);
 		await page.locator('.more-item', { hasText: 'Approvals' }).click();
-	} else {
-		await expect(
-			page.locator('.side-link', { hasText: 'Approvals' }).locator('.nav-badge')
-		).toHaveText(/^3/);
-		await navigate(page, 'approvals/');
-	}
+	} else await navigate(page, 'approvals/');
 
-	const card = page
-		.getByRole('region', { name: /^To approve/ })
-		.getByRole('region', { name: 'Mia Brown' })
-		.locator('.approval-card');
-	await card.getByRole('button', { name: 'Approve' }).click();
-	await card.getByRole('button', { name: 'Yes, approve' }).click();
-	await expect(card).toContainText("You've voted on this one.");
-	if (isMobile) await expect(page.locator('.tab-badge')).toHaveText('2');
-	else
-		await expect(
-			page.locator('.side-link', { hasText: 'Approvals' }).locator('.nav-badge')
-		).toHaveText(/^2/);
+	// The Submit tab is ready straight away
+	await expect(page.getByRole('tab', { name: /^Submit/ })).toContainText('2');
+	await page.getByRole('tab', { name: /^Submit/ }).click();
+	const ready = page.locator('section[aria-label="Ready to submit"]');
+	await ready.getByLabel('Submit Milestone 3 for Mia Brown').check();
+	await ready.getByRole('button', { name: 'Submit 1' }).click();
+	await ready.getByRole('button', { name: 'Yes, submit' }).click();
+	await expect(page.locator('.alert-success')).toContainText('Submitted Milestone 3');
+	// Submitted, it's off the Submit tab and the badge, until Terrain lists it to approve
+	await expect(page.getByRole('tab', { name: /^Submit/ })).toContainText('1');
+	await expect(badge).toHaveText(isMobile ? '6' : /^6/);
 });
 
 test('no badge when nothing waits for the leader', async ({ page }) => {

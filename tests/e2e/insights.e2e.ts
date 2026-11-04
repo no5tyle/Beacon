@@ -52,8 +52,12 @@ test('coming back to Insights shows the last analysis straight away', async ({ p
 	await navigate(page, 'insights/');
 	await expect(page.locator('.stat-tile').first()).toContainText('Youth analysed 4');
 	expect(
-		terrain.requests.slice(asked).filter((r) => r.includes('type=outdoor_adventure_skill')),
-		"the unit's OAS records aren't asked for again"
+		// Each youth's records; the unit's records of a stage are read once in the background, for what's
+		// ready to submit
+		terrain.requests
+			.slice(asked)
+			.filter((r) => r.includes('/members/') && r.includes('type=outdoor_adventure_skill')),
+		"the youth's OAS records aren't asked for again"
 	).toEqual([]);
 });
 
