@@ -3,7 +3,7 @@
 	everyone at once, one youth at a time (saving switches Terrain to that youth's profile and back).
 -->
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { page } from '$app/state';
 	import BackLink from '#lib/components/BackLink.svelte';
 	import ChooseUnit from '#lib/components/ChooseUnit.svelte';
@@ -14,7 +14,11 @@
 	import VerifierLevels from '#lib/components/VerifierLevels.svelte';
 	import { firstStageAboveBase, requirementsAboveBase } from '#lib/model/oas/naaf.js';
 	import { isCoreStream } from '#lib/model/insights/insightsCalculator.js';
-	import { statements as templateStatements, type OASStatement } from '#lib/model/oas/recording.js';
+	import {
+		statements as templateStatements,
+		verifierFor,
+		type OASStatement
+	} from '#lib/model/oas/recording.js';
 	import {
 		combineOutcomes,
 		forYouth,
@@ -292,6 +296,15 @@
 		[verifier.name.trim(), verifier.contact.trim(), ...verifierLevels.map((r) => r.title)].join('|')
 	);
 	const verifierReviewed = $derived(verifierLevels.length === 0 || reviewedFor === reviewKey);
+	// Beyond SA, the verifier is entered rather than assumed to be the signed in leader
+	const aboveBase = $derived(verifierLevels.length > 0);
+	$effect(() => {
+		const above = aboveBase;
+		untrack(() => {
+			const next = verifierFor(verifier, above, recording.defaultVerifier());
+			if (next !== verifier) verifier = next;
+		});
+	});
 	const verifierValid = $derived(
 		!needsVerifier ||
 			(verifier.name.trim() !== '' && verifier.contact.trim() !== '' && verifierReviewed)

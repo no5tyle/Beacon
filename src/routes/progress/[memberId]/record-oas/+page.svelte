@@ -4,7 +4,7 @@
 	A youth records their own here too, naming who verified each, and submits it in Terrain.
 -->
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { goto } from '$app/navigation';
 	import BackLink from '#lib/components/BackLink.svelte';
 	import RecordSwitch from '#lib/components/RecordSwitch.svelte';
@@ -18,6 +18,7 @@
 		canReceiveCredit,
 		isEditable,
 		isPreviousStageComplete,
+		verifierFor,
 		type OASStatement
 	} from '#lib/model/oas/recording.js';
 	import type { OASStage } from '#lib/model/oas/templates.js';
@@ -216,6 +217,15 @@
 		[verifier.name.trim(), verifier.contact.trim(), ...verifierLevels.map((r) => r.title)].join('|')
 	);
 	const verifierReviewed = $derived(verifierLevels.length === 0 || reviewedFor === reviewKey);
+	// Beyond SA, the verifier is entered rather than assumed to be the signed in leader
+	const aboveBase = $derived(verifierLevels.length > 0);
+	$effect(() => {
+		const above = aboveBase;
+		untrack(() => {
+			const next = verifierFor(verifier, above, recording.defaultVerifier());
+			if (next !== verifier) verifier = next;
+		});
+	});
 	const shownStage = $derived(allStages.find((s) => s.templateLink === selectedTemplateLink));
 
 	function startSave() {

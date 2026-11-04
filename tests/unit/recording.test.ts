@@ -1,6 +1,7 @@
 // Ported from the C# OASRecordingTests
 import { describe, expect, it } from 'vitest';
 import {
+	verifierFor,
 	addVerifications,
 	allComplete,
 	canReceiveCredit,
@@ -166,5 +167,23 @@ describe('OAS recording', () => {
 		expect(isEditable('feedback_review')).toBe(true);
 		expect(isEditable('pending_review')).toBe(false);
 		expect(isEditable('awarded')).toBe(false);
+	});
+});
+
+describe('the verifier shown', () => {
+	const leader = { type: 'member', name: 'Sam Leader', contact: 'sam@example.com' };
+	const empty = { type: 'member', name: '', contact: '' };
+	const other = { type: 'member', name: 'Jo Guide', contact: 'jo@example.com' };
+
+	it('isn’t the signed in leader beyond SA, and is again when back to SA', () => {
+		expect(verifierFor(leader, true, leader)).toEqual(empty);
+		expect(verifierFor(empty, false, leader)).toEqual(leader);
+		expect(verifierFor(leader, false, leader)).toBe(leader);
+		expect(verifierFor(empty, true, leader)).toBe(empty);
+	});
+
+	it('keeps a verifier the leader entered either way', () => {
+		expect(verifierFor(other, true, leader)).toBe(other);
+		expect(verifierFor(other, false, leader)).toBe(other);
 	});
 });

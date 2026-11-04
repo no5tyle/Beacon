@@ -84,16 +84,28 @@ test('leaders can record Stage 6 and above, once they tick that the verifier hol
 	await expect(page.locator('.saving .verifier-levels')).toContainText(
 		'Bushwalking Stage 6 needs Trained Participant (TP)'
 	);
+	// Beyond SA the verifier isn't assumed to be the leader; for the logbook alone it is again
+	await expect(page.locator('#verifierName')).toHaveValue('');
+	await page.getByLabel('I can tie a reef knot and a clove hitch.').uncheck();
+	await page.getByLabel('My logbook is up to date.').check();
+	await expect(page.locator('#verifierName')).toHaveValue('Sam Leader');
+	await page.getByLabel('My logbook is up to date.').uncheck();
+	await page.getByLabel('I can tie a reef knot and a clove hitch.').check();
+	await page.getByRole('button', { name: 'Save 1 to Terrain' }).click();
+	await expect(page.locator('.alert-danger')).toContainText("Enter the verifier's name");
+	await page.locator('#verifierName').fill('Jo Guide');
+	await page.locator('#verifierContact').fill('jo@example.com');
 	await page.getByRole('button', { name: 'Save 1 to Terrain' }).click();
 	await expect(page.locator('.alert-danger')).toContainText('Check the verifier holds');
-	await page.getByLabel('Sam Leader holds this, or a youth two stages ahead verified them').check();
+	await page.getByLabel('Jo Guide holds this, or a youth two stages ahead verified them').check();
 	await page.getByRole('button', { name: 'Save 1 to Terrain' }).click();
 	await page.getByRole('button', { name: 'Yes, save' }).click();
 	await expect(page.locator('.alert-success')).toHaveText('Saved 1 statement to Terrain.');
 	expect(terrain.writes.some((w) => w.request.includes('members/unit-1-m1'))).toBe(true);
 
-	// A different verifier needs checking again
+	// The verifier entered is kept for the next; a different one needs checking again
 	await page.getByLabel('I can treat a blister and a minor cut with first aid.').check();
+	await expect(page.locator('#verifierName')).toHaveValue('Jo Guide');
 	await page.locator('#verifierName').fill('Kim Leader');
 	await expect(
 		page.getByLabel('Kim Leader holds this, or a youth two stages ahead verified them')
