@@ -249,9 +249,21 @@ About **6–8 weeks** of part-time work before the side-by-side run, then a week
 | 5 Side by side        | 1–2 weeks of use |
 | 6 Switch over         | half a day       |
 
-## Later
+## To do
 
-These come after the switch, once the new app is the live one:
+Open work, most needing a request from Terrain captured first (URL, method, payload and response only,
+never headers):
 
-- Approvals: the pending list, then approve and improve once Terrain's request has been captured.
-- Anything noted as an intended change during the side-by-side run.
+- [ ] Approvals: flag a youth in any other unit, not just the leader's own. Beacon's reads don't show a
+      youth's other units, so this needs a Terrain request that lists them (e.g. from a member's page,
+      or profiles while acting as the youth). Until then, an option is to flag records still open under
+      another section (a record's `section`).
+- [ ] Youth submit their own OAS stage for review (needs Terrain's request for a youth's own submission)
+- [ ] SIA plans: enter, save and submit (needs Terrain's plan template and its requests); then SIAs on
+      Approvals' Submit tab
+- [ ] Approvals: "needs improvement" (needs Terrain's request)
+- [ ] Check with real Terrain: a youth on the Unit Council awarding; a leader saving Stage 6 and above;
+      NAAF Appendix 1 warnings on Stage 4+ specialist branches (Terrain's branch names against the
+      appendix's)
+- [ ] Ready to submit: use Terrain's `milestone_requirement_status` for milestones
+- [ ] Anything noted as an intended change during the side-by-side run
