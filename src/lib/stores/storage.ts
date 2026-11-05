@@ -7,6 +7,8 @@ import { restoreReportOptions, type ReportOptions } from '#lib/model/report.js';
 
 export const BRANCH_KEY = 'LoginBranch';
 export const UNIT_KEY = 'beacon-unit';
+/** How the Youth page groups the unit's youth: by patrol, name or moving up */
+export const YOUTH_GROUP_KEY = 'beacon-youth-group';
 /** Focus youth picked on Insights, per unit, as the Blazor app kept them */
 export const focusKey = (unitId: string) => `insights-focus-youth-${unitId}`;
 

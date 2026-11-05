@@ -81,12 +81,12 @@ test('reference', async ({ page }) => {
 	await shot(page, 'reference');
 });
 
-test('patrols', async ({ page }) => {
+test('youth', async ({ page }) => {
 	await start(page);
-	await navigate(page, 'patrols/');
-	await expect(page.locator('.patrol').first()).toBeVisible();
-	await expect(page.locator('.percent').first()).toBeVisible();
-	await shot(page, 'patrols');
+	await navigate(page, 'progress/');
+	await expect(page.locator('section.patrol').first()).toBeVisible();
+	await expect(page.locator('.youth .award').first()).toBeVisible();
+	await shot(page, 'youth');
 });
 
 test('flow', async ({ page }) => {

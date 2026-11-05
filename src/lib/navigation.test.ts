@@ -16,7 +16,7 @@ describe('navigation', () => {
 		expect(mainPages(leader).map((p) => p.shortTitle)).toEqual([
 			'Insights',
 			'Record',
-			'Progress',
+			'Youth',
 			'Reference'
 		]);
 	});
@@ -42,14 +42,8 @@ describe('navigation', () => {
 	});
 
 	it('puts Patrols and Approvals (leaders only), Info and Logout under More, with logging left to the version', () => {
-		expect(morePages(leader).map((p) => p.title)).toEqual([
-			'Patrols',
-			'Approvals',
-			'Info',
-			'Logout'
-		]);
+		expect(morePages(leader).map((p) => p.title)).toEqual(['Approvals', 'Info', 'Logout']);
 		expect(morePages({ ...leader, logging: true }).map((p) => p.title)).toEqual([
-			'Patrols',
 			'Approvals',
 			'Info',
 			'Logout'
@@ -79,7 +73,7 @@ describe('navigation', () => {
 	});
 
 	it('marks a page active on its own address and anything under it', () => {
-		const progress = mainPages(leader).find((p) => p.shortTitle === 'Progress')!;
+		const progress = mainPages(leader).find((p) => p.shortTitle === 'Youth')!;
 		expect(isActive(progress, '/progress/')).toBe(true);
 		expect(isActive(progress, '/progress/m1/record-oas')).toBe(true);
 		expect(isActive(progress, '/oas/sign-off/')).toBe(false);
@@ -94,18 +88,18 @@ describe('navigation', () => {
 		it('put Progress under More for leaders, to keep the tab bar roomy', () => {
 			expect(titles(phoneTabs(leader, '/insights/'))).toEqual({
 				main: ['Insights', 'Record', 'Reference'],
-				more: ['Progress', 'Patrols', 'Approvals', 'Info', 'Logout']
+				more: ['Youth', 'Approvals', 'Info', 'Logout']
 			});
 		});
 
 		it('swap the open page from More into the bar, and Reference into More', () => {
 			expect(titles(phoneTabs(leader, '/progress/m1/'))).toEqual({
-				main: ['Insights', 'Record', 'Progress'],
-				more: ['Reference', 'Patrols', 'Approvals', 'Info', 'Logout']
+				main: ['Insights', 'Record', 'Youth'],
+				more: ['Reference', 'Approvals', 'Info', 'Logout']
 			});
 			expect(titles(phoneTabs(leader, '/approvals/'))).toEqual({
 				main: ['Insights', 'Record', 'Approvals'],
-				more: ['Reference', 'Progress', 'Patrols', 'Info', 'Logout']
+				more: ['Reference', 'Youth', 'Info', 'Logout']
 			});
 		});
 

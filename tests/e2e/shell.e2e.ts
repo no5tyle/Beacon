@@ -134,14 +134,13 @@ test.describe('phone', () => {
 		await expect(page).toHaveURL(/\/insights\/$/);
 		const tabs = page.locator('.tab-bar .tab .tab-label');
 		await page.locator('.tab-bar button', { hasText: 'More' }).click();
-		await page.locator('.more-item', { hasText: 'Progress' }).click();
+		await page.locator('.more-item', { hasText: 'Youth' }).click();
 		await expect(page).toHaveURL(/\/progress\/$/);
-		await expect(tabs).toHaveText(['Insights', 'Record', 'Progress', 'More']);
-		await expect(page.locator('.tab-bar .tab.active')).toHaveText('Progress');
+		await expect(tabs).toHaveText(['Insights', 'Record', 'Youth', 'More']);
+		await expect(page.locator('.tab-bar .tab.active')).toHaveText('Youth');
 		await page.locator('.tab-bar button', { hasText: 'More' }).click();
 		await expect(page.locator('.more-item')).toHaveText([
 			/^\s*Reference\s*$/,
-			/^\s*Patrols\s*$/,
 			/^\s*Approvals 7 waiting for you\s*$/,
 			/^\s*Info\s*$/,
 			/^\s*Logout\s*$/
@@ -160,8 +159,7 @@ test.describe('phone', () => {
 		await expect(page).toHaveURL(/\/insights\/$/);
 		await page.locator('.tab-bar button', { hasText: 'More' }).click();
 		await expect(page.locator('.more-item')).toHaveText([
-			/^\s*Progress\s*$/,
-			/^\s*Patrols\s*$/,
+			/^\s*Youth\s*$/,
 			/^\s*Approvals 7 waiting for you\s*$/,
 			/^\s*Info\s*$/,
 			/^\s*Logout\s*$/
@@ -193,9 +191,8 @@ test.describe('desktop', () => {
 			[
 				'Insights',
 				'Record',
-				'Progress',
+				'Youth',
 				'Reference',
-				'Patrols',
 				'Approvals 7 waiting for you',
 				'Info',
 				'Logout'

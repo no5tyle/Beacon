@@ -233,7 +233,7 @@
 </svelte:head>
 
 <!-- Youth see only their own progress, so there's no list to go back to -->
-{#if !app.isYouth}<BackLink href={pagePath('progress/')} label="Progress" />{/if}
+{#if !app.isYouth}<BackLink href={pagePath('progress/')} label="Youth" />{/if}
 
 <div class="person-head">
 	<div class="person-name">

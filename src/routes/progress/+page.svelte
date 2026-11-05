@@ -1,11 +1,15 @@
-<!-- Progress: the unit's youth, each opening their progress details -->
+<!--
+	Youth: the unit's youth, by patrol (leaders first, with each patrol's average award progress and who's
+	moving up), by name, or by who moves up soonest. Each opens their progress details. Patrols was its own
+	page; it's now this page's grouping.
+-->
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import ChooseUnit from '#lib/components/ChooseUnit.svelte';
 	import YouthLoadProgress from '#lib/components/YouthLoadProgress.svelte';
 	import Icon from '#lib/components/Icon.svelte';
 	import { pullToRefresh } from '#lib/actions/pullToRefresh.js';
-	import { asc, sortBy } from '#lib/model/util.js';
+	import { asc, groupBy, sortBy } from '#lib/model/util.js';
 	import { pagePath } from '#lib/paths.js';
 	import { today } from '#lib/model/dates.js';
 	import { moveUpBadge } from '#lib/model/insights/insightsCalculator.js';
@@ -13,11 +17,29 @@
 	import { rulesFor } from '#lib/model/insights/settings.js';
 	import { app, members, unitProgress } from '#lib/services/index.js';
 	import type { MemberSummary } from '#lib/services/members.js';
-	import { readInsightsSettings } from '#lib/stores/storage.js';
+	import {
+		readInsightsSettings,
+		readSetting,
+		writeSetting,
+		YOUTH_GROUP_KEY
+	} from '#lib/stores/storage.js';
+
+	const NO_PATROL = 'No patrol';
+	type Grouping = 'patrol' | 'name' | 'moving-up';
+	const GROUPINGS: { value: Grouping; label: string }[] = [
+		{ value: 'patrol', label: 'Patrol' },
+		{ value: 'name', label: 'Name' },
+		{ value: 'moving-up', label: 'Moving up' }
+	];
 
 	let youth = $state<MemberSummary[]>([]);
 	let loading = $state(false);
 	let message = $state('');
+	// Remembered on this device; by patrol unless another was chosen
+	const saved = readSetting(YOUTH_GROUP_KEY);
+	let grouping = $state<Grouping>(
+		GROUPINGS.some((g) => g.value === saved) ? (saved as Grouping) : 'patrol'
+	);
 	// Each youth's award progress and logbook, once the unit's progress is loaded (by Insights, or in the
 	// background). Nothing is loaded just for this
 	let loaded = $state<Record<string, YouthSummary>>({});
@@ -72,15 +94,63 @@
 		members.clear(app.unitId);
 		await load(app.unitId);
 	}
+
+	function choose(value: Grouping) {
+		grouping = value;
+		writeSetting(YOUTH_GROUP_KEY, value);
+	}
+
+	const moveUp = (m: MemberSummary) => moveUpBadge(m.dateOfBirth, rules, settings, now);
+	const movingSoon = (m: MemberSummary) => {
+		const badge = moveUp(m);
+		return badge !== null && badge.urgency !== 'None';
+	};
+
+	// The sections to show: each patrol in name order, youth without one last, leaders first within it;
+	// or everyone in one list, by name or by date of birth (oldest, so moving up soonest, first)
+	const sections = $derived.by(() => {
+		if (grouping === 'patrol')
+			return sortBy(
+				groupBy(
+					sortBy(
+						youth,
+						asc((m) => m.patrolOrder),
+						asc((m) => m.firstName),
+						asc((m) => m.lastName)
+					),
+					(m) => m.patrolName || NO_PATROL
+				),
+				asc((g) => g.key === NO_PATROL),
+				asc((g) => g.key)
+			);
+		if (grouping === 'moving-up')
+			return [
+				{
+					key: '',
+					items: sortBy(
+						youth,
+						asc((m) => m.dateOfBirth === null),
+						asc((m) => m.dateOfBirth ?? ''),
+						asc((m) => m.firstName)
+					)
+				}
+			];
+		return [{ key: '', items: youth }];
+	});
+
+	const average = (items: MemberSummary[]) => {
+		const known = items.map((m) => loaded[m.id]?.percent).filter((p) => p !== undefined);
+		return known.length > 0 ? Math.round(known.reduce((a, b) => a + b, 0) / known.length) : null;
+	};
 </script>
 
 <svelte:head>
-	<title>Beacon / Progress</title>
+	<title>Beacon / Youth</title>
 </svelte:head>
 
 <div use:pullToRefresh={refresh}>
 	<div class="page-head">
-		<h2>Progress{app.unitName ? ` (${app.unitName})` : ''}</h2>
+		<h2>Youth{app.unitName ? ` (${app.unitName})` : ''}</h2>
 		{#if youth.length > 0}
 			<a class="btn btn-outline-primary btn-sm" href={pagePath('progress/report/')}
 				><Icon name="print" /> Reports</a
@@ -104,75 +174,173 @@
 	{#if loading && youth.length === 0}
 		<p class="muted">Loading youth...</p>
 	{:else if youth.length > 0}
-		<ul class="row-list">
-			{#each youth as member (member.id)}
-				{@const moveUp = moveUpBadge(member.dateOfBirth, rules, settings, now)}
-				<li>
-					<a class="card row-link youth" href={pagePath(`progress/${member.id}/`)}>
-						<div class="grow">
-							<div class="name-row">
-								<span class="strong">{member.firstName} {members.lastName(member)}</span>
-								{#if moveUp}
-									<span class="badge move-up {badgeClass[moveUp.urgency]}">{moveUp.text}</span>
+		<div class="group-by" role="group" aria-label="Group by">
+			<span class="small muted">Group by</span>
+			{#each GROUPINGS as g (g.value)}
+				<button
+					type="button"
+					class="btn chip {grouping === g.value ? 'btn-primary' : 'btn-outline-primary'}"
+					aria-pressed={grouping === g.value}
+					onclick={() => choose(g.value)}>{g.label}</button
+				>
+			{/each}
+		</div>
+
+		{#each sections as section (section.key)}
+			{@const avg = section.key ? average(section.items) : null}
+			{@const leaving = section.key ? section.items.filter(movingSoon).length : 0}
+			<section class="patrol" aria-label={section.key || 'Youth'}>
+				{#if section.key}
+					<div class="patrol-head">
+						<h3>{section.key}</h3>
+						<span class="muted small">{section.items.length} youth</span>
+					</div>
+					{#if avg !== null || leaving > 0}
+						<div class="small muted summary">
+							{[
+								avg !== null ? `${rules.peakAwardName} average ${avg}%` : '',
+								leaving > 0
+									? `${leaving} moving up within ${settings.moveUpWindowMonths} months`
+									: ''
+							]
+								.filter(Boolean)
+								.join(' · ')}
+						</div>
+					{/if}
+				{/if}
+				<div class="card list">
+					{#each section.items as member (member.id)}
+						{@const badge = moveUp(member)}
+						{@const summary = loaded[member.id]}
+						<a class="row-link youth" href={pagePath(`progress/${member.id}/`)}>
+							<div class="grow">
+								<div class="name-row">
+									<span class="name">
+										<span class="strong">{member.firstName} {members.lastName(member)}</span>
+										{#if member.patrolDuty}<span class="badge badge-plain duty"
+												>{member.patrolDuty}</span
+											>{/if}
+										{#if member.unitCouncil}<span
+												class="badge badge-plain council"
+												title="On the Unit Council">UC</span
+											>{/if}
+										{#if grouping !== 'patrol' && member.patrolName}<span
+												class="small muted patrol-name">{member.patrolName}</span
+											>{/if}
+									</span>
+									{#if badge}
+										<span class="badge move-up {badgeClass[badge.urgency]}">{badge.text}</span>
+									{/if}
+								</div>
+								{#if summary}
+									<div class="award-track" aria-hidden="true">
+										<span style:width="{summary.percent}%"></span>
+									</div>
+									<div class="award small muted">
+										<span>{rules.peakAwardName} {summary.percent}%</span>
+										<span class="logbook">
+											<span title="Nights camped" aria-label="{summary.nights} nights camped"
+												><span aria-hidden="true">⛺</span> {summary.nights}</span
+											>
+											<span title="Kilometres hiked" aria-label="{summary.kms} km hiked"
+												><span aria-hidden="true">🥾</span> {summary.kms} km</span
+											>
+										</span>
+									</div>
 								{/if}
 							</div>
-							{#if loaded[member.id]}
-								{@const summary = loaded[member.id]}
-								<div class="award-track" aria-hidden="true">
-									<span style:width="{summary.percent}%"></span>
-								</div>
-								<div class="award small muted">
-									<span>{rules.peakAwardName} {summary.percent}%</span>
-									<span class="logbook">
-										<span title="Nights camped" aria-label="{summary.nights} nights camped"
-											><span aria-hidden="true">⛺</span> {summary.nights}</span
-										>
-										<span title="Kilometres hiked" aria-label="{summary.kms} km hiked"
-											><span aria-hidden="true">🥾</span> {summary.kms} km</span
-										>
-									</span>
-								</div>
-							{/if}
-							<dl>
-								<div>
-									<dt>Member Number</dt>
-									<dd>{member.memberNumber}</dd>
-								</div>
-								{#if member.patrolName}
-									<div>
-										<dt>Patrol</dt>
-										<dd>{member.patrolName}</dd>
-									</div>
-								{/if}
-								{#if member.patrolDuty}
-									<div>
-										<dt>Role</dt>
-										<dd>{member.patrolDuty}</dd>
-									</div>
-								{/if}
-								{#if member.unitCouncil}
-									<div>
-										<dt>Unit Council</dt>
-										<dd>Yes</dd>
-									</div>
-								{/if}
-							</dl>
-						</div>
-						<span class="chevron" aria-hidden="true">&rsaquo;</span>
-					</a>
-				</li>
-			{/each}
-		</ul>
+							<span class="chevron" aria-hidden="true">&rsaquo;</span>
+						</a>
+					{/each}
+				</div>
+			</section>
+		{/each}
 	{/if}
 </div>
 
 <style>
+	.page-head {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 0.75rem;
+	}
+
+	.page-head .btn {
+		flex-shrink: 0;
+		margin-top: 0.4rem;
+	}
+
+	.group-by {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.4rem;
+		margin-bottom: 0.75rem;
+	}
+
+	.patrol + .patrol {
+		margin-top: 1.25rem;
+	}
+
+	.patrol-head {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 0.5rem;
+	}
+
+	.patrol-head h3 {
+		margin: 0;
+	}
+
+	.summary {
+		margin: 0.15rem 0 0.5rem;
+	}
+
+	/* Rows as in the phone's own settings, with hairlines between */
+	.list {
+		padding-top: 0;
+		padding-bottom: 0;
+	}
+
+	.list > * + * {
+		border-top: 0.5px solid var(--border);
+	}
+
+	.youth {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		min-height: 44px;
+		padding: 0.6rem 0;
+		color: inherit;
+		text-decoration: none;
+	}
+
+	.grow {
+		flex: 1;
+		min-width: 0;
+	}
+
 	.name-row {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
 		justify-content: space-between;
 		gap: 0.25rem 0.5rem;
+	}
+
+	.name {
+		display: inline-flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.3rem;
+	}
+
+	.duty,
+	.council {
+		font-size: 0.7rem;
 	}
 
 	/* Kept on one line: with a long name it goes under the name rather than breaking */
@@ -187,50 +355,10 @@
 		color: var(--muted);
 	}
 
-	.page-head {
-		display: flex;
-		align-items: flex-start;
-		justify-content: space-between;
-		gap: 0.75rem;
-	}
-
-	.page-head .btn {
-		flex-shrink: 0;
-		margin-top: 0.4rem;
-	}
-
-	.youth {
-		padding: 0.7rem 0.9rem;
-	}
-
-	.grow {
-		flex: 1;
-		min-width: 0;
-	}
-
-	dl {
-		display: grid;
-		grid-template-columns: 10.5rem 1fr;
-		margin: 0.2rem 0 0;
-		font-size: 1rem;
-	}
-
-	dl div {
-		display: contents;
-	}
-
-	dt {
-		color: var(--muted);
-	}
-
-	dd {
-		margin: 0;
-	}
-
-	/* The award's progress, the width of the card, with the numbers beneath */
+	/* The award's progress, the width of the row, with the numbers beneath */
 	.award-track {
-		height: 6px;
-		margin: 0.4rem 0 0.3rem;
+		height: 5px;
+		margin: 0.4rem 0 0.25rem;
 		border-radius: 3px;
 		background: var(--surface-3);
 		overflow: hidden;
@@ -247,8 +375,9 @@
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
+		justify-content: space-between;
 		gap: 0.2rem 0.6rem;
-		margin-bottom: 0.2rem;
+		font-variant-numeric: tabular-nums;
 	}
 
 	/* Nights and km stay together, moving to the next line as a pair when there isn't room */
