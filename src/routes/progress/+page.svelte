@@ -5,6 +5,8 @@
 -->
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { SvelteSet } from 'svelte/reactivity';
+	import { fitsBeside } from '#lib/actions/fitsBeside.js';
 	import ChooseUnit from '#lib/components/ChooseUnit.svelte';
 	import YouthLoadProgress from '#lib/components/YouthLoadProgress.svelte';
 	import Icon from '#lib/components/Icon.svelte';
@@ -100,6 +102,8 @@
 		writeSetting(YOUTH_GROUP_KEY, value);
 	}
 
+	// Youth whose names leave no room for the full move up badge beside them
+	const tight = new SvelteSet<string>();
 	const moveUp = (m: MemberSummary) => moveUpBadge(m.dateOfBirth, rules, settings, now);
 	const movingSoon = (m: MemberSummary) => {
 		const badge = moveUp(m);
@@ -220,22 +224,36 @@
 						<!-- A grid shared by every row, so the bars, percentages, nights and km line up down the page:
 						     the name above its bar, then fixed columns for the numbers, then the chevron -->
 						<a class="row-link youth" href={pagePath(`progress/${member.id}/`)}>
-							<span class="name">
-								<span class="strong">{member.firstName} {members.lastName(member)}</span>
-								{#if member.patrolDuty}<span class="badge badge-plain duty"
-										>{member.patrolDuty}</span
-									>{/if}
-								{#if member.unitCouncil}<span
-										class="badge badge-plain council"
-										title="On the Unit Council">UC</span
-									>{/if}
-								{#if grouping !== 'patrol' && member.patrolName}<span
-										class="small muted patrol-name">{member.patrolName}</span
-									>{/if}
+							<!-- The name and when they move up; shortened to just the time ("1y 8m", "Due") where
+							     the full badge wouldn't fit beside the name -->
+							<span
+								class="line"
+								use:fitsBeside={{
+									full: badge?.text ?? '',
+									onfit: (fits) => (fits ? tight.delete(member.id) : tight.add(member.id))
+								}}
+							>
+								<span class="name">
+									<span class="strong">{member.firstName} {members.lastName(member)}</span>
+									{#if member.patrolDuty}<span class="badge badge-plain duty"
+											>{member.patrolDuty}</span
+										>{/if}
+									{#if member.unitCouncil}<span
+											class="badge badge-plain council"
+											title="On the Unit Council">UC</span
+										>{/if}
+									{#if grouping !== 'patrol' && member.patrolName}<span
+											class="small muted patrol-name">{member.patrolName}</span
+										>{/if}
+								</span>
+								{#if badge}
+									<span
+										class="badge move-up {badgeClass[badge.urgency]}"
+										title={tight.has(member.id) ? badge.text : undefined}
+										>{tight.has(member.id) ? badge.short : badge.text}</span
+									>
+								{/if}
 							</span>
-							{#if badge}
-								<span class="badge move-up {badgeClass[badge.urgency]}">{badge.text}</span>
-							{/if}
 							{#if summary}
 								<!-- The patrol's summary names the award -->
 								<span class="award small muted">
@@ -332,7 +350,7 @@
 		display: grid;
 		grid-template-columns: minmax(0, 1fr) 2.8rem 2.8rem 4.4rem 1rem;
 		grid-template-areas:
-			'name name move move chevron'
+			'line line line line chevron'
 			'bar percent nights kms chevron';
 		align-items: center;
 		column-gap: 0.5rem;
@@ -343,8 +361,17 @@
 		text-decoration: none;
 	}
 
+	.line {
+		grid-area: line;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.5rem;
+		min-width: 0;
+	}
+
 	.name {
-		grid-area: name;
+		flex: 1;
 		display: inline-flex;
 		flex-wrap: wrap;
 		align-items: center;
@@ -359,8 +386,7 @@
 
 	/* Kept on one line, at the end of the numbers' columns */
 	.move-up {
-		grid-area: move;
-		justify-self: end;
+		flex-shrink: 0;
 		font-size: 0.72rem;
 		font-weight: 600;
 		white-space: nowrap;

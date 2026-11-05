@@ -392,6 +392,8 @@ export function moveUpDate(dateOfBirth: CalendarDate, rules: SectionRules): Cale
 
 export interface MoveUpBadge {
 	text: string;
+	/** For where the full text doesn't fit beside a name, e.g. "1y 3m" or "Due" */
+	short: string;
 	/** As Insights ranks youth moving up: High within 3 months (or overdue), Medium within 6, Low
 	    within the leader's move up window, and None beyond it */
 	urgency: Urgency | 'None';
@@ -407,7 +409,7 @@ export function moveUpBadge(
 	// A section Beacon doesn't know has no move up age
 	if (!dateOfBirth || rules.moveUpAgeYears <= 0 || rules.moveUpAgeYears >= 99) return null;
 	const months = daysBetween(today, moveUpDate(dateOfBirth, rules)) / 30.44;
-	if (months < 0) return { text: 'Due to move up', urgency: 'High' };
+	if (months < 0) return { text: 'Due to move up', short: 'Due', urgency: 'High' };
 	const whole = Math.round(months);
 	const years = Math.floor(whole / 12);
 	const rest = whole % 12;
@@ -421,7 +423,7 @@ export function moveUpBadge(
 				: months <= settings.moveUpWindowMonths
 					? 'Low'
 					: 'None';
-	return { text: `Moves up in ${time}`, urgency };
+	return { text: `Moves up in ${time}`, short: time, urgency };
 }
 
 /** Youth moving up within the window, plus any focus youth, who are weighted the same way */
