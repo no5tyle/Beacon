@@ -299,6 +299,56 @@ small {
 	border-radius: 999px;
 }
 
+/* Chips in one row that scrolls sideways, e.g. a stream's stages, rather than wrapping onto several */
+.chip-group.chip-scroll {
+	/* Within the page's width, scrolling inside it, rather than widening the page. Positioned, so the
+	   hidden text in its chips (.visually-hidden is absolute) is held within it too */
+	position: relative;
+	min-width: 0;
+	max-width: 100%;
+	flex-wrap: nowrap;
+	overflow-x: auto;
+	scrollbar-width: none;
+	overscroll-behavior-x: contain;
+}
+
+.chip-scroll::-webkit-scrollbar {
+	display: none;
+}
+
+.chip-scroll > * {
+	flex-shrink: 0;
+	white-space: nowrap;
+}
+
+/* An edge with more to scroll to fades out (see the scrollHint action) */
+.scroll-hint[data-more-right]:not([data-more-left]) {
+	-webkit-mask-image: linear-gradient(to right, #000 calc(100% - 2.5rem), transparent);
+	mask-image: linear-gradient(to right, #000 calc(100% - 2.5rem), transparent);
+}
+
+.scroll-hint[data-more-left]:not([data-more-right]) {
+	-webkit-mask-image: linear-gradient(to left, #000 calc(100% - 2.5rem), transparent);
+	mask-image: linear-gradient(to left, #000 calc(100% - 2.5rem), transparent);
+}
+
+.scroll-hint[data-more-left][data-more-right] {
+	-webkit-mask-image: linear-gradient(
+		to right,
+		transparent,
+		#000 2.5rem,
+		#000 calc(100% - 2.5rem),
+		transparent
+	);
+	mask-image: linear-gradient(
+		to right,
+		transparent,
+		#000 2.5rem,
+		#000 calc(100% - 2.5rem),
+		transparent
+	);
+}
+
 /* Cards and panels */
 
 .card {
@@ -759,6 +809,8 @@ html:has(.tab-bar) {
 
 /* Small tables, e.g. OAS stages and themes. Wide ones scroll within a .table-scroll */
 .table-scroll {
+	/* Positioned, so hidden text inside (absolute) scrolls with it rather than widening the page */
+	position: relative;
 	overflow-x: auto;
 }
 

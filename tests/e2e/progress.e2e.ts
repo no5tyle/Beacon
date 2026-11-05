@@ -7,7 +7,8 @@ test('Youth lists the youth by patrol, leaders first, and each opens their detai
 	await fakeTerrain(page);
 	await logIn(page);
 	await navigate(page, 'progress/');
-	await expect(page.locator('h2')).toHaveText('Youth (Mt Example Scouts)');
+	await expect(page.locator('h2')).toHaveText('Youth');
+	await expect(page.locator('.unit-line')).toHaveText('Mt Example Scouts · 4 youth');
 	const patrols = page.locator('section.patrol');
 	await expect(patrols.locator('h3')).toHaveText(['Kookaburra', 'Wombat']);
 	const kookaburra = patrols.filter({ hasText: 'Kookaburra' });
@@ -103,7 +104,7 @@ test('youth details: who they are, next steps, awards and records', async ({ pag
 	await expect(page.locator('.stats')).toContainText(/Kilometres hiked\s*42/);
 
 	await page.locator('.back-link', { hasText: 'Youth' }).click();
-	await expect(page.locator('h2')).toHaveText('Youth (Mt Example Scouts)');
+	await expect(page.locator('h2')).toHaveText('Youth');
 });
 
 test('milestones just say Completed once all three are awarded', async ({ page }) => {

@@ -136,7 +136,8 @@
 	/* Keep the end of each page clear of the tab bar */
 	@media (max-width: 640.98px) {
 		.page:has(:global(.tab-bar)) main {
-			padding-bottom: calc(var(--tab-bar-height) + 1rem);
+			/* The last row clears the floating tabs with room to spare, scrolled right to the end */
+			padding-bottom: calc(var(--tab-bar-height) + 2rem);
 		}
 	}
 

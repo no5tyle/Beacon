@@ -64,7 +64,8 @@ test('the unit can be changed from the navigation on any page', async ({ page, i
 	await expect
 		.poll(() => terrain.requests.some((r) => r.includes('units/unit-2/members')))
 		.toBe(true);
-	await expect(page.locator('main h2')).toHaveText('Youth (Mt Example Cubs)');
+	await expect(page.locator('main h2')).toHaveText('Youth');
+	await expect(page.locator('.unit-line')).toContainText('Mt Example Cubs');
 });
 
 test('Info says what each page is for and who is signed in', async ({ page }) => {
