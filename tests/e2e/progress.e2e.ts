@@ -195,3 +195,17 @@ test("while the unit's progress loads, Progress shows how far through the youth 
 	await expect(loading).toHaveCount(0, { timeout: 20000 });
 	await expect(page.locator('.youth .award')).toHaveCount(4);
 });
+
+test('a move up badge without room beside the name shows just the time', async ({ page }) => {
+	await fakeTerrain(page);
+	await logIn(page);
+	await navigate(page, 'progress/');
+	const ava = page.locator('.youth', { hasText: 'Ava Nguyen' }).locator('.move-up');
+	await expect(ava).toHaveText(/^Moves up in (1|2)m$/);
+	// Narrow enough that "Ava Nguyen PL UC" leaves no room for the full badge
+	await page.setViewportSize({ width: 280, height: 700 });
+	await expect(ava).toHaveText(/^(1|2)m$/);
+	await expect(ava).toHaveAttribute('title', /^Moves up in (1|2)m$/);
+	await page.setViewportSize({ width: 1000, height: 700 });
+	await expect(ava).toHaveText(/^Moves up in (1|2)m$/);
+});

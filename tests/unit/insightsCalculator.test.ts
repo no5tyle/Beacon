@@ -610,12 +610,20 @@ describe('move up badge', () => {
 	const badge = (dob: string | null) => moveUpBadge(dob, scouts, settings, TODAY);
 
 	it('says how long until the youth moves up, and how soon that is', () => {
-		expect(badge(yearsAgo(15, 2))).toEqual({ text: 'Moves up in 2m', urgency: 'High' });
-		expect(badge(yearsAgo(15, 5))).toEqual({ text: 'Moves up in 5m', urgency: 'Medium' });
-		expect(badge(yearsAgo(14, 3))).toEqual({ text: 'Moves up in 1y 3m', urgency: 'None' });
+		expect(badge(yearsAgo(15, 2))).toEqual({
+			text: 'Moves up in 2m',
+			short: '2m',
+			urgency: 'High'
+		});
+		expect(badge(yearsAgo(15, 5))).toMatchObject({ text: 'Moves up in 5m', urgency: 'Medium' });
+		expect(badge(yearsAgo(14, 3))).toEqual({
+			text: 'Moves up in 1y 3m',
+			short: '1y 3m',
+			urgency: 'None'
+		});
 		expect(badge(yearsAgo(13))?.text).toBe('Moves up in 2y');
 		expect(badge(addMonths(yearsAgo(15), 0))?.text).toBe('Moves up in <1m');
-		expect(badge(yearsAgo(16))).toEqual({ text: 'Due to move up', urgency: 'High' });
+		expect(badge(yearsAgo(16))).toEqual({ text: 'Due to move up', short: 'Due', urgency: 'High' });
 	});
 
 	it('the move up window sets which further off youth stand out', () => {
