@@ -4,6 +4,7 @@
 -->
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { scrollHint } from '#lib/actions/scrollHint.js';
 	import ChooseUnit from '#lib/components/ChooseUnit.svelte';
 	import Icon from '#lib/components/Icon.svelte';
 	import SectionFlow from '#lib/components/SectionFlow.svelte';
@@ -508,7 +509,7 @@
 					? ' Core streams only; turn on "Include non-core OAS streams" in Filters to see the others.'
 					: ''}
 			</p>
-			<div class="table-scroll section-gap">
+			<div class="table-scroll section-gap" use:scrollHint>
 				<table class="table heatmap">
 					<thead>
 						<tr>
@@ -585,7 +586,7 @@
 					{#if group.gaps.length === 0}
 						<p class="muted small">None outstanding.</p>
 					{:else}
-						<div class="table-scroll section-gap">
+						<div class="table-scroll section-gap" use:scrollHint>
 							<table class="table stack-table gaps">
 								<thead>
 									<tr>
@@ -740,7 +741,7 @@
 
 		{#if tab === 'programme'}
 			<h3>Skill themes across outstanding requirements</h3>
-			<div class="table-scroll section-gap">
+			<div class="table-scroll section-gap" use:scrollHint>
 				<table class="table stack-table">
 					<thead>
 						<tr>
@@ -1050,6 +1051,15 @@
 
 	.heatmap tbody tr:nth-child(odd) {
 		background: none;
+	}
+
+	/* The stream stays in view while the stages scroll sideways on a phone */
+	.heatmap th:first-child,
+	.heatmap td:first-child {
+		position: sticky;
+		left: 0;
+		z-index: 1;
+		background: var(--bg);
 	}
 
 	.heatmap td.heat-0 {

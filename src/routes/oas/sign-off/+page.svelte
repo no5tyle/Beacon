@@ -4,6 +4,7 @@
 -->
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
+	import { scrollHint } from '#lib/actions/scrollHint.js';
 	import { page } from '$app/state';
 	import BackLink from '#lib/components/BackLink.svelte';
 	import ChooseUnit from '#lib/components/ChooseUnit.svelte';
@@ -513,7 +514,8 @@
 		</div>
 
 		{#if selectedStream}
-			<div class="chip-group stages">
+			<!-- One row, scrolling sideways, so the statements stay near the top -->
+			<div class="chip-group chip-scroll stages" use:scrollHint>
 				{#each stagesForStream as option (option.templateLink)}
 					<button
 						type="button"
@@ -521,7 +523,10 @@
 							? 'btn-primary'
 							: 'btn-outline-primary'}"
 						disabled={loading}
-						onclick={() => selectStage(option)}
+						onclick={(e) => {
+							e.currentTarget.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+							selectStage(option);
+						}}
 						>{stageButtonText(option)}{#if pickedInStage(option) > 0}<span class="picked-count"
 								>{pickedInStage(option)}<span class="visually-hidden"> picked</span></span
 							>{/if}</button

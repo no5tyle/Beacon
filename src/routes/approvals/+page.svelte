@@ -469,11 +469,11 @@
 			{groupByMember ? approvalTitle(approval) : approval.memberName}
 		</div>
 		{#if subtitle}<div class="small subtitle">{subtitle}</div>{/if}
-		<div class="small muted">
-			{approval.submissionType} · submitted {submittedDisplay(approval.submittedOn)}
-		</div>
-		{@render alsoInNote(approval.memberId, approval.memberName)}
+		<!-- When it was submitted and how the votes stand, on one line where there's room -->
 		<div class="small votes">
+			<span class="muted"
+				>{approval.submissionType} · submitted {submittedDisplay(approval.submittedOn)}</span
+			>
 			{#if !approval.isAward}
 				<span class={approval.approvedBy.length > 0 ? 'text-success' : 'muted'}>
 					<Icon name="check" />
@@ -489,6 +489,7 @@
 				</span>
 			{/if}
 		</div>
+		{@render alsoInNote(approval.memberId, approval.memberName)}
 
 		{#if canAwardInBeacon(approval)}
 			<label class="small award-pick"

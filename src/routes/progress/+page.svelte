@@ -150,7 +150,12 @@
 
 <div use:pullToRefresh={refresh}>
 	<div class="page-head">
-		<h2>Youth{app.unitName ? ` (${app.unitName})` : ''}</h2>
+		<div>
+			<h2>Youth</h2>
+			{#if app.unitName}<div class="small muted unit-line">
+					{app.unitName}{youth.length > 0 ? ` · ${youth.length} youth` : ''}
+				</div>{/if}
+		</div>
 		{#if youth.length > 0}
 			<a class="btn btn-outline-primary btn-sm" href={pagePath('progress/report/')}
 				><Icon name="print" /> Reports</a
@@ -233,11 +238,16 @@
 									{/if}
 								</div>
 								{#if summary}
-									<div class="award-track" aria-hidden="true">
-										<span style:width="{summary.percent}%"></span>
-									</div>
+									<!-- One line, the same in every row: the award's bar and percentage, then the logbook.
+									     The patrol's summary names the award -->
 									<div class="award small muted">
-										<span>{rules.peakAwardName} {summary.percent}%</span>
+										<span class="award-track" aria-hidden="true">
+											<span style:width="{summary.percent}%"></span>
+										</span>
+										<span class="percent" title="{rules.peakAwardName} {summary.percent}%"
+											><span class="visually-hidden">{`${rules.peakAwardName} `}</span
+											>{summary.percent}%</span
+										>
 										<span class="logbook">
 											<span title="Nights camped" aria-label="{summary.nights} nights camped"
 												><span aria-hidden="true">⛺</span> {summary.nights}</span
@@ -264,6 +274,14 @@
 		align-items: flex-start;
 		justify-content: space-between;
 		gap: 0.75rem;
+	}
+
+	.page-head h2 {
+		margin-bottom: 0.1rem;
+	}
+
+	.unit-line {
+		margin-bottom: 0.75rem;
 	}
 
 	.page-head .btn {
@@ -355,10 +373,11 @@
 		color: var(--muted);
 	}
 
-	/* The award's progress, the width of the row, with the numbers beneath */
+	/* The award's progress filling the row, its percentage, then nights and km, never wrapping */
 	.award-track {
+		flex: 1;
+		min-width: 3rem;
 		height: 5px;
-		margin: 0.4rem 0 0.25rem;
 		border-radius: 3px;
 		background: var(--surface-3);
 		overflow: hidden;
@@ -373,15 +392,20 @@
 
 	.award {
 		display: flex;
-		flex-wrap: wrap;
 		align-items: center;
-		justify-content: space-between;
-		gap: 0.2rem 0.6rem;
+		gap: 0.6rem;
+		margin-top: 0.35rem;
 		font-variant-numeric: tabular-nums;
 	}
 
-	/* Nights and km stay together, moving to the next line as a pair when there isn't room */
+	.percent {
+		min-width: 2.6rem;
+		text-align: right;
+		white-space: nowrap;
+	}
+
 	.logbook {
+		flex-shrink: 0;
 		display: inline-flex;
 		align-items: center;
 		gap: 0.6rem;

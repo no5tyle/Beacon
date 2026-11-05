@@ -256,3 +256,20 @@ test('on a wide screen the page sits in the middle beside the sidebar', async ({
 	const next = (await page.locator('.action-bar .btn').boundingBox())!;
 	expect(Math.abs(field.x + field.width - (next.x + next.width))).toBeLessThan(20);
 });
+
+test('no page is wider than a phone screen', async ({ page, isMobile }) => {
+	test.skip(!isMobile, 'phone width only');
+	await logIn(page);
+	for (const path of ['insights/', 'oas/sign-off/', 'progress/', 'approvals/', 'oas-reference/']) {
+		await navigate(page, path);
+		await expect(page.locator('h2').first()).toBeVisible();
+		if (path === 'oas/sign-off/') {
+			// The stage row scrolls sideways within the page
+			await page.getByRole('button', { name: 'Camping', exact: true }).click();
+			await page.getByRole('button', { name: 'Stage 2', exact: true }).click();
+			await page.getByLabel('I can tie a reef knot and a clove hitch.').check();
+		}
+		const width = await page.evaluate(() => document.documentElement.scrollWidth);
+		expect(width, `${path} fits the screen`).toBeLessThanOrEqual(390);
+	}
+});
