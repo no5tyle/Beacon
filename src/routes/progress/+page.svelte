@@ -217,48 +217,48 @@
 					{#each section.items as member (member.id)}
 						{@const badge = moveUp(member)}
 						{@const summary = loaded[member.id]}
+						<!-- A grid shared by every row, so the bars, percentages, nights and km line up down the page:
+						     the name above its bar, then fixed columns for the numbers, then the chevron -->
 						<a class="row-link youth" href={pagePath(`progress/${member.id}/`)}>
-							<div class="grow">
-								<div class="name-row">
-									<span class="name">
-										<span class="strong">{member.firstName} {members.lastName(member)}</span>
-										{#if member.patrolDuty}<span class="badge badge-plain duty"
-												>{member.patrolDuty}</span
-											>{/if}
-										{#if member.unitCouncil}<span
-												class="badge badge-plain council"
-												title="On the Unit Council">UC</span
-											>{/if}
-										{#if grouping !== 'patrol' && member.patrolName}<span
-												class="small muted patrol-name">{member.patrolName}</span
-											>{/if}
+							<span class="name">
+								<span class="strong">{member.firstName} {members.lastName(member)}</span>
+								{#if member.patrolDuty}<span class="badge badge-plain duty"
+										>{member.patrolDuty}</span
+									>{/if}
+								{#if member.unitCouncil}<span
+										class="badge badge-plain council"
+										title="On the Unit Council">UC</span
+									>{/if}
+								{#if grouping !== 'patrol' && member.patrolName}<span
+										class="small muted patrol-name">{member.patrolName}</span
+									>{/if}
+							</span>
+							{#if badge}
+								<span class="badge move-up {badgeClass[badge.urgency]}">{badge.text}</span>
+							{/if}
+							{#if summary}
+								<!-- The patrol's summary names the award -->
+								<span class="award small muted">
+									<span class="award-track" aria-hidden="true">
+										<span style:width="{summary.percent}%"></span>
 									</span>
-									{#if badge}
-										<span class="badge move-up {badgeClass[badge.urgency]}">{badge.text}</span>
-									{/if}
-								</div>
-								{#if summary}
-									<!-- One line, the same in every row: the award's bar and percentage, then the logbook.
-									     The patrol's summary names the award -->
-									<div class="award small muted">
-										<span class="award-track" aria-hidden="true">
-											<span style:width="{summary.percent}%"></span>
-										</span>
-										<span class="percent" title="{rules.peakAwardName} {summary.percent}%"
-											><span class="visually-hidden">{`${rules.peakAwardName} `}</span
-											>{summary.percent}%</span
+									<span class="percent" title="{rules.peakAwardName} {summary.percent}%"
+										><span class="visually-hidden">{`${rules.peakAwardName} `}</span
+										>{summary.percent}%</span
+									>
+									<span class="logbook">
+										<span
+											class="nights"
+											title="Nights camped"
+											aria-label="{summary.nights} nights camped"
+											><span aria-hidden="true">⛺</span> {summary.nights}</span
 										>
-										<span class="logbook">
-											<span title="Nights camped" aria-label="{summary.nights} nights camped"
-												><span aria-hidden="true">⛺</span> {summary.nights}</span
-											>
-											<span title="Kilometres hiked" aria-label="{summary.kms} km hiked"
-												><span aria-hidden="true">🥾</span> {summary.kms} km</span
-											>
-										</span>
-									</div>
-								{/if}
-							</div>
+										<span class="kms" title="Kilometres hiked" aria-label="{summary.kms} km hiked"
+											><span aria-hidden="true">🥾</span> {summary.kms} km</span
+										>
+									</span>
+								</span>
+							{/if}
 							<span class="chevron" aria-hidden="true">&rsaquo;</span>
 						</a>
 					{/each}
@@ -326,34 +326,30 @@
 		border-top: 0.5px solid var(--border);
 	}
 
+	/* Name and move up on the first line; bar, percentage, nights and km on the second, each number in
+	   a column of its own width so they line up in every row; the chevron to the right of both */
 	.youth {
-		display: flex;
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) 2.8rem 2.8rem 4.4rem 1rem;
+		grid-template-areas:
+			'name name move move chevron'
+			'bar percent nights kms chevron';
 		align-items: center;
-		gap: 0.5rem;
+		column-gap: 0.5rem;
+		row-gap: 0.35rem;
 		min-height: 44px;
 		padding: 0.6rem 0;
 		color: inherit;
 		text-decoration: none;
 	}
 
-	.grow {
-		flex: 1;
-		min-width: 0;
-	}
-
-	.name-row {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		justify-content: space-between;
-		gap: 0.25rem 0.5rem;
-	}
-
 	.name {
+		grid-area: name;
 		display: inline-flex;
 		flex-wrap: wrap;
 		align-items: center;
 		gap: 0.3rem;
+		min-width: 0;
 	}
 
 	.duty,
@@ -361,8 +357,10 @@
 		font-size: 0.7rem;
 	}
 
-	/* Kept on one line: with a long name it goes under the name rather than breaking */
+	/* Kept on one line, at the end of the numbers' columns */
 	.move-up {
+		grid-area: move;
+		justify-self: end;
 		font-size: 0.72rem;
 		font-weight: 600;
 		white-space: nowrap;
@@ -373,10 +371,15 @@
 		color: var(--muted);
 	}
 
-	/* The award's progress filling the row, its percentage, then nights and km, never wrapping */
+	/* The award line's parts take their own places in the row's grid */
+	.award,
+	.logbook {
+		display: contents;
+		font-variant-numeric: tabular-nums;
+	}
+
 	.award-track {
-		flex: 1;
-		min-width: 3rem;
+		grid-area: bar;
 		height: 5px;
 		border-radius: 3px;
 		background: var(--surface-3);
@@ -390,29 +393,28 @@
 		background: var(--success);
 	}
 
-	.award {
-		display: flex;
-		align-items: center;
-		gap: 0.6rem;
-		margin-top: 0.35rem;
-		font-variant-numeric: tabular-nums;
-	}
-
-	.percent {
-		min-width: 2.6rem;
+	.percent,
+	.nights,
+	.kms {
 		text-align: right;
 		white-space: nowrap;
 	}
 
-	.logbook {
-		flex-shrink: 0;
-		display: inline-flex;
-		align-items: center;
-		gap: 0.6rem;
-		white-space: nowrap;
+	.percent {
+		grid-area: percent;
+	}
+
+	.nights {
+		grid-area: nights;
+	}
+
+	.kms {
+		grid-area: kms;
 	}
 
 	.chevron {
+		grid-area: chevron;
+		justify-self: end;
 		color: var(--muted);
 		font-size: 1.4rem;
 	}
