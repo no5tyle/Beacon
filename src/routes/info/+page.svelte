@@ -23,8 +23,8 @@
 		unit night, log an activity, or plan a youth's SIA.
 	</p>
 	<p>
-		Use Progress to see where each youth is up to, record their OAS statements and submit stages for
-		review.
+		Use Youth to see the unit's youth by patrol and where each is up to, record their OAS statements
+		and submit stages for review.
 	</p>
 	<p>Use Reference to look up any OAS statement and its explanation.</p>
 	<p>

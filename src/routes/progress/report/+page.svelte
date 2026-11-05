@@ -232,7 +232,7 @@
 </svelte:head>
 
 <div class="no-print">
-	<BackLink href={pagePath('progress/')} label="Progress" />
+	<BackLink href={pagePath('progress/')} label="Youth" />
 	<div class="head">
 		<h2>Progress reports</h2>
 		<button

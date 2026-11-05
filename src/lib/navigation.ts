@@ -87,7 +87,8 @@ export function mainPages({
 			shortTitle: 'Record',
 			alsoActive: ['record/']
 		},
-		{ href: 'progress/', icon: 'person', title: 'Progress', shortTitle: 'Progress' },
+		// The unit's youth, by patrol, each opening their progress; youth see their own as Progress
+		{ href: 'progress/', icon: 'people', title: 'Youth', shortTitle: 'Youth' },
 		referencePage
 	];
 }
@@ -102,7 +103,6 @@ export function morePages({ isYouth, onUnitCouncil, approvalsWaiting = 0 }: NavO
 	};
 	if (isYouth) return onUnitCouncil ? [referencePage, logout] : [logout];
 	return [
-		{ href: 'patrols/', icon: 'people', title: 'Patrols', shortTitle: 'Patrols' },
 		approvalsPage(approvalsWaiting),
 		{ href: 'info/', icon: 'info', title: 'Info', shortTitle: 'Info' },
 		logout
@@ -110,11 +110,11 @@ export function morePages({ isYouth, onUnitCouncil, approvalsWaiting = 0 }: NavO
 }
 
 /** Pages that may stand in for Reference on the phone's tab bar while they're open */
-const SWAPPABLE = ['progress/', 'patrols/', 'approvals/', 'info/'];
+const SWAPPABLE = ['progress/', 'approvals/', 'info/'];
 
 /**
 	The phone's tab bar and its More menu. Fewer tabs than the sidebar so they aren't cramped: for leaders
-	Progress goes under More. While a page from More is open it takes Reference's place in the bar, and
+	Youth goes under More. While a page from More is open it takes Reference's place in the bar, and
 	Reference goes under More, so the current page always has a tab of its own.
 */
 export function phoneTabs(options: NavOptions, path: string): { main: NavPage[]; more: NavPage[] } {

@@ -1,40 +1,49 @@
 import { expect, test } from '@playwright/test';
 import { fakeTerrain, logIn, navigate } from './terrain.js';
 
-test('Patrols lists the youth in each patrol, leaders first, with their progress', async ({
-	page
-}) => {
+test('Youth groups by name or moving up soonest, remembered on the device', async ({ page }) => {
 	await fakeTerrain(page);
 	await logIn(page);
-	await navigate(page, 'patrols/');
-	await expect(page.locator('h2')).toHaveText('Patrols (Mt Example Scouts)');
-
-	const patrols = page.locator('section.patrol');
-	await expect(patrols.locator('h3')).toHaveText(['Kookaburra', 'Wombat']);
-	const kookaburra = patrols.filter({ hasText: 'Kookaburra' });
-	await expect(kookaburra.locator('.patrol-head')).toContainText('2 youth');
-	// The patrol leader first, then everyone else
-	await expect(kookaburra.locator('.member .row-main')).toHaveText([
-		/Ava\s+Nguyen\s*PL/,
-		/Liam\s+Smith/
-	]);
-	const wombat = patrols.filter({ hasText: 'Wombat' });
-	await expect(wombat.locator('.member .row-main')).toHaveText([
-		/Mia\s+Brown\s*APL/,
-		/Noah\s+Jones/
-	]);
-
-	// Award progress once the unit's progress is loaded, and who's moving up soon
-	await expect(kookaburra.locator('.member', { hasText: 'Ava' }).locator('.percent')).toHaveText(
-		'48%'
+	await navigate(page, 'progress/');
+	const groupBy = page.getByRole('group', { name: 'Group by' });
+	await expect(groupBy.getByRole('button', { name: 'Patrol', exact: true })).toHaveAttribute(
+		'aria-pressed',
+		'true'
 	);
-	await expect(kookaburra.locator('.member', { hasText: 'Ava' }).locator('.move-up')).toHaveText(
-		/^Moves up in (1|2)m$/
-	);
-	await expect(kookaburra.locator('.summary')).toContainText('1 moving up within 6 months');
-	await expect(kookaburra.locator('.summary')).toContainText(/Australian Scout Award average \d+%/);
 
-	// Each youth opens their progress
-	await kookaburra.locator('.member', { hasText: 'Liam' }).click();
-	await expect(page).toHaveURL(/\/progress\/unit-1-m1\/$/);
+	await groupBy.getByRole('button', { name: 'Moving up', exact: true }).click();
+	await expect(page.locator('section.patrol h3')).toHaveCount(0);
+	// Oldest first, each with their patrol and when they move up
+	await expect(page.locator('.youth .strong')).toHaveText([
+		'Ava Nguyen',
+		'Liam Smith',
+		'Mia Brown',
+		'Noah Jones'
+	]);
+	await expect(page.locator('.youth').first()).toContainText('Kookaburra');
+	await expect(page.locator('.youth .move-up')).toHaveCount(4);
+
+	await groupBy.getByRole('button', { name: 'Name', exact: true }).click();
+	await navigate(page, 'insights/');
+	await navigate(page, 'progress/');
+	await expect(page.getByRole('button', { name: 'Name', exact: true })).toHaveAttribute(
+		'aria-pressed',
+		'true'
+	);
+});
+
+test('the old Patrols address opens Youth by patrol', async ({ page }) => {
+	await fakeTerrain(page);
+	await logIn(page);
+	await navigate(page, 'progress/');
+	await page.getByRole('button', { name: 'Name', exact: true }).click();
+	await page.evaluate(() => {
+		const home = document.querySelector('a.brand')?.getAttribute('href') ?? '/';
+		const link = document.createElement('a');
+		link.href = home + 'patrols/';
+		document.body.appendChild(link);
+		link.click();
+	});
+	await expect(page).toHaveURL(/\/progress\/$/);
+	await expect(page.locator('section.patrol h3')).toHaveText(['Kookaburra', 'Wombat']);
 });

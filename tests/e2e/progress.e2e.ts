@@ -1,23 +1,28 @@
 import { expect, test } from '@playwright/test';
 import { fakeTerrain, logIn, navigate } from './terrain.js';
 
-test('Progress lists the youth, and each opens their details', async ({ page }) => {
+test('Youth lists the youth by patrol, leaders first, and each opens their details', async ({
+	page
+}) => {
 	await fakeTerrain(page);
 	await logIn(page);
 	await navigate(page, 'progress/');
-	await expect(page.locator('h2')).toHaveText('Progress (Mt Example Scouts)');
-	const cards = page.locator('.youth');
-	await expect(cards).toHaveCount(4);
-	await expect(cards.locator('.strong')).toHaveText([
-		'Ava Nguyen',
-		'Liam Smith',
+	await expect(page.locator('h2')).toHaveText('Youth (Mt Example Scouts)');
+	const patrols = page.locator('section.patrol');
+	await expect(patrols.locator('h3')).toHaveText(['Kookaburra', 'Wombat']);
+	const kookaburra = patrols.filter({ hasText: 'Kookaburra' });
+	await expect(kookaburra.locator('.patrol-head')).toContainText('2 youth');
+	await expect(kookaburra.locator('.youth .strong')).toHaveText(['Ava Nguyen', 'Liam Smith']);
+	await expect(patrols.filter({ hasText: 'Wombat' }).locator('.youth .strong')).toHaveText([
 		'Mia Brown',
 		'Noah Jones'
 	]);
-	await expect(cards.first()).toContainText(/Member Number\s*100/);
-	await expect(cards.first()).toContainText(/Patrol\s*Kookaburra/);
-	await expect(cards.first()).toContainText(/Role\s*PL/);
-	await expect(cards.first()).toContainText(/Unit Council\s*Yes/);
+	const cards = page.locator('.youth');
+	await expect(cards.first().locator('.duty')).toHaveText('PL');
+	await expect(cards.first().locator('.council')).toHaveText('UC');
+	// The patrol's average and who's moving up, once the unit's progress has loaded
+	await expect(kookaburra.locator('.summary')).toContainText('1 moving up within 6 months');
+	await expect(kookaburra.locator('.summary')).toContainText(/Australian Scout Award average \d+%/);
 
 	await cards.first().click();
 	await expect(page.locator('h2')).toHaveText('Ava Nguyen');
@@ -97,8 +102,8 @@ test('youth details: who they are, next steps, awards and records', async ({ pag
 	await expect(page.locator('.sia')).toHaveCount(2);
 	await expect(page.locator('.stats')).toContainText(/Kilometres hiked\s*42/);
 
-	await page.getByRole('link', { name: 'Progress', exact: true }).first().click();
-	await expect(page.locator('h2')).toHaveText('Progress (Mt Example Scouts)');
+	await page.locator('.back-link', { hasText: 'Youth' }).click();
+	await expect(page.locator('h2')).toHaveText('Youth (Mt Example Scouts)');
 });
 
 test('milestones just say Completed once all three are awarded', async ({ page }) => {
