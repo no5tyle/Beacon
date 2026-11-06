@@ -227,7 +227,7 @@ describe('milestones ready', () => {
 		const p = {
 			...emptyProgress('m1', 'Mia Brown'),
 			milestone1Awarded: '2025-01-01',
-			// Milestone 2: 5 participates in each area and 4 leads or assists
+			// Milestone 2: 5 participates in each area and 4 leads
 			milestone2Community: 5,
 			milestone2Outdoors: 6,
 			milestone2Creative: 5,

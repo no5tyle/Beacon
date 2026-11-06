@@ -248,9 +248,7 @@
 	const percent = (fraction: number) => Math.round(fraction * 100);
 	const coreOnly = $derived(report?.streamCoverage.every((s) => s.isCore) ?? true);
 	const movingUpCount = $derived(report?.moveUpCandidates.filter((c) => c.isMovingUp).length ?? 0);
-	const topArea = $derived(
-		report?.challengeAreaDeficits.find((d) => d.challengeArea !== 'Lead / Assist')
-	);
+	const topArea = $derived(report?.challengeAreaDeficits.find((d) => d.challengeArea !== 'Lead'));
 	const maxDeficit = $derived(
 		Math.max(1, ...(report?.challengeAreaDeficits.map((d) => d.participatesShort) ?? []))
 	);

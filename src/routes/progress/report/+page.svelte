@@ -397,7 +397,7 @@
 							</ul>
 							{#if report?.milestone}
 								<div class="needs muted">
-									{[...report.milestone.participates, report.milestone.leadAssist]
+									{[...report.milestone.participates, report.milestone.leads]
 										.map(
 											(need) =>
 												`${AREAS[need.challengeArea] ?? need.challengeArea} ${Math.min(need.have, need.need)} of ${need.need}`

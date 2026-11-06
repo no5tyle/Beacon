@@ -161,7 +161,7 @@ test('every milestone in progress shows what it still needs', async ({ page }) =
 	await expect(first.locator('.need-row', { hasText: 'Outdoors' })).toContainText('1/6');
 	await expect(second.locator('.need-row')).toHaveCount(5);
 	await expect(second.locator('.need-row', { hasText: 'Community' })).toContainText('2/5');
-	await expect(second.locator('.need-row', { hasText: 'Lead / Assist' })).toContainText('1/4');
+	await expect(second.locator('.need-row', { hasText: 'Lead' })).toContainText('1/4');
 });
 
 test('each youth shows how long until they move up', async ({ page }) => {
