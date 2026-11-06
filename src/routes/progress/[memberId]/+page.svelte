@@ -476,7 +476,7 @@
 						</div>
 						{#if current}
 							<div class="needs">
-								{#each [...current.participates, current.leadAssist] as need (need.challengeArea)}
+								{#each [...current.participates, current.leads] as need (need.challengeArea)}
 									<div class="need-row">
 										<div class="need-label">{need.challengeArea}</div>
 										<div class="need-track">

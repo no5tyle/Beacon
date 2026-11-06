@@ -143,18 +143,18 @@ export function buildMemberInsights(
 
 export function milestoneProgressFor(youth: YouthRecord): MilestoneProgress | null {
 	if (youth.progress.milestone3Awarded !== null) return null;
-	const { number, counts, leadAssist } = currentMilestone(youth.progress);
-	return milestoneNeeds(number, counts, leadAssist);
+	const { number, counts, leads } = currentMilestone(youth.progress);
+	return milestoneNeeds(number, counts, leads);
 }
 
 /**
  * What a milestone still needs, from the participates in each challenge area (in CHALLENGE_AREAS
- * order) and the leads and assists so far
+ * order) and the leads so far
  */
 export function milestoneNeeds(
 	number: number,
 	counts: readonly number[],
-	leadAssist: number
+	leads: number
 ): MilestoneProgress {
 	const need = MILESTONE_REQUIREMENTS[number];
 	const progress: MilestoneProgress = {
@@ -164,7 +164,7 @@ export function milestoneNeeds(
 			have: counts[i],
 			need: need.participate
 		})),
-		leadAssist: { challengeArea: 'Lead / Assist', have: leadAssist, need: need.leadAssist },
+		leads: { challengeArea: 'Lead', have: leads, need: need.leads },
 		isClose: false
 	};
 	const remaining = milestoneRemaining(progress);
@@ -243,12 +243,10 @@ export function milestoneActivity(milestone: MilestoneProgress): ActivitySuggest
 			items: [CHALLENGE_AREA_IDEAS[area.challengeArea]]
 		});
 	}
-	if (needRemaining(milestone.leadAssist) > 0) {
+	if (needRemaining(milestone.leads) > 0) {
 		steps.push({
-			phase: `Lead or assist x${needRemaining(milestone.leadAssist)}`,
-			items: [
-				'Give them a lead or assist role on upcoming patrol or unit activities, in any challenge area'
-			]
+			phase: `Lead x${needRemaining(milestone.leads)}`,
+			items: ['Give them a lead role on upcoming patrol or unit activities, in any challenge area']
 		});
 	}
 

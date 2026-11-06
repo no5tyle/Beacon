@@ -30,14 +30,14 @@ export const needRemaining = (need: ChallengeAreaNeed) => Math.max(need.need - n
 export interface MilestoneProgress {
 	number: number;
 	participates: ChallengeAreaNeed[];
-	leadAssist: ChallengeAreaNeed;
+	leads: ChallengeAreaNeed;
 	isClose: boolean;
 }
 
 export const milestoneRemaining = (m: MilestoneProgress) =>
-	sum(m.participates.map(needRemaining)) + needRemaining(m.leadAssist);
+	sum(m.participates.map(needRemaining)) + needRemaining(m.leads);
 export const milestoneTotal = (m: MilestoneProgress) =>
-	sum(m.participates.map((p) => p.need)) + m.leadAssist.need;
+	sum(m.participates.map((p) => p.need)) + m.leads.need;
 
 export interface StageProgress {
 	stream: string;

@@ -62,12 +62,12 @@ export const MAX_STAGE = 9;
 
 export const CHALLENGE_AREAS = ['Community', 'Outdoors', 'Creative', 'Personal Growth'];
 
-/** Participates per challenge area and lead/assist count needed for each milestone (index = milestone) */
-export const MILESTONE_REQUIREMENTS: { participate: number; leadAssist: number }[] = [
-	{ participate: 0, leadAssist: 0 },
-	{ participate: 6, leadAssist: 2 },
-	{ participate: 5, leadAssist: 4 },
-	{ participate: 4, leadAssist: 6 }
+/** Participates per challenge area and leads needed for each milestone (index = milestone) */
+export const MILESTONE_REQUIREMENTS: { participate: number; leads: number }[] = [
+	{ participate: 0, leads: 0 },
+	{ participate: 6, leads: 2 },
+	{ participate: 5, leads: 4 },
+	{ participate: 4, leads: 6 }
 ];
 
 const coreStreams = () => STREAMS.filter((s) => s.isCore);
@@ -677,26 +677,25 @@ export function peakAwardTasks(
 
 function milestoneDetail(p: YouthProgress): string {
 	if (p.milestone3Awarded !== null) return '';
-	const { number, counts, leadAssist } = currentMilestone(p);
+	const { number, counts, leads } = currentMilestone(p);
 	const need = MILESTONE_REQUIREMENTS[number];
 	const shortfalls: string[] = [];
 	CHALLENGE_AREAS.forEach((area, i) => {
 		const shortBy = need.participate - counts[i];
 		if (shortBy > 0) shortfalls.push(`${area} ${shortBy}`);
 	});
-	if (need.leadAssist - leadAssist > 0)
-		shortfalls.push(`lead/assist ${need.leadAssist - leadAssist}`);
+	if (need.leads - leads > 0) shortfalls.push(`lead ${need.leads - leads}`);
 	const prefix = number < 3 ? `On Milestone ${number}` : 'Milestone 3';
 	return shortfalls.length > 0
 		? `${prefix}, needs ${shortfalls.join(', ')}`
 		: `${prefix} ready for review`;
 }
 
-/** Milestone number in progress, participates per challenge area and lead/assist count */
+/** Milestone number in progress, participates per challenge area and leads */
 export function currentMilestone(p: YouthProgress): {
 	number: number;
 	counts: number[];
-	leadAssist: number;
+	leads: number;
 } {
 	if (p.milestone1Awarded === null)
 		return {
@@ -707,7 +706,7 @@ export function currentMilestone(p: YouthProgress): {
 				p.milestone1Creative,
 				p.milestone1PersonalGrowth
 			],
-			leadAssist: p.milestone1Assist + p.milestone1Lead
+			leads: p.milestone1Assist + p.milestone1Lead
 		};
 	if (p.milestone2Awarded === null)
 		return {
@@ -718,7 +717,7 @@ export function currentMilestone(p: YouthProgress): {
 				p.milestone2Creative,
 				p.milestone2PersonalGrowth
 			],
-			leadAssist: p.milestone2Assist + p.milestone2Lead
+			leads: p.milestone2Assist + p.milestone2Lead
 		};
 	return {
 		number: 3,
@@ -728,7 +727,7 @@ export function currentMilestone(p: YouthProgress): {
 			p.milestone3Creative,
 			p.milestone3PersonalGrowth
 		],
-		leadAssist: p.milestone3Assist + p.milestone3Lead
+		leads: p.milestone3Assist + p.milestone3Lead
 	};
 }
 
@@ -804,13 +803,13 @@ export function challengeAreaDeficits(youth: YouthRecord[]): ChallengeAreaDefici
 		participatesShort: 0,
 		youthShort: 0
 	}));
-	const leadAssist: ChallengeAreaDeficit = {
-		challengeArea: 'Lead / Assist',
+	const leads: ChallengeAreaDeficit = {
+		challengeArea: 'Lead',
 		participatesShort: 0,
 		youthShort: 0
 	};
 	for (const member of youth.filter((y) => y.progress.milestone3Awarded === null)) {
-		const { number, counts, leadAssist: la } = currentMilestone(member.progress);
+		const { number, counts, leads: la } = currentMilestone(member.progress);
 		const need = MILESTONE_REQUIREMENTS[number];
 		CHALLENGE_AREAS.forEach((_, i) => {
 			const shortBy = need.participate - counts[i];
@@ -819,12 +818,12 @@ export function challengeAreaDeficits(youth: YouthRecord[]): ChallengeAreaDefici
 				deficits[i].youthShort++;
 			}
 		});
-		if (need.leadAssist - la > 0) {
-			leadAssist.participatesShort += need.leadAssist - la;
-			leadAssist.youthShort++;
+		if (need.leads - la > 0) {
+			leads.participatesShort += need.leads - la;
+			leads.youthShort++;
 		}
 	}
-	deficits.push(leadAssist);
+	deficits.push(leads);
 	return sortBy(
 		deficits,
 		desc((d) => d.participatesShort)
@@ -888,12 +887,12 @@ export function suggestNights(
 	}
 
 	// Balance the programme towards the challenge area youth are most short of for milestones
-	const gap = deficits.find((d) => d.challengeArea !== 'Lead / Assist' && d.participatesShort > 0);
-	const leadGap = deficits.find((d) => d.challengeArea === 'Lead / Assist');
+	const gap = deficits.find((d) => d.challengeArea !== 'Lead' && d.participatesShort > 0);
+	const leadGap = deficits.find((d) => d.challengeArea === 'Lead');
 	if (gap && nights.length < count) {
 		let focus = `${gap.youthShort} youth are short ${gap.participatesShort} ${gap.challengeArea} participates for their current milestone.`;
 		if (leadGap && leadGap.youthShort > 0)
-			focus += ` Give lead/assist roles to the ${leadGap.youthShort} youth who need them.`;
+			focus += ` Give lead roles to the ${leadGap.youthShort} youth who need them.`;
 		nights.push({
 			number: 0,
 			title: `${gap.challengeArea} challenge night`,
