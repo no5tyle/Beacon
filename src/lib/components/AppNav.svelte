@@ -42,7 +42,10 @@
 	const versionText = $derived(options.logging ? ' · logging on' : '');
 	const moreCount = $derived(moreBadge(more));
 
-	const href = (item: NavPage) => pagePath(item.href);
+	const href = (item: NavPage) => (item.external ? item.href : pagePath(item.href));
+	// Another website opens in a new tab, leaving Beacon open where it was
+	const target = (item: NavPage) => (item.external ? '_blank' : undefined);
+	const rel = (item: NavPage) => (item.external ? 'noopener' : undefined);
 
 	// Close the menu after moving to another page, and bring the tabs back
 	$effect(() => {
@@ -116,7 +119,13 @@
 	{/if}
 	<nav aria-label="Main">
 		{#each sidebar as item (item.href)}
-			<a class="side-link" class:active={isActive(item, path)} href={href(item)}>
+			<a
+				class="side-link"
+				class:active={isActive(item, path)}
+				href={href(item)}
+				target={target(item)}
+				rel={rel(item)}
+			>
 				<Icon name={item.icon} />
 				{item.title}
 				{@render badge(item)}
@@ -140,7 +149,14 @@
 	<div class="more-menu glass">
 		<UnitPicker idPrefix="menu-" />
 		{#each more as item (item.href)}
-			<a class="more-item" class:active={isActive(item, path)} href={href(item)}>
+			<a
+				class="more-item"
+				class:active={isActive(item, path)}
+				href={href(item)}
+				target={target(item)}
+				rel={rel(item)}
+				onclick={() => item.external && (moreOpen = false)}
+			>
 				<Icon name={item.icon} />
 				{item.title}
 				{@render badge(item)}

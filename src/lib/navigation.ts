@@ -14,7 +14,20 @@ export interface NavPage {
 	alsoActive?: string[];
 	/** A count to show beside it, e.g. approvals waiting for the leader's vote */
 	badge?: number;
+	/** Another website, e.g. GitHub's issues: href is its full address, opened in a new tab */
+	external?: boolean;
 }
+
+/** Where to report a problem or ask for something: Beacon's issues on GitHub */
+export const ISSUES_URL = 'https://github.com/no5tyle/Beacon/issues';
+
+const issuesPage: NavPage = {
+	href: ISSUES_URL,
+	icon: 'warning',
+	title: 'Log an issue',
+	shortTitle: 'Log an issue',
+	external: true
+};
 
 export interface NavOptions {
 	/** Signed out, only Login and the Reference are offered */
@@ -101,10 +114,11 @@ export function morePages({ isYouth, onUnitCouncil, approvalsWaiting = 0 }: NavO
 		title: 'Logout',
 		shortTitle: 'Logout'
 	};
-	if (isYouth) return onUnitCouncil ? [referencePage, logout] : [logout];
+	if (isYouth) return onUnitCouncil ? [referencePage, issuesPage, logout] : [issuesPage, logout];
 	return [
 		approvalsPage(approvalsWaiting),
 		{ href: 'info/', icon: 'info', title: 'Info', shortTitle: 'Info' },
+		issuesPage,
 		logout
 	];
 }
@@ -146,6 +160,7 @@ export function signedOutPages(): NavPage[] {
 
 /** Whether a page's link should show as the current one, for an address within the app (no base path) */
 export function isActive(page: NavPage, path: string): boolean {
+	if (page.external) return false;
 	const current = path.replace(/^\//, '').replace(/([^/])$/, '$1/');
 	if (page.exact) return current === page.href;
 	return [page.href, ...(page.alsoActive ?? [])].some((href) => current.startsWith(href));

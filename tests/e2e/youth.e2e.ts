@@ -32,15 +32,16 @@ test('a youth opens at their own progress, with Record, Progress and Reference, 
 	// Their own progress only: no list to go back to
 	await expect(page.locator('.back-link')).toHaveCount(0);
 
-	// Off the Unit Council, Reference is in the bar and only Logout is under the menu
+	// Off the Unit Council, Reference is in the bar, with Log an issue and Logout under the menu
 	if (isMobile) {
 		await expect(mainLinks(page, isMobile)).toHaveText(['Record', 'Progress', 'Reference']);
-		expect(await menuTitles(page, isMobile)).toEqual(['Logout']);
+		expect(await menuTitles(page, isMobile)).toEqual(['Log an issue', 'Logout']);
 	} else {
 		await expect(mainLinks(page, isMobile)).toHaveText([
 			'Record',
 			'Progress',
 			'Reference',
+			'Log an issue',
 			'Logout'
 		]);
 	}
@@ -88,7 +89,8 @@ test('a youth on the Unit Council has Approvals, with Approve and Award but not 
 	await expect(page).toHaveURL(/\/progress\/unit-1-m0\/$/);
 	await expect(mainLinks(page, isMobile).filter({ hasText: 'Approvals' })).toHaveCount(1);
 	// Approvals takes Reference's place in the bar, which goes under the menu
-	if (isMobile) expect(await menuTitles(page, isMobile)).toEqual(['Reference', 'Logout']);
+	if (isMobile)
+		expect(await menuTitles(page, isMobile)).toEqual(['Reference', 'Log an issue', 'Logout']);
 	await mainLinks(page, isMobile).filter({ hasText: 'Approvals' }).click();
 	await expect(page).toHaveURL(/\/approvals\/$/);
 	await expect(page.getByRole('tab')).toHaveText([/^Approve/, /^Award/]);

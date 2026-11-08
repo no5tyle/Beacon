@@ -143,6 +143,7 @@ test.describe('phone', () => {
 			/^\s*Reference\s*$/,
 			/^\s*Approvals 7 waiting for you\s*$/,
 			/^\s*Info\s*$/,
+			/^\s*Log an issue\s*$/,
 			/^\s*Logout\s*$/
 		]);
 		await page.locator('.more-item', { hasText: 'Approvals' }).click();
@@ -162,6 +163,7 @@ test.describe('phone', () => {
 			/^\s*Youth\s*$/,
 			/^\s*Approvals 7 waiting for you\s*$/,
 			/^\s*Info\s*$/,
+			/^\s*Log an issue\s*$/,
 			/^\s*Logout\s*$/
 		]);
 		// Logging has no item of its own: the version opens it
@@ -171,6 +173,15 @@ test.describe('phone', () => {
 		await page.locator('.tab-bar button', { hasText: 'More' }).click();
 		await expect(page.locator('.more-version')).toHaveText(/^Beacon version .* · logging on$/);
 
+		// Log an issue opens Beacon's GitHub issues in a new tab
+		await expect(page.locator('.more-item', { hasText: 'Log an issue' })).toHaveAttribute(
+			'href',
+			'https://github.com/no5tyle/Beacon/issues'
+		);
+		await expect(page.locator('.more-item', { hasText: 'Log an issue' })).toHaveAttribute(
+			'target',
+			'_blank'
+		);
 		await page.locator('.more-item', { hasText: 'Logout' }).click();
 		await expect(page).toHaveURL(/\/login\/$/);
 		await expect(page.locator('.tab-bar .tab-label')).toHaveText(['Login', 'Reference']);
@@ -195,6 +206,7 @@ test.describe('desktop', () => {
 				'Reference',
 				'Approvals 7 waiting for you',
 				'Info',
+				'Log an issue',
 				'Logout'
 			].map((name) => new RegExp(`^\\s*${name}\\s*$`))
 		);
