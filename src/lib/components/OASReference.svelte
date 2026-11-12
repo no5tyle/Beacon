@@ -4,6 +4,7 @@
 	Shown as a Beacon page, and as the installable Beacon Reference app with its filters behind a menu.
 -->
 <script lang="ts">
+	import ConfirmDialog from './ConfirmDialog.svelte';
 	import { onMount, untrack } from 'svelte';
 	import { SvelteMap } from 'svelte/reactivity';
 	import { replaceState } from '$app/navigation';
@@ -330,8 +331,12 @@
 		if (show) await loadStreams(distinct(starred.map(streamOfKey)));
 	}
 
-	function clearStarred() {
-		if (!confirm(`Remove all ${starred.length} starred statements?`)) return;
+	// Asked in Beacon's own dialog (ConfirmDialog), not the browser's confirm box
+	let confirmingClear = $state(false);
+
+	function clearStarred(confirmed: boolean) {
+		confirmingClear = false;
+		if (!confirmed) return;
 		starred = [];
 		writeSetting(STARRED_KEY, JSON.stringify(starred));
 	}
@@ -559,8 +564,10 @@
 						><Icon name="share-boxed" /> Share list</button
 					>
 					{@render printOptions()}
-					<button type="button" class="btn btn-link btn-sm text-danger" onclick={clearStarred}
-						>Clear starred</button
+					<button
+						type="button"
+						class="btn btn-link btn-sm text-danger"
+						onclick={() => (confirmingClear = true)}>Clear starred</button
 					>
 				</div>
 			{:else}
@@ -820,6 +827,15 @@
 {#if toast}
 	<div class="reference-toast" role="status">{toast}</div>
 {/if}
+
+<ConfirmDialog
+	open={confirmingClear}
+	title="Clear {plural(starred.length, 'starred statement')}?"
+	message="They're unstarred on this device. You can star them again any time."
+	confirmLabel="Clear starred"
+	danger
+	onanswer={clearStarred}
+/>
 
 <style>
 	.intro {

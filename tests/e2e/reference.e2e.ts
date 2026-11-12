@@ -36,6 +36,34 @@ test('starred statements are kept, and listed on their own', async ({ page }) =>
 	await expect(page.locator('.statement')).toHaveCount(1);
 });
 
+test("Clear starred asks in Beacon's own dialog first", async ({ page }) => {
+	const browserDialogs: string[] = [];
+	page.on('dialog', (d) => {
+		browserDialogs.push(d.message());
+		void d.dismiss();
+	});
+	await fakeTerrain(page);
+	await page.goto('oas-reference/?stream=camping&stage=1');
+	await expect(page.getByText('6 statements')).toBeVisible();
+	await page.locator('.statement').nth(0).getByRole('button', { name: 'Star' }).click();
+	await page.locator('.statement').nth(1).getByRole('button', { name: 'Star' }).click();
+	await page.getByRole('button', { name: '★ Starred (2)' }).click();
+
+	const dialog = page.getByRole('dialog', { name: 'Clear 2 starred statements?' });
+	await page.getByRole('button', { name: 'Clear starred' }).click();
+	await expect(dialog).toBeVisible();
+	await expect(dialog.getByRole('button', { name: 'Cancel' }), 'starts on Cancel').toBeFocused();
+	await page.keyboard.press('Escape');
+	await expect(dialog).toBeHidden();
+	await expect(page.locator('.statement')).toHaveCount(2);
+
+	await page.getByRole('button', { name: 'Clear starred' }).click();
+	await dialog.getByRole('button', { name: 'Clear starred' }).click();
+	await expect(dialog).toBeHidden();
+	await expect(page.getByRole('button', { name: /Starred \(2\)/ })).toHaveCount(0);
+	expect(browserDialogs).toEqual([]);
+});
+
 test('a starred list can be shared, and opens on another device', async ({ page, browser }) => {
 	await fakeTerrain(page);
 	await page.addInitScript(() => {
