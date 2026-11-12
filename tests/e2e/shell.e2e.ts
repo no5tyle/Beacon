@@ -172,10 +172,10 @@ test.describe('phone', () => {
 		await expect(page.locator('.more-version')).toHaveText(/^Beacon version .* · logging on$/);
 
 		await page.locator('.more-item', { hasText: 'Logout' }).click();
-		await expect(page).toHaveURL(/\/login\/$/);
+		await expect(page).toHaveURL(/\/oas-reference\/$/);
 		await expect(page.locator('.tab-bar .tab-label')).toHaveText(['Login', 'Reference']);
 		await page.goto('insights/');
-		await expect(page, 'signed out pages go to the login').toHaveURL(/\/login\/$/);
+		await expect(page, 'signed out pages go to the Reference').toHaveURL(/\/oas-reference\/$/);
 	});
 });
 
@@ -247,7 +247,7 @@ test.describe('desktop', () => {
 		await expect(page.locator('.profile-menu'), 'closes on moving to the page').toHaveCount(0);
 		await button.click();
 		await page.locator('.profile-item', { hasText: 'Logout' }).click();
-		await expect(page).toHaveURL(/\/login\/$/);
+		await expect(page).toHaveURL(/\/oas-reference\/$/);
 		await expect(page.locator('.profile-button')).toHaveCount(0);
 	});
 });

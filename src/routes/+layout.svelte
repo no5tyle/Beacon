@@ -7,6 +7,10 @@
 	import { page } from '$app/state';
 	import AppNav from '#lib/components/AppNav.svelte';
 	import InstallHint from '#lib/components/InstallHint.svelte';
+	import KeepSignedInPrompt from '#lib/components/KeepSignedInPrompt.svelte';
+	import SignedOutBanner from '#lib/components/SignedOutBanner.svelte';
+	import { signedOutHome } from '#lib/signedOut.js';
+	import { install } from '#lib/stores/install.svelte.js';
 	import { pagePath } from '#lib/paths.js';
 	import { app, approvalsBadge, preload, readyToSubmit } from '#lib/services/index.js';
 	import { unitsKey } from '#lib/stores/approvals.svelte.js';
@@ -60,11 +64,19 @@
 	// A login kept on this device ("Keep me signed in") signs back in as Beacon opens
 	if (app.resuming) void app.resume();
 
-	// Signed out, every other page is the login page. Replacing the history entry keeps Back from bouncing back
+	// Signed out, every other page goes to the Reference in a browser tab and the login in the installed
+	// app (see signedOutHome). Replacing the history entry keeps Back from bouncing back
 	$effect(() => {
 		if (!app.isSignedIn && !app.resuming && !isPublic)
-			goto(pagePath('login/'), { replaceState: true });
+			goto(pagePath(signedOutHome(app.sessionExpired)), { replaceState: true });
 	});
+	// What logging in adds, above the Reference, for a visitor in a browser tab
+	const showSignedOutBanner = $derived(
+		!app.isSignedIn &&
+			!app.resuming &&
+			path.startsWith('/oas-reference/') &&
+			!install.isInstalledApp
+	);
 
 	// Start loading the unit's progress in the background once a leader is signed in with a unit chosen
 	$effect(() => {
@@ -109,7 +121,9 @@
 				<p class="muted resuming" role="status">Signing you back in to Terrain...</p>
 			{:else if app.isSignedIn || isPublic}
 				{#if app.isSignedIn && onLanding}<InstallHint />{/if}
+				{#if showSignedOutBanner}<SignedOutBanner />{/if}
 				{@render children()}
+				{#if app.isSignedIn}<KeepSignedInPrompt />{/if}
 			{/if}
 		</main>
 	</div>

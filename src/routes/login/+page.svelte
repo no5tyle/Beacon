@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { install } from '#lib/stores/install.svelte.js';
 	import { onMount, tick } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { asset } from '$app/paths';
@@ -76,6 +77,8 @@
 			return;
 		}
 		writeSetting(BRANCH_KEY, chosenBranch);
+		// In the installed app, ask once whether to stay signed in, rather than signing out at every close
+		app.offerKeepSignedIn = !keepSignedIn && install.isInstalledApp;
 		passwordField.value = '';
 		goto(pagePath(''));
 	}

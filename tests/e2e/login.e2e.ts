@@ -1,11 +1,32 @@
 import { expect, test } from '@playwright/test';
 import { fakeTerrain, logIn } from './terrain.js';
 
-test('signed out, Beacon opens at the login', async ({ page }) => {
+test('signed out in a browser, Beacon opens at the Reference, offering the login', async ({
+	page
+}) => {
+	await fakeTerrain(page);
+	await page.goto('');
+	await expect(page).toHaveURL(/\/oas-reference\/$/);
+	const banner = page.locator('.signed-out-banner');
+	await expect(banner).toContainText('Log in for progress');
+	await banner.getByRole('link', { name: 'Log in' }).click();
+	await expect(page).toHaveURL(/\/login\/$/);
+	await expect(page.locator('h2')).toHaveText('Log in to Beacon');
+	await expect(page.locator('.signed-out-banner'), 'only above the Reference').toHaveCount(0);
+});
+
+test('signed out in the installed app, Beacon opens at the login, with no banner', async ({
+	page
+}) => {
+	await page.addInitScript(() =>
+		Object.defineProperty(navigator, 'standalone', { get: () => true })
+	);
 	await fakeTerrain(page);
 	await page.goto('');
 	await expect(page).toHaveURL(/\/login\/$/);
 	await expect(page.locator('h2')).toHaveText('Log in to Beacon');
+	await page.goto('oas-reference/');
+	await expect(page.locator('.signed-out-banner')).toHaveCount(0);
 });
 
 test('logs in and remembers the branch, but nothing else', async ({ page }) => {

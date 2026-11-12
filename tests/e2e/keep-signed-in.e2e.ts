@@ -50,21 +50,64 @@ test('a kept login signs back in after a reload, with only an encrypted token ke
 	expect(kept.extractable).toBe(false);
 });
 
-test('without the box ticked, a reload goes back to the login', async ({ page }) => {
+test('without the box ticked, a reload signs out, back to the Reference in a browser', async ({
+	page
+}) => {
 	await fakeTerrain(page);
 	await logIn(page, false);
+	await expect(page.locator('.keep-prompt'), 'a browser tab is not asked').toHaveCount(0);
 	await page.reload();
-	await expect(page).toHaveURL(/\/login\/$/);
+	await expect(page).toHaveURL(/\/oas-reference\/$/);
 });
 
 test('Logout forgets a kept login', async ({ page }) => {
 	await fakeTerrain(page);
 	await logIn(page, true);
 	await page.goto('logout/');
-	await expect(page).toHaveURL(/\/login\/$/);
+	await expect(page).toHaveURL(/\/oas-reference\/$/);
 	await page.reload();
-	await expect(page).toHaveURL(/\/login\/$/);
+	await expect(page).toHaveURL(/\/oas-reference\/$/);
+	await page.goto('login/');
 	await expect(page.locator('#keepSignedIn')).not.toBeChecked();
+});
+
+test.describe('the installed app', () => {
+	test.beforeEach(async ({ page }) => {
+		await page.addInitScript(() =>
+			Object.defineProperty(navigator, 'standalone', { get: () => true })
+		);
+	});
+
+	test('without the box ticked, asks once whether to stay signed in, and keeps it on yes', async ({
+		page
+	}) => {
+		await fakeTerrain(page);
+		await logIn(page, false);
+		const prompt = page.locator('.keep-prompt');
+		await expect(prompt).toContainText('Stay signed in on this device?');
+		await prompt.getByRole('button', { name: 'Stay signed in' }).click();
+		await expect(prompt).toHaveCount(0);
+		await page.reload();
+		await expect(page).toHaveURL(/\/insights\/$/);
+		await expect(page.locator('#logIn')).toHaveCount(0);
+		await expect(page.locator('.keep-prompt'), 'not asked again').toHaveCount(0);
+	});
+
+	test('Not now leaves the login unkept, so the next open asks for the login', async ({ page }) => {
+		await fakeTerrain(page);
+		await logIn(page, false);
+		await page.locator('.keep-prompt').getByRole('button', { name: 'Not now' }).click();
+		await expect(page.locator('.keep-prompt')).toHaveCount(0);
+		await page.reload();
+		await expect(page).toHaveURL(/\/login\/$/);
+	});
+
+	test('with the box ticked, nothing is asked', async ({ page }) => {
+		await fakeTerrain(page);
+		await logIn(page, true);
+		await expect(page.locator('h2').first()).toBeVisible();
+		await expect(page.locator('.keep-prompt')).toHaveCount(0);
+	});
 });
 
 test('a kept login Terrain won’t renew is forgotten, and asks to log in again', async ({

@@ -32,6 +32,11 @@ export class AppState implements BeaconContext {
 	resuming = $state(hasSavedLogin());
 	/** Set when a kept login couldn't be used because Terrain couldn't be reached */
 	resumeFailed = $state(false);
+	/**
+	 * Set after logging in to the installed app without "Keep me signed in", so Beacon can ask once
+	 * whether to stay signed in on this device
+	 */
+	offerKeepSignedIn = $state(false);
 	private chosenUnitId = $state('');
 	/** Called when the signed in leader changes or logs out, so services can forget what they loaded */
 	private resetListeners: (() => void)[] = [];
@@ -157,6 +162,14 @@ export class AppState implements BeaconContext {
 		return finished;
 	}
 
+	/** Keeps the current login on this device after all, as "Keep me signed in" would have */
+	async keepSignedInNow(): Promise<boolean> {
+		this.offerKeepSignedIn = false;
+		const session = this.terrain.session;
+		if (!session?.refreshToken) return false;
+		return saveLogin({ clientId: session.clientId, refreshToken: session.refreshToken });
+	}
+
 	/**
 	 * Signs back in from the login kept on this device, if there is one. A login Terrain won't renew is
 	 * forgotten; one that couldn't be tried (no signal) is kept for next time
@@ -266,6 +279,7 @@ export class AppState implements BeaconContext {
 
 	/** Logout: signs out and forgets any login kept on this device */
 	logout(): void {
+		this.offerKeepSignedIn = false;
 		this.signOut();
 		void forgetLogin();
 	}

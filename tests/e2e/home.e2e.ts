@@ -48,7 +48,7 @@ test('a leader with more than one unit picks one on the page, and it is remember
 	await expect(await navUnit(page, isMobile)).toHaveValue('unit-2');
 
 	await navigate(page, 'logout/');
-	await expect(page).toHaveURL(/\/login\/$/);
+	await expect(page).toHaveURL(/\/oas-reference\/$/);
 	await logIn(page);
 	await expect(page).toHaveURL(/\/insights\/$/);
 	await expect(page.locator('.choose-unit')).toHaveCount(0);
