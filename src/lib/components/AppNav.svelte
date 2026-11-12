@@ -197,6 +197,18 @@
 	{/if}
 </header>
 
+<!-- Phones in a browser tab get the same bar as no5tyle's other apps, with the app switcher. Opened as the
+     installed app, Beacon looks like a phone app of its own, so the bar is left out -->
+<header class="phone-bar no-print">
+	<n5-app-switcher current="beacon">
+		<img src={asset('beacon-64.png')} width="32" height="32" alt="" />
+	</n5-app-switcher>
+	<a class="phone-brand" href={pagePath('')}>
+		<span class="brand-title">Beacon</span>
+		<span class="brand-sub">OAS, progress and insights from Terrain</span>
+	</a>
+</header>
+
 <aside class="sidebar no-print">
 	{#if options.signedIn}
 		<div class="side-picker"><UnitPicker idPrefix="side-" /></div>
@@ -302,8 +314,62 @@
 <style>
 	/* Desktop: a see-through bar across the top with the app's name, and a sidebar of pages below it */
 	.appbar,
-	.sidebar {
+	.sidebar,
+	.phone-bar {
 		display: none;
+	}
+
+	/* Phones in a browser tab: the shorter bar every no5tyle app has (--n5-bar-*-compact) */
+	@media (max-width: 640.98px) {
+		.phone-bar {
+			position: sticky;
+			top: 0;
+			z-index: 20;
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			height: calc(var(--n5-bar-height-compact) + env(safe-area-inset-top));
+			padding: env(safe-area-inset-top) var(--n5-bar-pad-compact) 0;
+			border-bottom: 0.5px solid var(--border);
+			background: var(--bar-bg);
+			-webkit-backdrop-filter: var(--bar-filter);
+			backdrop-filter: var(--bar-filter);
+		}
+
+		.phone-bar n5-app-switcher {
+			--n5-switch-size: var(--n5-bar-icon-compact);
+		}
+
+		.phone-bar img {
+			border-radius: 9px;
+		}
+	}
+
+	/* The installed app has no bar: the media query covers most phones, the class iPhones that only say
+	   so through navigator.standalone */
+	@media (display-mode: standalone), (display-mode: fullscreen), (display-mode: minimal-ui) {
+		.phone-bar {
+			display: none;
+		}
+	}
+
+	:global(html.installed) .phone-bar {
+		display: none;
+	}
+
+	.phone-brand {
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
+		color: var(--text);
+		line-height: 1.25;
+		text-decoration: none;
+	}
+
+	.phone-brand .brand-sub {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	@media (min-width: 641px) {
@@ -315,7 +381,7 @@
 			display: flex;
 			align-items: center;
 			height: var(--appbar-height);
-			padding: 0 1.25rem;
+			padding: 0 var(--n5-bar-pad);
 			border-bottom: 0.5px solid var(--border);
 			background: var(--bar-bg);
 			-webkit-backdrop-filter: var(--bar-filter);
@@ -463,14 +529,14 @@
 	}
 
 	.brand-title {
-		font-size: 1.0625rem;
+		font-size: var(--n5-bar-title-size);
 		font-weight: 700;
 		letter-spacing: -0.01em;
 	}
 
 	.brand-sub {
 		color: var(--muted);
-		font-size: 0.75rem;
+		font-size: var(--n5-bar-sub-size);
 	}
 
 	nav[aria-label='Main']:not(.tab-bar) {

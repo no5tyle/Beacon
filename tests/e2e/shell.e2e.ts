@@ -328,3 +328,27 @@ test('the look shared with no5tyle’s other apps loads', async ({ page }) => {
 	await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(242, 242, 247)');
 	await expect(page.locator('#logIn')).toHaveCSS('background-color', 'rgb(0, 122, 255)');
 });
+
+test.describe('phone bar', () => {
+	test.skip(({ isMobile }) => !isMobile, 'phones only');
+
+	test('in a browser tab, phones get the bar with the app switcher', async ({ page }) => {
+		await page.goto('login/');
+		const bar = page.locator('.phone-bar');
+		await expect(bar).toBeVisible();
+		expect(Math.round((await bar.boundingBox())!.height)).toBe(52);
+		await page.locator('.phone-bar .n5-switch-btn').click();
+		await expect(page.locator('.phone-bar .n5-switch-item[aria-current=page]')).toContainText(
+			'Beacon'
+		);
+	});
+
+	test('opened as the installed app, there is no bar', async ({ page }) => {
+		await page.addInitScript(() =>
+			Object.defineProperty(navigator, 'standalone', { get: () => true })
+		);
+		await page.goto('login/');
+		await expect(page.locator('html')).toHaveClass(/installed/);
+		await expect(page.locator('.phone-bar')).toBeHidden();
+	});
+});

@@ -7,7 +7,7 @@
 */
 :root {
 	/* The desktop's bar across the top */
-	--appbar-height: 3.75rem;
+	--appbar-height: var(--n5-bar-height);
 
 	/* Space below the floating tabs: the home indicator area where the phone reports one, and at least a
 	   little everywhere else so they stay clear of rounded screen corners. The height is all the room the
