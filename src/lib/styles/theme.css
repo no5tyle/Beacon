@@ -1,95 +1,13 @@
 /*
-	Beacon's colours. Everything else uses these variables, so dark mode only swaps them here.
-	Beacon follows the phone's light or dark setting on screen; printing always uses light.
+	Beacon's own colours and sizes. The look Beacon shares with the Program Builder, Snag Calc and the
+	homepage (Apple's system colours light and dark, the tint, rounding, the bar, Liquid Glass and the
+	font) comes from https://no5tyle.github.io/shared/no5tyle.css, linked in app.html before this file.
+	Use those variables everywhere, never hard-coded colours, so dark mode works. Beacon follows the
+	phone's light or dark setting on screen; printing always uses light.
 */
 :root {
-	color-scheme: light dark;
-
-	/* Apple's system colours (iOS 26, Liquid Glass): a grouped background with white content on it */
-	--bg: #f2f2f7;
-	--surface: #fff;
-	--surface-2: #f7f7fa;
-	--surface-3: #e5e5ea;
-	--fill: rgba(118, 118, 128, 0.12);
-	--fill-strong: rgba(118, 118, 128, 0.2);
-	--border: rgba(60, 60, 67, 0.16);
-	--border-soft: rgba(60, 60, 67, 0.1);
-	--input-border: rgba(60, 60, 67, 0.2);
-	--text: #000;
-	--text-2: #3c3c43;
-	--muted: #6e6e73;
-	--faint: #aeaeb2;
-
-	--brand: #052767;
-	--accent: #e8a33d;
-
-	/* The app's tint, as iOS tints controls: the selected tab, buttons and links */
-	--tint: #007aff;
-	--brand-text: var(--tint);
-	--link: var(--tint);
-	--primary: var(--tint);
-	--primary-hover: #0066d6;
-	--primary-text: #fff;
-	--tint-fill: rgba(0, 122, 255, 0.12);
-	--tint-fill-strong: rgba(0, 122, 255, 0.2);
-	--focus-ring: rgba(0, 122, 255, 0.35);
-	/* Apple's accessible green and red, which read well as text */
-	--success: #248a3d;
-	--danger: #d70015;
-	--warning: #ff9500;
-
-	--alert-success-bg: rgba(52, 199, 89, 0.14);
-	--alert-success-border: transparent;
-	--alert-success-text: #1b6b30;
-	--alert-warning-bg: rgba(255, 149, 0, 0.14);
-	--alert-warning-border: transparent;
-	--alert-warning-text: #8a4b00;
-	--alert-danger-bg: rgba(255, 59, 48, 0.12);
-	--alert-danger-border: transparent;
-	--alert-danger-text: #b0000f;
-	--alert-info-bg: rgba(0, 122, 255, 0.1);
-	--alert-info-border: transparent;
-	--alert-info-text: #0055b3;
-
-	--stripe: rgba(118, 118, 128, 0.06);
-	--hover: rgba(118, 118, 128, 0.1);
-	--shadow: 0 10px 40px rgba(0, 0, 0, 0.16);
-
-	/* Concentric rounding: controls are capsules, fields rounded, cards and panels rounder */
-	--radius: 0.75rem;
-	--radius-lg: 1.375rem;
-
-	/*
-		Liquid Glass: controls float above the content in a layer of their own, nearly clear, with what's
-		behind blurred and made more vivid, and lit like a bevelled lens. Web pages can't bend what's
-		behind as the phone does, so this is the closest it gets without refraction.
-	*/
-	--glass-bg: rgba(255, 255, 255, 0.2);
-	/* Gloss across the top left */
-	--glass-sheen: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0) 40%);
-	/* Bevelled edges lit from the top left, a glow inside, and a soft shadow below. A hairline keeps the
-	   edge where the white highlights don't show against a light page */
-	--glass-shadow:
-		inset 1px 1px 0 rgba(255, 255, 255, 0.45), inset -1px -1px 0 rgba(255, 255, 255, 0.1),
-		inset 0 8px 32px rgba(255, 255, 255, 0.15), 0 0 0 0.5px rgba(0, 0, 0, 0.08),
-		0 12px 40px rgba(0, 0, 0, 0.25);
-	/* What's behind blurred, its colours made more vivid, brighter and punchier */
-	--glass-filter: blur(12px) saturate(200%) brightness(1.1) contrast(1.1);
-	--glass-text: #000;
-	/* The tabs shrinking and growing: unhurried, settling softly */
-	--glass-motion: 0.5s cubic-bezier(0.22, 1, 0.36, 1);
-	/* The selected tab's lens */
-	--glass-active-bg: rgba(0, 0, 0, 0.06);
-	--glass-active-text: var(--tint);
-
-	/* The desktop's bar across the top: see-through, like iOS's navigation bar */
-	--bar-bg: rgba(242, 242, 247, 0.82);
-	--bar-filter: blur(20px) saturate(180%);
+	/* The desktop's bar across the top */
 	--appbar-height: 3.75rem;
-
-	--font:
-		-apple-system, system-ui, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', 'Segoe UI',
-		Roboto, Arial, sans-serif;
 
 	/* Space below the floating tabs: the home indicator area where the phone reports one, and at least a
 	   little everywhere else so they stay clear of rounded screen corners. The height is all the room the
@@ -109,49 +27,5 @@
 		--ref-open-bg: #1c1c1e;
 		--ref-open-border: #0a84ff;
 		--ref-highlight: #3a3320;
-		--bg: #000;
-		--surface: #1c1c1e;
-		--surface-2: #2c2c2e;
-		--surface-3: #3a3a3c;
-		--fill: rgba(118, 118, 128, 0.24);
-		--fill-strong: rgba(118, 118, 128, 0.36);
-		--border: rgba(84, 84, 88, 0.6);
-		--border-soft: rgba(84, 84, 88, 0.4);
-		--input-border: rgba(84, 84, 88, 0.65);
-		--text: #fff;
-		--text-2: #ebebf5;
-		--muted: #98989f;
-		--faint: #636366;
-
-		--tint: #0a84ff;
-		--primary-hover: #409cff;
-		--tint-fill: rgba(10, 132, 255, 0.18);
-		--tint-fill-strong: rgba(10, 132, 255, 0.28);
-		--focus-ring: rgba(10, 132, 255, 0.45);
-		--success: #30d158;
-		--danger: #ff453a;
-		--warning: #ff9f0a;
-
-		--alert-success-bg: rgba(48, 209, 88, 0.16);
-		--alert-success-text: #7ee29b;
-		--alert-warning-bg: rgba(255, 159, 10, 0.16);
-		--alert-warning-text: #ffc670;
-		--alert-danger-bg: rgba(255, 69, 58, 0.16);
-		--alert-danger-text: #ff8a82;
-		--alert-info-bg: rgba(10, 132, 255, 0.16);
-		--alert-info-text: #7cb8ff;
-
-		--stripe: rgba(118, 118, 128, 0.1);
-		--hover: rgba(118, 118, 128, 0.18);
-		--shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
-
-		/* Tinted a little dark, so text on the glass stays readable over bright buttons behind it */
-		--bar-bg: rgba(0, 0, 0, 0.78);
-		--glass-bg: rgba(18, 18, 20, 0.4);
-		--glass-shadow:
-			inset 1px 1px 0 rgba(255, 255, 255, 0.45), inset -1px -1px 0 rgba(255, 255, 255, 0.1),
-			inset 0 8px 32px rgba(255, 255, 255, 0.15), 0 12px 40px rgba(0, 0, 0, 0.25);
-		--glass-text: #fff;
-		--glass-active-bg: rgba(255, 255, 255, 0.14);
 	}
 }

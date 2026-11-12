@@ -292,3 +292,12 @@ test('no page is wider than a phone screen', async ({ page, isMobile }) => {
 		expect(width, `${path} fits the screen`).toBeLessThanOrEqual(390);
 	}
 });
+
+test('the look shared with no5tyle’s other apps loads', async ({ page }) => {
+	await page.goto('login/');
+	const sheets = await page.evaluate(() => [...document.styleSheets].map((s) => s.href ?? ''));
+	expect(sheets).toContain('https://no5tyle.github.io/shared/no5tyle.css');
+	await page.emulateMedia({ colorScheme: 'light' });
+	await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(242, 242, 247)');
+	await expect(page.locator('#logIn')).toHaveCSS('background-color', 'rgb(0, 122, 255)');
+});

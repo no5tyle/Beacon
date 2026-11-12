@@ -33,7 +33,7 @@ src/
     stores/        The signed in leader and chosen unit (app.svelte.ts), request logging, install state
     components/    Shared Svelte components (AppNav, Icon, InstallHint, ChooseUnit, ...)
     actions/       Svelte actions, e.g. pull to refresh
-    styles/        theme.css (colours, light and dark) and base.css (buttons, forms, cards, ...)
+    styles/        theme.css (Beacon's own colours and sizes) and base.css (buttons, forms, cards, ...)
     icons.ts       The Open Iconic icons Beacon uses, as SVG paths
     navigation.ts  Which pages appear in the tab bar, sidebar and More menu
     paths.ts       pagePath(): use it for every link to a page
@@ -62,7 +62,7 @@ The [Svelte tutorial](https://svelte.dev/tutorial) takes about an hour and cover
 
 ## Styles
 
-There's no CSS framework. `src/lib/styles/base.css` has the shared pieces, with class names that follow Bootstrap's (`btn btn-primary`, `form-control`, `alert alert-warning`...). Colours always come from the variables in `theme.css`, never hard-coded, so dark mode works everywhere. The style guide page (`/styles/`) shows every shared piece in light and dark mode.
+There's no CSS framework. `src/lib/styles/base.css` has the shared pieces, with class names that follow Bootstrap's (`btn btn-primary`, `form-control`, `alert alert-warning`...). Colours always come from variables, never hard-coded, so dark mode works everywhere. The look Beacon shares with no5tyle's other apps (colours light and dark, the tint, rounding, the bar, Liquid Glass and the font) is in [`shared/no5tyle.css`](https://github.com/no5tyle/no5tyle.github.io/blob/main/shared/no5tyle.css) in the homepage's repo, linked from `src/app.html`; `theme.css` has only Beacon's own extras. A change to the shared file reaches every app without a Beacon release, so add new variables there rather than changing what an existing one means. The style guide page (`/styles/`) shows every shared piece in light and dark mode.
 
 Beacon is phone first: check changes at about 390 px wide, keep buttons at least 44 px tall, and make sure nothing scrolls sideways.
 
