@@ -1,6 +1,7 @@
 <!--
-	Beacon's navigation: a sidebar on desktop, and on phones a tab bar along the bottom (within thumb
-	reach) with the less used pages under More.
+	Beacon's navigation: on desktop a bar across the top with the app's name and a sidebar of pages below
+	it, the same frame as the Program Builder; on phones a tab bar along the bottom (within thumb reach)
+	with the less used pages under More.
 -->
 <script lang="ts">
 	import { asset } from '$app/paths';
@@ -109,13 +110,19 @@
 
 <svelte:window onkeydown={(e) => e.key === 'Escape' && (moreOpen = false)} onscroll={onScroll} />
 
-<aside class="sidebar no-print">
+<header class="appbar no-print">
 	<a class="brand" href={pagePath('')}>
-		<img src={asset('beacon-64.png')} width="22" height="22" alt="" />
-		Beacon
+		<img src={asset('beacon-64.png')} width="36" height="36" alt="" />
+		<span class="brand-text">
+			<span class="brand-title">Beacon</span>
+			<span class="brand-sub">OAS, progress and insights from Terrain</span>
+		</span>
 	</a>
+</header>
+
+<aside class="sidebar no-print">
 	{#if options.signedIn}
-		<div class="side-picker"><UnitPicker idPrefix="side-" dark /></div>
+		<div class="side-picker"><UnitPicker idPrefix="side-" /></div>
 	{/if}
 	<nav aria-label="Main">
 		{#each sidebar as item (item.href)}
@@ -216,46 +223,76 @@
 </nav>
 
 <style>
-	/* Desktop sidebar */
+	/* Desktop: a see-through bar across the top with the app's name, and a sidebar of pages below it */
+	.appbar,
 	.sidebar {
 		display: none;
 	}
 
 	@media (min-width: 641px) {
-		.sidebar {
+		.appbar {
 			position: sticky;
 			top: 0;
+			z-index: 20;
+			grid-column: 1 / -1;
+			display: flex;
+			align-items: center;
+			height: var(--appbar-height);
+			padding: 0 1.25rem;
+			border-bottom: 0.5px solid var(--border);
+			background: var(--bar-bg);
+			-webkit-backdrop-filter: var(--bar-filter);
+			backdrop-filter: var(--bar-filter);
+		}
+
+		.sidebar {
+			position: sticky;
+			top: var(--appbar-height);
 			display: flex;
 			flex-direction: column;
-			flex-shrink: 0;
 			width: 250px;
-			height: 100vh;
+			height: calc(100vh - var(--appbar-height));
 			overflow-y: auto;
-			background-image: linear-gradient(180deg, var(--brand) 0%, var(--brand-deep) 95%);
+			border-right: 0.5px solid var(--border);
+			background: var(--bg);
 		}
 	}
 
 	.brand {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
-		height: 3.5rem;
-		padding: 0 1.5rem;
-		background: rgba(0, 0, 0, 0.4);
-		color: #fff;
-		font-size: 1.1rem;
+		gap: 0.75rem;
+		color: var(--text);
 		text-decoration: none;
 	}
 
 	.brand img {
-		border-radius: 0.25rem;
+		border-radius: 10px;
+	}
+
+	.brand-text {
+		display: flex;
+		flex-direction: column;
+		line-height: 1.25;
+	}
+
+	.brand-title {
+		font-size: 1.0625rem;
+		font-weight: 700;
+		letter-spacing: -0.01em;
+	}
+
+	.brand-sub {
+		color: var(--muted);
+		font-size: 0.75rem;
 	}
 
 	nav[aria-label='Main']:not(.tab-bar) {
 		display: flex;
+		flex: 1;
 		flex-direction: column;
-		gap: 0.5rem;
-		padding: 1rem;
+		gap: 0.125rem;
+		padding: 0.75rem;
 	}
 
 	.side-link,
@@ -263,35 +300,50 @@
 		display: flex;
 		align-items: center;
 		gap: 0.75rem;
-		height: 3rem;
-		padding: 0 0.75rem;
-		border-radius: 4px;
-		color: #d7d7d7;
-		font-size: 0.9rem;
+		min-height: 2.75rem;
+		padding: 0 0.85rem;
+		border-radius: var(--radius);
+		color: var(--text);
+		font-size: 0.9375rem;
+		font-weight: 500;
 		text-decoration: none;
+		transition: background-color 0.15s;
 	}
 
 	.side-link :global(.icon) {
+		color: var(--tint);
 		font-size: 1.1rem;
 	}
 
 	.side-link:hover {
-		background: rgba(255, 255, 255, 0.1);
-		color: #fff;
+		background: var(--hover);
 	}
 
 	.side-link.active {
-		background: rgba(255, 255, 255, 0.25);
-		color: #fff;
+		background: var(--tint-fill);
+		color: var(--tint);
+		font-weight: 600;
 	}
 
+	.side-link:focus-visible,
+	.side-version:focus-visible,
+	.brand:focus-visible {
+		outline: 3px solid var(--focus-ring);
+		outline-offset: 2px;
+	}
+
+	/* The version sits at the foot of the sidebar */
 	.side-version {
-		color: rgba(255, 255, 255, 0.45);
+		margin-top: auto;
+		min-height: 2.25rem;
+		color: var(--faint);
+		font-size: 0.75rem;
+		font-weight: 400;
 	}
 
 	a.side-version:hover,
 	a.side-version.active {
-		color: rgba(255, 255, 255, 0.8);
+		color: var(--muted);
 	}
 
 	/* Phone tab bar: a glass pill floating above the bottom of the screen */
@@ -462,8 +514,12 @@
 		border-bottom: 0.5px solid var(--border);
 	}
 
+	/* The group and unit, in a card at the top of the sidebar */
 	.side-picker :global(.unit-picker) {
-		padding: 1rem 1rem 0;
+		margin: 0.75rem 0.75rem 0;
+		padding: 0.75rem 0.85rem 0.85rem;
+		border-radius: var(--radius-lg);
+		background: var(--surface);
 	}
 
 	.more-item {

@@ -21,7 +21,6 @@
 	--faint: #aeaeb2;
 
 	--brand: #052767;
-	--brand-deep: #3a0647;
 	--accent: #e8a33d;
 
 	/* The app's tint, as iOS tints controls: the selected tab, buttons and links */
@@ -83,6 +82,11 @@
 	--glass-active-bg: rgba(0, 0, 0, 0.06);
 	--glass-active-text: var(--tint);
 
+	/* The desktop's bar across the top: see-through, like iOS's navigation bar */
+	--bar-bg: rgba(242, 242, 247, 0.82);
+	--bar-filter: blur(20px) saturate(180%);
+	--appbar-height: 3.75rem;
+
 	--font:
 		-apple-system, system-ui, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', 'Segoe UI',
 		Roboto, Arial, sans-serif;
@@ -142,6 +146,7 @@
 		--shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
 
 		/* Tinted a little dark, so text on the glass stays readable over bright buttons behind it */
+		--bar-bg: rgba(0, 0, 0, 0.78);
 		--glass-bg: rgba(18, 18, 20, 0.4);
 		--glass-shadow:
 			inset 1px 1px 0 rgba(255, 255, 255, 0.45), inset -1px -1px 0 rgba(255, 255, 255, 0.1),

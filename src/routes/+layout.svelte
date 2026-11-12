@@ -141,13 +141,21 @@
 		}
 	}
 
-	@media (min-width: 641px) {
+	/* The bar across the top, then the sidebar beside the page. Printing leaves both out, so it keeps the
+	   plain column */
+	@media screen and (min-width: 641px) {
 		.page {
-			flex-direction: row;
+			display: grid;
+			grid-template-columns: 250px minmax(0, 1fr);
+			grid-template-rows: auto 1fr;
+			align-items: start;
 		}
+	}
 
+	@media (min-width: 641px) {
 		/* Centred in the space beside the sidebar, so wide screens don't leave it all on the left */
 		main {
+			width: 100%;
 			max-width: 1140px;
 			margin-inline: auto;
 			padding: 1.5rem 1.5rem 2rem 2rem;

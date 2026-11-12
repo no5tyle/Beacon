@@ -6,13 +6,10 @@
 	import { app } from '#lib/services/index.js';
 
 	let {
-		idPrefix,
-		dark = false
+		idPrefix
 	}: {
 		/** Several pickers can be on the page at once, so each needs its own ids */
 		idPrefix: string;
-		/** On the sidebar's dark background */
-		dark?: boolean;
 	} = $props();
 
 	const showGroup = $derived(app.groups.length > 1 || !app.groupId);
@@ -20,7 +17,7 @@
 </script>
 
 {#if showGroup || showUnit}
-	<div class="unit-picker" class:dark>
+	<div class="unit-picker">
 		{#if showGroup}
 			<label class="picker-label" for="{idPrefix}group">Group</label>
 			<select
@@ -66,9 +63,5 @@
 
 	.picker-label:not(:first-child) {
 		margin-top: 0.35rem;
-	}
-
-	.dark .picker-label {
-		color: rgba(255, 255, 255, 0.6);
 	}
 </style>
