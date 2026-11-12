@@ -199,6 +199,33 @@ test.describe('desktop', () => {
 		await expect(page).toHaveURL(/\/logging\/$/);
 	});
 
+	test('the app switcher at the top left lists no5tyle’s apps', async ({ page }) => {
+		const warnings: string[] = [];
+		page.on('console', (m) => {
+			if (/hydrat/i.test(m.text())) warnings.push(m.text());
+		});
+		await page.goto('login/');
+		const button = page.locator('.appbar .n5-switch-btn');
+		await expect(button).toHaveAccessibleName('Beacon: switch app');
+		await button.click();
+		await expect(page.locator('.appbar .n5-switch-name')).toHaveText([
+			'Beacon',
+			'Program Builder',
+			'Snag Calc',
+			'Pinewood Control',
+			'All apps'
+		]);
+		await expect(page.locator('.appbar .n5-switch-item[aria-current=page]')).toContainText(
+			'Beacon'
+		);
+		await page.keyboard.press('Escape');
+		await expect(page.locator('.appbar .n5-switch-menu')).toBeHidden();
+		// Beacon's own icon, the stand-in, is hidden once the switcher draws itself
+		await expect(page.locator('.appbar n5-app-switcher > img')).toBeHidden();
+		await expect(page.locator('a.brand')).toHaveText(/Beacon/);
+		expect(warnings).toEqual([]);
+	});
+
 	test('the profile menu at the top right has Info and Logout', async ({ page }) => {
 		await page.goto('login/');
 		await expect(page.locator('.profile-button'), 'not while signed out').toHaveCount(0);

@@ -141,8 +141,12 @@
 />
 
 <header class="appbar no-print">
-	<a class="brand" href={pagePath('')}>
+	<!-- The switcher between no5tyle's apps (no5tyle.github.io/shared/app-switcher.js); Beacon's icon
+	     shows until it loads -->
+	<n5-app-switcher current="beacon">
 		<img src={asset('beacon-64.png')} width="36" height="36" alt="" />
+	</n5-app-switcher>
+	<a class="brand" href={pagePath('')}>
 		<span class="brand-text">
 			<span class="brand-title">Beacon</span>
 			<span class="brand-sub">OAS, progress and insights from Terrain</span>
@@ -332,12 +336,13 @@
 	}
 
 	.appbar {
-		justify-content: space-between;
+		gap: 0.75rem;
 	}
 
 	/* Profile menu, at the top right */
 	.profile {
 		position: relative;
+		margin-left: auto;
 	}
 
 	.profile-button {
@@ -449,10 +454,6 @@
 		gap: 0.75rem;
 		color: var(--text);
 		text-decoration: none;
-	}
-
-	.brand img {
-		border-radius: 10px;
 	}
 
 	.brand-text {

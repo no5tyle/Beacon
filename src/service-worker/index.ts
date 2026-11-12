@@ -17,10 +17,15 @@ const tookOverBlazorApp = new URL(self.registration.scope).pathname === '/Beacon
 const inScope = (path: string) => new URL(path.replace(/^\//, ''), self.registration.scope).href;
 const files = [...immutable, ...assets, ...prerendered].map((file) => inScope(file.path));
 
-// The look shared with no5tyle's other apps, served from the same site's root. Kept with Beacon's own
-// files so Beacon still looks right without signal; saved best-effort, so it can't stop an install
-const SHARED_STYLES = 'https://no5tyle.github.io/shared/no5tyle.css';
-const sharedStylesHere = new URL(SHARED_STYLES).origin === self.location.origin;
+// The look and app switcher shared with no5tyle's other apps, served from the same site's root. Kept
+// with Beacon's own files so Beacon still looks right without signal; saved best-effort, so they can't
+// stop an install
+const SHARED_FILES = [
+	'https://no5tyle.github.io/shared/no5tyle.css',
+	'https://no5tyle.github.io/shared/app-switcher.js',
+	'https://no5tyle.github.io/shared/icons/beacon.png'
+];
+const sharedFilesHere = new URL(SHARED_FILES[0]).origin === self.location.origin;
 
 // Terrain's public OAS templates, kept across releases so a saved Reference stays saved
 const TEMPLATES_ORIGIN = 'https://templates.terrain.scouts.com.au';
@@ -33,7 +38,8 @@ self.addEventListener('install', (event) => {
 			.open(CACHE)
 			.then(async (cache) => {
 				await cache.addAll(files);
-				if (sharedStylesHere) await cache.add(SHARED_STYLES).catch(() => undefined);
+				if (sharedFilesHere)
+					await Promise.all(SHARED_FILES.map((file) => cache.add(file).catch(() => undefined)));
 			})
 			.then(() => self.skipWaiting())
 	);
