@@ -1,7 +1,8 @@
 <!--
 	Beacon's navigation: on desktop a bar across the top with the app's name and a sidebar of pages below
-	it, the same frame as the Program Builder; on phones a tab bar along the bottom (within thumb reach)
-	with the less used pages under More.
+	it, the same frame as the Program Builder, with Info and Logout in a profile menu at its top right; on
+	phones a tab bar along the bottom (within thumb reach) with the less used pages, Info and Logout under
+	More.
 -->
 <script lang="ts">
 	import { asset } from '$app/paths';
@@ -15,15 +16,38 @@
 		moreBadge,
 		morePages,
 		phoneTabs,
+		profilePages,
 		signedOutPages,
 		type NavOptions,
 		type NavPage
 	} from '#lib/navigation.js';
 	import { pagePath } from '#lib/paths.js';
 
-	let { options, version }: { options: NavOptions; version: string } = $props();
+	let {
+		options,
+		version,
+		name = '',
+		unit = ''
+	}: {
+		options: NavOptions;
+		version: string;
+		/** The signed in member's name and the chosen unit, at the top of the profile menu */
+		name?: string;
+		unit?: string;
+	} = $props();
 
 	let moreOpen = $state(false);
+	let profileOpen = $state(false);
+	const profile = profilePages();
+	// Up to two letters for the profile button: "Ava Nguyen" is AN
+	const initials = $derived(
+		name
+			.split(/\s+/)
+			.filter(Boolean)
+			.map((part) => part[0].toUpperCase())
+			.filter((_, i, all) => i === 0 || i === all.length - 1)
+			.join('')
+	);
 	// Read after a badge's count. Kept with its space in a string: as plain text the space is trimmed, and a
 	// screen reader hears "2waiting"
 	const WAITING = ' waiting for you';
@@ -48,10 +72,11 @@
 	const target = (item: NavPage) => (item.external ? '_blank' : undefined);
 	const rel = (item: NavPage) => (item.external ? 'noopener' : undefined);
 
-	// Close the menu after moving to another page, and bring the tabs back
+	// Close the menus after moving to another page, and bring the tabs back
 	$effect(() => {
 		void page.url.pathname;
 		moreOpen = false;
+		profileOpen = false;
 		minimized = false;
 	});
 
@@ -108,7 +133,12 @@
 	{/if}
 {/snippet}
 
-<svelte:window onkeydown={(e) => e.key === 'Escape' && (moreOpen = false)} onscroll={onScroll} />
+<svelte:window
+	onkeydown={(e) => {
+		if (e.key === 'Escape') moreOpen = profileOpen = false;
+	}}
+	onscroll={onScroll}
+/>
 
 <header class="appbar no-print">
 	<a class="brand" href={pagePath('')}>
@@ -118,6 +148,49 @@
 			<span class="brand-sub">OAS, progress and insights from Terrain</span>
 		</span>
 	</a>
+	{#if options.signedIn}
+		<div class="profile">
+			<button
+				type="button"
+				class="profile-button"
+				aria-haspopup="true"
+				aria-expanded={profileOpen}
+				aria-label={name ? `Profile: ${name}` : 'Profile'}
+				onclick={() => (profileOpen = !profileOpen)}
+			>
+				<span class="avatar" aria-hidden="true">
+					{#if initials}{initials}{:else}<Icon name="person" />{/if}
+				</span>
+				{#if name}<span class="profile-name">{name}</span>{/if}
+			</button>
+			{#if profileOpen}
+				<button
+					class="profile-backdrop"
+					aria-label="Close menu"
+					onclick={() => (profileOpen = false)}
+				></button>
+				<div class="profile-menu" role="menu">
+					{#if name || unit}
+						<div class="profile-who">
+							{#if name}<strong>{name}</strong>{/if}
+							{#if unit}<span>{unit}</span>{/if}
+						</div>
+					{/if}
+					{#each profile as item (item.href)}
+						<a
+							class="profile-item"
+							class:active={isActive(item, path)}
+							role="menuitem"
+							href={pagePath(item.href)}
+						>
+							<Icon name={item.icon} />
+							{item.title}
+						</a>
+					{/each}
+				</div>
+			{/if}
+		</div>
+	{/if}
 </header>
 
 <aside class="sidebar no-print">
@@ -256,6 +329,118 @@
 			border-right: 0.5px solid var(--border);
 			background: var(--bg);
 		}
+	}
+
+	.appbar {
+		justify-content: space-between;
+	}
+
+	/* Profile menu, at the top right */
+	.profile {
+		position: relative;
+	}
+
+	.profile-button {
+		display: flex;
+		align-items: center;
+		gap: 0.6rem;
+		height: 2.5rem;
+		padding: 0 0.85rem 0 0.25rem;
+		border: 0;
+		border-radius: 999px;
+		background: transparent;
+		color: var(--text);
+		font: inherit;
+		font-size: 0.9375rem;
+		font-weight: 500;
+		cursor: pointer;
+		transition: background-color 0.15s;
+	}
+
+	.profile-button:hover,
+	.profile-button[aria-expanded='true'] {
+		background: var(--hover);
+	}
+
+	.profile-button:focus-visible {
+		outline: 3px solid var(--focus-ring);
+		outline-offset: 2px;
+	}
+
+	.avatar {
+		display: grid;
+		place-items: center;
+		width: 2rem;
+		height: 2rem;
+		border-radius: 50%;
+		background: var(--tint);
+		color: #fff;
+		font-size: 0.8125rem;
+		font-weight: 700;
+		letter-spacing: 0.02em;
+	}
+
+	.profile-backdrop {
+		position: fixed;
+		inset: 0;
+		z-index: 1;
+		border: 0;
+		background: transparent;
+		cursor: default;
+	}
+
+	.profile-menu {
+		position: absolute;
+		top: calc(100% + 0.4rem);
+		right: 0;
+		z-index: 2;
+		width: 15rem;
+		padding: 0.4rem;
+		border-radius: var(--radius-lg);
+		background: var(--surface);
+		box-shadow:
+			var(--shadow),
+			0 0 0 0.5px var(--border);
+		transform-origin: top right;
+		animation: menu-in 0.2s cubic-bezier(0.32, 0.72, 0, 1);
+	}
+
+	.profile-who {
+		display: flex;
+		flex-direction: column;
+		margin-bottom: 0.3rem;
+		padding: 0.5rem 0.85rem 0.6rem;
+		border-bottom: 0.5px solid var(--border);
+		line-height: 1.3;
+	}
+
+	.profile-who span {
+		color: var(--muted);
+		font-size: 0.8125rem;
+	}
+
+	.profile-item {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		min-height: 2.75rem;
+		padding: 0 0.85rem;
+		border-radius: var(--radius);
+		color: var(--text);
+		text-decoration: none;
+	}
+
+	.profile-item:hover {
+		background: var(--hover);
+	}
+
+	.profile-item :global(.icon) {
+		color: var(--tint);
+	}
+
+	.profile-item.active {
+		color: var(--tint);
+		font-weight: 600;
 	}
 
 	.brand {
@@ -501,7 +686,8 @@
 	@media (prefers-reduced-motion: reduce) {
 		.tab-bar,
 		.tab,
-		.more-menu {
+		.more-menu,
+		.profile-menu {
 			transition: none;
 			animation: none;
 		}

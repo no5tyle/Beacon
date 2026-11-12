@@ -103,7 +103,7 @@
 	{@render children()}
 {:else}
 	<div class="page">
-		<AppNav options={navOptions} version={VERSION} />
+		<AppNav options={navOptions} version={VERSION} name={app.memberName} unit={app.unitName} />
 		<main>
 			{#if app.resuming && !isPublic}
 				<p class="muted resuming" role="status">Signing you back in to Terrain...</p>

@@ -1,5 +1,5 @@
 // The youth experience: in a unit they're youth in, a member sees Record for SIAs, their own Progress,
-// Approvals if on its Unit Council, and Reference and Logout under the menu
+// Approvals if on its Unit Council, and Info and Logout in the menu
 import { expect, test, type Page } from '@playwright/test';
 import { fakeTerrain, logIn, navigate } from './terrain.js';
 
@@ -32,19 +32,10 @@ test('a youth opens at their own progress, with Record, Progress and Reference, 
 	// Their own progress only: no list to go back to
 	await expect(page.locator('.back-link')).toHaveCount(0);
 
-	// Off the Unit Council, Reference is in the bar, with Log an issue and Logout under the menu
-	if (isMobile) {
-		await expect(mainLinks(page, isMobile)).toHaveText(['Record', 'Progress', 'Reference']);
-		expect(await menuTitles(page, isMobile)).toEqual(['Log an issue', 'Logout']);
-	} else {
-		await expect(mainLinks(page, isMobile)).toHaveText([
-			'Record',
-			'Progress',
-			'Reference',
-			'Log an issue',
-			'Logout'
-		]);
-	}
+	// Off the Unit Council, Reference is in the bar, with Info and Logout under the menu (the profile
+	// menu on desktop)
+	await expect(mainLinks(page, isMobile)).toHaveText(['Record', 'Progress', 'Reference']);
+	if (isMobile) expect(await menuTitles(page, isMobile)).toEqual(['Info', 'Logout']);
 
 	// Record opens their own OAS, with a switch to SIAs
 	await mainLinks(page, isMobile).filter({ hasText: 'Record' }).click();
@@ -89,8 +80,7 @@ test('a youth on the Unit Council has Approvals, with Approve and Award but not 
 	await expect(page).toHaveURL(/\/progress\/unit-1-m0\/$/);
 	await expect(mainLinks(page, isMobile).filter({ hasText: 'Approvals' })).toHaveCount(1);
 	// Approvals takes Reference's place in the bar, which goes under the menu
-	if (isMobile)
-		expect(await menuTitles(page, isMobile)).toEqual(['Reference', 'Log an issue', 'Logout']);
+	if (isMobile) expect(await menuTitles(page, isMobile)).toEqual(['Reference', 'Info', 'Logout']);
 	await mainLinks(page, isMobile).filter({ hasText: 'Approvals' }).click();
 	await expect(page).toHaveURL(/\/approvals\/$/);
 	await expect(page.getByRole('tab')).toHaveText([/^Approve/, /^Award/]);

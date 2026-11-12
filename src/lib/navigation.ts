@@ -18,23 +18,12 @@ export interface NavPage {
 	external?: boolean;
 }
 
-/** Where to report a problem or ask for something: Beacon's issues on GitHub */
-export const ISSUES_URL = 'https://github.com/no5tyle/Beacon/issues';
-
-const issuesPage: NavPage = {
-	href: ISSUES_URL,
-	icon: 'warning',
-	title: 'Log an issue',
-	shortTitle: 'Log an issue',
-	external: true
-};
-
 export interface NavOptions {
 	/** Signed out, only Login and the Reference are offered */
 	signedIn: boolean;
 	/**
 	 * Youth in the chosen unit: Record for SIAs, their own Progress, Approvals if on the Unit Council, and
-	 * Reference and Logout under the menu
+	 * Info and Logout in the profile menu
 	 */
 	isYouth: boolean;
 	/** On the chosen unit's Unit Council, which gives youth Approvals */
@@ -108,18 +97,18 @@ export function mainPages({
 
 /** Less used pages: the bottom of the sidebar on desktop, and under More on phones (see phoneTabs) */
 export function morePages({ isYouth, onUnitCouncil, approvalsWaiting = 0 }: NavOptions): NavPage[] {
-	const logout: NavPage = {
-		href: 'logout/',
-		icon: 'account-logout',
-		title: 'Logout',
-		shortTitle: 'Logout'
-	};
-	if (isYouth) return onUnitCouncil ? [referencePage, issuesPage, logout] : [issuesPage, logout];
+	if (isYouth) return onUnitCouncil ? [referencePage] : [];
+	return [approvalsPage(approvalsWaiting)];
+}
+
+/**
+	About the signed in member rather than the unit: the profile menu at the top right on desktop, and the
+	end of More on phones, which have no bar along the top
+*/
+export function profilePages(): NavPage[] {
 	return [
-		approvalsPage(approvalsWaiting),
 		{ href: 'info/', icon: 'info', title: 'Info', shortTitle: 'Info' },
-		issuesPage,
-		logout
+		{ href: 'logout/', icon: 'account-logout', title: 'Logout', shortTitle: 'Logout' }
 	];
 }
 
@@ -133,7 +122,7 @@ const SWAPPABLE = ['progress/', 'approvals/', 'info/'];
 */
 export function phoneTabs(options: NavOptions, path: string): { main: NavPage[]; more: NavPage[] } {
 	let main = mainPages(options);
-	let more = morePages(options);
+	let more = [...morePages(options), ...profilePages()];
 	if (!options.isYouth) {
 		more = [...main.filter((p) => p.href === 'progress/'), ...more];
 		main = main.filter((p) => p.href !== 'progress/');

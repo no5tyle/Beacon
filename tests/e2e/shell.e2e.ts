@@ -143,7 +143,6 @@ test.describe('phone', () => {
 			/^\s*Reference\s*$/,
 			/^\s*Approvals 7 waiting for you\s*$/,
 			/^\s*Info\s*$/,
-			/^\s*Log an issue\s*$/,
 			/^\s*Logout\s*$/
 		]);
 		await page.locator('.more-item', { hasText: 'Approvals' }).click();
@@ -163,7 +162,6 @@ test.describe('phone', () => {
 			/^\s*Youth\s*$/,
 			/^\s*Approvals 7 waiting for you\s*$/,
 			/^\s*Info\s*$/,
-			/^\s*Log an issue\s*$/,
 			/^\s*Logout\s*$/
 		]);
 		// Logging has no item of its own: the version opens it
@@ -173,15 +171,6 @@ test.describe('phone', () => {
 		await page.locator('.tab-bar button', { hasText: 'More' }).click();
 		await expect(page.locator('.more-version')).toHaveText(/^Beacon version .* · logging on$/);
 
-		// Log an issue opens Beacon's GitHub issues in a new tab
-		await expect(page.locator('.more-item', { hasText: 'Log an issue' })).toHaveAttribute(
-			'href',
-			'https://github.com/no5tyle/Beacon/issues'
-		);
-		await expect(page.locator('.more-item', { hasText: 'Log an issue' })).toHaveAttribute(
-			'target',
-			'_blank'
-		);
 		await page.locator('.more-item', { hasText: 'Logout' }).click();
 		await expect(page).toHaveURL(/\/login\/$/);
 		await expect(page.locator('.tab-bar .tab-label')).toHaveText(['Login', 'Reference']);
@@ -199,22 +188,40 @@ test.describe('desktop', () => {
 		await logIn(page);
 		await navigate(page, 'insights/');
 		await expect(page.locator('.side-link')).toHaveText(
-			[
-				'Insights',
-				'Record',
-				'Youth',
-				'Reference',
-				'Approvals 7 waiting for you',
-				'Info',
-				'Log an issue',
-				'Logout'
-			].map((name) => new RegExp(`^\\s*${name}\\s*$`))
+			['Insights', 'Record', 'Youth', 'Reference', 'Approvals 7 waiting for you'].map(
+				(name) => new RegExp(`^\\s*${name}\\s*$`)
+			)
 		);
 		await expect(page.locator('.side-link.active')).toHaveText('Insights');
 		await expect(page.locator('.tab-bar')).toBeHidden();
 		// Logging has no link of its own: the version opens it
 		await page.locator('.side-version', { hasText: /^Version / }).click();
 		await expect(page).toHaveURL(/\/logging\/$/);
+	});
+
+	test('the profile menu at the top right has Info and Logout', async ({ page }) => {
+		await page.goto('login/');
+		await expect(page.locator('.profile-button'), 'not while signed out').toHaveCount(0);
+		await logIn(page);
+		await navigate(page, 'insights/');
+		const button = page.locator('.appbar .profile-button');
+		const bar = (await page.locator('.appbar').boundingBox())!;
+		const box = (await button.boundingBox())!;
+		expect(bar.x + bar.width - (box.x + box.width), 'at the right of the bar').toBeLessThan(40);
+		await expect(page.locator('.profile-menu')).toHaveCount(0);
+		await button.click();
+		await expect(button).toHaveAttribute('aria-expanded', 'true');
+		await expect(page.locator('.profile-item')).toHaveText([/^\s*Info\s*$/, /^\s*Logout\s*$/]);
+		await page.keyboard.press('Escape');
+		await expect(page.locator('.profile-menu')).toHaveCount(0);
+		await button.click();
+		await page.locator('.profile-item', { hasText: 'Info' }).click();
+		await expect(page).toHaveURL(/\/info\/$/);
+		await expect(page.locator('.profile-menu'), 'closes on moving to the page').toHaveCount(0);
+		await button.click();
+		await page.locator('.profile-item', { hasText: 'Logout' }).click();
+		await expect(page).toHaveURL(/\/login\/$/);
+		await expect(page.locator('.profile-button')).toHaveCount(0);
 	});
 });
 

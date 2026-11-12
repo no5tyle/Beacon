@@ -5,6 +5,7 @@ import {
 	moreBadge,
 	morePages,
 	phoneTabs,
+	profilePages,
 	signedOutPages
 } from './navigation.js';
 
@@ -41,25 +42,16 @@ describe('navigation', () => {
 		expect(isActive(record, '/record/sia-plan/')).toBe(true);
 	});
 
-	it('puts Approvals (leaders), Info, Log an issue and Logout under More, with logging left to the version', () => {
-		expect(morePages(leader).map((p) => p.title)).toEqual([
-			'Approvals',
-			'Info',
-			'Log an issue',
-			'Logout'
-		]);
-		expect(morePages({ ...leader, logging: true }).map((p) => p.title)).toEqual([
-			'Approvals',
-			'Info',
-			'Log an issue',
-			'Logout'
-		]);
-		expect(morePages(youth).map((p) => p.title)).toEqual(['Log an issue', 'Logout']);
-		expect(morePages({ ...youth, onUnitCouncil: true }).map((p) => p.title)).toEqual([
-			'Reference',
-			'Log an issue',
-			'Logout'
-		]);
+	it('puts Approvals (leaders) under More, with logging left to the version', () => {
+		expect(morePages(leader).map((p) => p.title)).toEqual(['Approvals']);
+		expect(morePages({ ...leader, logging: true }).map((p) => p.title)).toEqual(['Approvals']);
+		expect(morePages(youth).map((p) => p.title)).toEqual([]);
+		expect(morePages({ ...youth, onUnitCouncil: true }).map((p) => p.title)).toEqual(['Reference']);
+	});
+
+	it('puts Info and Logout in the profile menu, for leaders and youth alike', () => {
+		expect(profilePages().map((p) => p.title)).toEqual(['Info', 'Logout']);
+		expect(profilePages().map((p) => p.href)).toEqual(['info/', 'logout/']);
 	});
 
 	it('shows how many approvals wait for the leader on Approvals, and in total on More', () => {
@@ -69,13 +61,9 @@ describe('navigation', () => {
 		expect(moreBadge(morePages(leader))).toBe(0);
 	});
 
-	it('links to Beacon’s GitHub issues, opened as another website', () => {
-		const issues = morePages(leader).find((p) => p.title === 'Log an issue')!;
-		expect(issues).toMatchObject({
-			href: 'https://github.com/no5tyle/Beacon/issues',
-			external: true
-		});
-		expect(isActive(issues, '/insights/')).toBe(false);
+	it('has no Log an issue link any more', () => {
+		const all = [...morePages(leader), ...morePages(youth), ...profilePages()];
+		expect(all.some((p) => p.title === 'Log an issue' || p.external)).toBe(false);
 	});
 
 	it('offers only Login and the Reference when signed out', () => {
@@ -104,29 +92,29 @@ describe('navigation', () => {
 		it('put Progress under More for leaders, to keep the tab bar roomy', () => {
 			expect(titles(phoneTabs(leader, '/insights/'))).toEqual({
 				main: ['Insights', 'Record', 'Reference'],
-				more: ['Youth', 'Approvals', 'Info', 'Log an issue', 'Logout']
+				more: ['Youth', 'Approvals', 'Info', 'Logout']
 			});
 		});
 
 		it('swap the open page from More into the bar, and Reference into More', () => {
 			expect(titles(phoneTabs(leader, '/progress/m1/'))).toEqual({
 				main: ['Insights', 'Record', 'Youth'],
-				more: ['Reference', 'Approvals', 'Info', 'Log an issue', 'Logout']
+				more: ['Reference', 'Approvals', 'Info', 'Logout']
 			});
 			expect(titles(phoneTabs(leader, '/approvals/'))).toEqual({
 				main: ['Insights', 'Record', 'Approvals'],
-				more: ['Reference', 'Youth', 'Info', 'Log an issue', 'Logout']
+				more: ['Reference', 'Youth', 'Info', 'Logout']
 			});
 		});
 
 		it('give youth Record, Progress and Reference in the bar, or Approvals on the Unit Council', () => {
 			expect(titles(phoneTabs(youth, '/progress/'))).toEqual({
 				main: ['Record', 'Progress', 'Reference'],
-				more: ['Log an issue', 'Logout']
+				more: ['Info', 'Logout']
 			});
 			expect(titles(phoneTabs({ ...youth, onUnitCouncil: true }, '/oas-reference/'))).toEqual({
 				main: ['Record', 'Progress', 'Approvals'],
-				more: ['Reference', 'Log an issue', 'Logout']
+				more: ['Reference', 'Info', 'Logout']
 			});
 		});
 
