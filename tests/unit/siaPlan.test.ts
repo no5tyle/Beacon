@@ -7,6 +7,7 @@ import {
 	planAnswers,
 	planInputs,
 	submitPlanBody,
+	templatePart,
 	updatePlanBody,
 	type SIARecord,
 	type SIATemplate
@@ -50,6 +51,19 @@ describe('an SIA plan', () => {
 			'Name your project'
 		]);
 		expect(missingRequired(template, answersOf(saved))).toEqual([]);
+	});
+
+	it('splits the template into its required questions and its optional ones', () => {
+		const ids = (pages: SIATemplate['document']) =>
+			pages.map((p) => [p.title, p.input_groups.flatMap((g) => g.inputs.map((i) => i.id))]);
+		expect(ids(templatePart(template, true))).toEqual([
+			['Project Details', ['special_interest_area_selection', 'project_name']]
+		]);
+		expect(ids(templatePart(template, false))).toEqual([
+			['Goals', ['want_to_achieve']],
+			['How', ['step_1', 'step_2', 'step_3', 'share_with_unit']],
+			['Who', ['who_is_involved', 'who_is_helping']]
+		]);
 	});
 
 	it('saves exactly what Terrain sends, leaving out questions not answered', () => {

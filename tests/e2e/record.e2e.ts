@@ -325,16 +325,28 @@ test('starts an SIA plan for a youth and submits it for approval, as Terrain doe
 	await page.getByRole('button', { name: 'Next: Projects' }).click();
 	await page.getByRole('button', { name: 'New plan' }).click();
 
-	// Terrain's plan questions, the area and name required
+	// First the questions Terrain requires: the area and the project's name
 	await expect(page.getByRole('region', { name: 'Project Details' })).toBeVisible();
-	await expect(page.getByRole('region', { name: 'Who' })).toBeVisible();
-	await expect(page.getByRole('button', { name: 'Save and submit' })).toBeDisabled();
-	await page.getByRole('button', { name: 'Save', exact: true }).click();
+	await expect(page.getByRole('region', { name: 'Who' })).toHaveCount(0);
+	await expect(page.locator('#sia-step_1')).toHaveCount(0);
+	// Starting a project can't be undone
+	await expect(page.locator('.undo-note')).toContainText("it can't be undone");
+	await page.getByRole('button', { name: 'Next: Details' }).click();
 	await expect(page.locator('.alert-danger')).toHaveText(
 		'Fill in: Pick the Special Interest Area, Name your project.'
 	);
 	await page.getByRole('button', { name: 'STEM & Innovation' }).click();
 	await page.getByLabel('Name your project*').fill('Build a robot');
+	await page.getByRole('button', { name: 'Next: Details' }).click();
+
+	// Then the rest, all optional
+	await expect(page.locator('.optional-note')).toContainText('Everything on this page is optional');
+	await expect(page.locator('.undo-note')).toContainText(
+		"Saving starts this project in Terrain, and submitting can't be undone"
+	);
+	await expect(page.getByRole('region', { name: 'Goals' })).toBeVisible();
+	await expect(page.getByRole('region', { name: 'Who' })).toBeVisible();
+	await expect(page.getByLabel('Name your project*')).toHaveCount(0);
 	await page.locator('#sia-step_1').fill('Find a kit');
 	await page.getByLabel('By myself').check();
 	await page.getByRole('button', { name: 'Save and submit' }).click();
@@ -379,6 +391,7 @@ test('carries on a saved SIA plan, keeping it unsubmitted', async ({ page }) => 
 	);
 	await page.getByRole('button', { name: 'Food drive' }).click();
 	await expect(page.getByLabel('Name your project*')).toHaveValue('Food drive');
+	await page.getByRole('button', { name: 'Next: Details' }).click();
 	await page.getByLabel('What do I/we want to learn or do?').fill('Collect 100 tins');
 	await page.getByRole('button', { name: 'Save', exact: true }).click();
 	await expect(page.locator('.alert-success')).toHaveText(

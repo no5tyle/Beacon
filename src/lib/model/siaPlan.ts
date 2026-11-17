@@ -61,6 +61,24 @@ export const planInputs = (template: SIATemplate): SIAInput[] =>
 
 export const isRequired = (input: SIAInput) => input.rules === 'required';
 
+/**
+ * The template's pages with only its required questions, or only its optional ones, for a plan asked in
+ * two steps; groups and pages left with no questions are dropped
+ */
+export function templatePart(template: SIATemplate, required: boolean): SIATemplate['document'] {
+	return template.document
+		.map((page) => ({
+			...page,
+			input_groups: page.input_groups
+				.map((group) => ({
+					...group,
+					inputs: group.inputs.filter((input) => isRequired(input) === required)
+				}))
+				.filter((group) => group.inputs.length > 0)
+		}))
+		.filter((page) => page.input_groups.length > 0);
+}
+
 /** The plan's text answers from a record, for the form */
 export function answersOf(record: SIARecord | null): SIAAnswers {
 	const answers: SIAAnswers = {};

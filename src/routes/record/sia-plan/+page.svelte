@@ -19,6 +19,7 @@
 		projectName,
 		siaAreaName,
 		siaStatusDisplay,
+		templatePart,
 		type SIAAnswers,
 		type SIARecord,
 		type SIATemplate
@@ -28,7 +29,8 @@
 	import { app, members, sia } from '#lib/services/index.js';
 	import type { MemberSummary } from '#lib/services/members.js';
 
-	type Step = 'youth' | 'projects' | 'plan';
+	// The plan in two steps: its required questions, then the optional ones
+	type Step = 'youth' | 'projects' | 'plan' | 'details';
 
 	let step = $state<Step>('youth');
 	let youth = $state<MemberSummary[]>([]);
@@ -46,9 +48,14 @@
 	const section = $derived(app.section);
 	// Youth plan their own; leaders choose whose
 	const steps = $derived<Step[]>(
-		app.isYouth ? ['projects', 'plan'] : ['youth', 'projects', 'plan']
+		app.isYouth ? ['projects', 'plan', 'details'] : ['youth', 'projects', 'plan', 'details']
 	);
-	const stepNames: Record<Step, string> = { youth: 'Youth', projects: 'Projects', plan: 'Plan' };
+	const stepNames: Record<Step, string> = {
+		youth: 'Youth',
+		projects: 'Projects',
+		plan: 'Plan',
+		details: 'Details'
+	};
 	const name = (m: MemberSummary | undefined) => (m ? `${m.firstName} ${members.lastName(m)}` : '');
 	const chosen = $derived(youth.find((y) => y.id === memberId));
 	const whose = $derived(app.isYouth ? 'your' : `${chosen?.firstName ?? 'their'}'s`);
@@ -110,7 +117,8 @@
 
 	function back() {
 		message = null;
-		if (step === 'plan') step = 'projects';
+		if (step === 'details') step = 'plan';
+		else if (step === 'plan') step = 'projects';
 		else if (step === 'projects') {
 			step = 'youth';
 			memberId = '';
@@ -154,6 +162,21 @@
 	}
 
 	const editable = $derived(record === null || isPlanEditable(record));
+	// The questions for this step: the required ones first, then the optional ones on a page of their own.
+	// A submitted plan shows them all at once, as it can't be changed
+	const shownPages = $derived(
+		!template ? [] : !editable ? template.document : templatePart(template, step === 'plan')
+	);
+
+	function toDetails() {
+		if (missing.length > 0) {
+			message = { text: `Fill in: ${missing.join(', ')}.`, isError: true };
+			return;
+		}
+		message = null;
+		step = 'details';
+		window.scrollTo(0, 0);
+	}
 </script>
 
 <svelte:head>
@@ -254,10 +277,19 @@
 			<div class="alert alert-info small">
 				This plan has been submitted, so it can't be changed here.
 			</div>
+		{:else if step === 'plan' && !record}
+			<div class="alert alert-warning small undo-note" role="note">
+				Saving starts this project on {whose} record in Terrain, and it can't be undone: Beacon has no
+				way to delete or archive it.
+			</div>
+		{:else if step === 'details'}
+			<div class="alert alert-info small optional-note">
+				Everything on this page is optional. Answer what helps the plan, and leave the rest blank.
+			</div>
 		{/if}
 		<form class="plan" onsubmit={(e) => e.preventDefault()}>
 			<fieldset disabled={!editable || working !== ''}>
-				{#each template.document as page (page.title)}
+				{#each shownPages as page (page.title)}
 					<section class="plan-page" aria-label={page.title}>
 						<h3>{page.title}</h3>
 						{#each page.input_groups as group, g (g)}
@@ -321,7 +353,19 @@
 			</fieldset>
 		</form>
 
-		{#if editable}
+		{#if editable && step === 'plan'}
+			<div class="action-bar">
+				<button
+					type="button"
+					class="btn btn-outline-primary"
+					disabled={working !== ''}
+					onclick={() => save(false)}>{working === 'saving' ? 'Saving...' : 'Save'}</button
+				>
+				<button type="button" class="btn btn-primary" disabled={working !== ''} onclick={toDetails}
+					>Next: Details</button
+				>
+			</div>
+		{:else if editable}
 			<p class="small muted">
 				Saved to {whose} record in Terrain{app.isYouth
 					? ''
@@ -329,6 +373,12 @@
 				{#if app.isYouth}Submit it for approval in Terrain once it's ready.{:else}Submitting sends
 					it to the Unit Council to approve before the project starts.{/if}
 			</p>
+			{#if !app.isYouth}
+				<div class="alert alert-warning small undo-note" role="note">
+					{record ? 'Submitting' : 'Saving starts this project in Terrain, and submitting'} can't be undone:
+					Beacon can't take it back to a draft once it's with the Unit Council.
+				</div>
+			{/if}
 			<div class="action-bar">
 				<button
 					type="button"

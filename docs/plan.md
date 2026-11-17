@@ -260,6 +260,10 @@ never headers):
       another section (a record's `section`).
 - [ ] Youth submit their own OAS stage for review (needs Terrain's request for a youth's own submission)
 - [x] SIA plans: start, save and submit for approval (Record → SIA), from Terrain's own requests
+- [ ] SIA undo: try Terrain's requests for moving an SIA back, so a mistaken plan can be undone from
+      Beacon: archiving one (records carry `can_archive`), putting a submitted plan back to draft (the
+      save's `reset_to_draft`), or withdrawing a submission. Until then Beacon warns that starting and
+      submitting a plan can't be undone
 - [ ] SIA reviews: the review form and its submit, once a plan is approved (needs Terrain's review
       template and requests); then SIAs on Approvals' Submit tab
 - [ ] Approvals: "needs improvement" (needs Terrain's request)
