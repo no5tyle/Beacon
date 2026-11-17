@@ -437,6 +437,12 @@ test('writes the review of an approved SIA plan and submits it for review, as Te
 	await expect(page.getByRole('button', { name: 'Plant trees' })).toContainText(
 		'Plan approved, review to do'
 	);
+	// This section's projects first, then those from his time as a Cub, apart
+	await expect(page.locator('.earlier-heading')).toHaveText(['From the Cubs']);
+	await expect(page.locator('.list').first()).toContainText('Plant trees');
+	await expect(page.locator('.list').first()).not.toContainText('Kite flying');
+	await expect(page.locator('.list').last()).toContainText('Kite flying');
+	await expect(page.locator('.action-bar')).toContainText('1 project');
 	await page.getByRole('button', { name: 'Plant trees' }).click();
 
 	// The review's own questions, all optional; files are attached in Terrain

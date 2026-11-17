@@ -25,7 +25,8 @@
 		type SIARecord,
 		type SIATemplate
 	} from '#lib/model/siaPlan.js';
-	import { asc, sortBy } from '#lib/model/util.js';
+	import { SECTION_ORDER } from '#lib/model/insights/sectionFlow.js';
+	import { asc, desc, sortBy, titleCase } from '#lib/model/util.js';
 	import { pagePath } from '#lib/paths.js';
 	import { app, members, sia } from '#lib/services/index.js';
 	import type { MemberSummary } from '#lib/services/members.js';
@@ -187,6 +188,17 @@
 		projects = await sia.projects(memberId).catch(() => projects);
 	}
 
+	// The youth's projects in this section first; those from earlier sections (e.g. as a Cub, for a
+	// Scout), each section apart, most recent section first
+	const sectionName = (id: string) => (id ? `the ${titleCase(id)}s` : 'another section');
+	const currentProjects = $derived(projects.filter((p) => !p.section || p.section === section));
+	const earlierSections = $derived(
+		sortBy(
+			[...new Set(projects.map((p) => p.section ?? '').filter((id) => id && id !== section))],
+			desc((id) => SECTION_ORDER.indexOf(id))
+		).map((id) => ({ section: id, projects: projects.filter((p) => p.section === id) }))
+	);
+
 	const editable = $derived(
 		reviewing
 			? record !== null && isReviewEditable(record)
@@ -226,6 +238,34 @@
 <svelte:head>
 	<title>Beacon / Manage SIAs</title>
 </svelte:head>
+
+{#snippet projectList(list: SIARecord[])}
+	<div class="card list">
+		{#each list as project (project.id)}
+			{@const canReview = isReviewEditable(project)}
+			{@const canEdit = isPlanEditable(project) || canReview}
+			<svelte:element
+				this={canEdit ? 'button' : 'div'}
+				type={canEdit ? 'button' : undefined}
+				class="project"
+				class:editable={canEdit}
+				role={canEdit ? undefined : 'group'}
+				aria-label={projectName(project)}
+				onclick={canEdit ? () => (canReview ? openReview(project) : openPlan(project)) : undefined}
+			>
+				<span class="grow">
+					<span class="strong">{projectName(project)}</span>
+					<span class="small muted"
+						>{siaAreaName(String(project.answers?.[AREA_INPUT] ?? ''))} · {siaStatusDisplay(
+							project
+						)}</span
+					>
+				</span>
+				{#if canEdit}<span class="chevron" aria-hidden="true">&rsaquo;</span>{/if}
+			</svelte:element>
+		{/each}
+	</div>
+{/snippet}
 
 <div class="sia-plan has-action-bar">
 	<!-- Moving between OAS, activities and SIAs is for the start; within the flow, back is top left -->
@@ -276,36 +316,18 @@
 		{#if projects.length === 0}
 			<p class="muted">No projects yet.</p>
 		{/if}
-		<div class="card list">
-			{#each projects as project (project.id)}
-				{@const canReview = isReviewEditable(project)}
-				{@const canEdit = isPlanEditable(project) || canReview}
-				<svelte:element
-					this={canEdit ? 'button' : 'div'}
-					type={canEdit ? 'button' : undefined}
-					class="project"
-					class:editable={canEdit}
-					role={canEdit ? undefined : 'group'}
-					aria-label={projectName(project)}
-					onclick={canEdit
-						? () => (canReview ? openReview(project) : openPlan(project))
-						: undefined}
-				>
-					<span class="grow">
-						<span class="strong">{projectName(project)}</span>
-						<span class="small muted"
-							>{siaAreaName(String(project.answers?.[AREA_INPUT] ?? ''))} · {siaStatusDisplay(
-								project
-							)}</span
-						>
-					</span>
-					{#if canEdit}<span class="chevron" aria-hidden="true">&rsaquo;</span>{/if}
-				</svelte:element>
-			{/each}
-		</div>
+		{#if currentProjects.length > 0}
+			{@render projectList(currentProjects)}
+		{:else if projects.length > 0}
+			<p class="muted">No projects in the {sectionName(section)} yet.</p>
+		{/if}
+		{#each earlierSections as earlier (earlier.section)}
+			<h3 class="earlier-heading">From {sectionName(earlier.section)}</h3>
+			{@render projectList(earlier.projects)}
+		{/each}
 		<div class="action-bar">
 			<span class="small muted"
-				>{projects.length} {projects.length === 1 ? 'project' : 'projects'}</span
+				>{currentProjects.length} {currentProjects.length === 1 ? 'project' : 'projects'}</span
 			>
 			<button
 				type="button"
@@ -461,6 +483,11 @@
 </div>
 
 <style>
+	.earlier-heading {
+		margin: 1.25rem 0 0.5rem;
+		font-size: 1rem;
+	}
+
 	.subtitle {
 		margin-bottom: 0.5rem;
 	}

@@ -280,6 +280,13 @@ function records(unitId: string): Fixture[] {
 			project_name: 'Plant trees'
 		}
 	});
+	// One of Liam's from when he was a Cub
+	add(1, 'special_interest_area', 'awarded', {
+		template: 'sia/cub/plan',
+		version: 2,
+		section: 'cub',
+		answers: { special_interest_area_selection: 'sia_art_literature', project_name: 'Kite flying' }
+	});
 	// Mia has a plan saved but not submitted
 	add(2, 'special_interest_area', 'draft_approval', {
 		template: 'sia/scout/plan',
