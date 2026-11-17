@@ -443,8 +443,18 @@ test('writes the review of an approved SIA plan and submits it for review, as Te
 	await expect(page.locator('.list').first()).not.toContainText('Kite flying');
 	await expect(page.locator('.list').last()).toContainText('Kite flying');
 	await expect(page.locator('.action-bar')).toContainText('1 project');
+	// An earlier section's project is only viewed, even with its review still to do
+	await expect(page.locator('.earlier-note')).toContainText('can only be viewed here');
+	await expect(page.getByRole('group', { name: 'Kite flying' })).toContainText(
+		'Plan approved, review to do'
+	);
+	await expect(page.getByRole('button', { name: 'Kite flying' })).toHaveCount(0);
 	await page.getByRole('button', { name: 'Plant trees' }).click();
 
+	// For this unit's section, and its Unit Council
+	await expect(page.locator('.section-note')).toContainText(
+		"This review is for Mt Example Scouts, in the Scouts: it goes to their Unit Council. Check that's the section Liam is in now"
+	);
 	// The review's own questions, all optional; files are attached in Terrain
 	await expect(page.locator('.step-bar')).toContainText('Review');
 	await expect(page.locator('.optional-note')).toContainText('Every question is optional');

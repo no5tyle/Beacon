@@ -5,6 +5,7 @@
 import { terrainReason } from '#lib/model/oas/milestoneReview.js';
 import {
 	createPlanBody,
+	inSection,
 	isPlanEditable,
 	isReviewEditable,
 	planAnswers,
@@ -81,6 +82,11 @@ export class SIAService {
 		record: SIARecord | null,
 		answers: SIAAnswers
 	): Promise<SIAOutcome> {
+		if (record && !inSection(record, section))
+			return {
+				ok: false,
+				message: `This project belongs to the ${record.section} section, so it can't be changed from this unit.`
+			};
 		try {
 			const outcome = await this.context.terrain.actAsYouth(memberId, async (youth) => {
 				if (!record) {
@@ -144,6 +150,13 @@ export class SIAService {
 		kind: 'plan' | 'review' = 'plan',
 		unitId = this.context.unitId
 	): Promise<SIAOutcome> {
+		// Submitted to the unit's Unit Council, so only a project of the unit's own section
+		const section = this.context.sectionOf(unitId);
+		if (!section || !inSection(record, section))
+			return {
+				ok: false,
+				message: `This project belongs to the ${record.section} section, so it can't be submitted to this unit.`
+			};
 		try {
 			const outcome = await this.context.terrain.actAsYouth(memberId, (youth) =>
 				youth.submitOnBehalf(

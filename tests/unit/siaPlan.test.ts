@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	answersOf,
 	createPlanBody,
+	inSection,
 	isPlanEditable,
 	isReviewEditable,
 	reviewInputs,
@@ -142,5 +143,11 @@ describe('an SIA plan', () => {
 		expect(JSON.stringify(submitPlanBody('unit-1', 'leader-1', 'review'))).toBe(
 			'{"type":"review","unit_id":"unit-1","submitted_by":"leader-1"}'
 		);
+	});
+
+	it('belongs to the section it was recorded in', () => {
+		expect(inSection(saved, 'cub')).toBe(true);
+		expect(inSection(saved, 'scout')).toBe(false);
+		expect(inSection({ ...saved, section: undefined }, 'scout')).toBe(true);
 	});
 });

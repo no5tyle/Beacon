@@ -280,8 +280,8 @@ function records(unitId: string): Fixture[] {
 			project_name: 'Plant trees'
 		}
 	});
-	// One of Liam's from when he was a Cub
-	add(1, 'special_interest_area', 'awarded', {
+	// One of Liam's from when he was a Cub, its review never done
+	add(1, 'special_interest_area', 'draft_review', {
 		template: 'sia/cub/plan',
 		version: 2,
 		section: 'cub',

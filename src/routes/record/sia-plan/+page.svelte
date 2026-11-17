@@ -239,11 +239,11 @@
 	<title>Beacon / Manage SIAs</title>
 </svelte:head>
 
-{#snippet projectList(list: SIARecord[])}
+{#snippet projectList(list: SIARecord[], current = true)}
 	<div class="card list">
 		{#each list as project (project.id)}
-			{@const canReview = isReviewEditable(project)}
-			{@const canEdit = isPlanEditable(project) || canReview}
+			{@const canReview = current && isReviewEditable(project)}
+			{@const canEdit = current && (isPlanEditable(project) || canReview)}
 			<svelte:element
 				this={canEdit ? 'button' : 'div'}
 				type={canEdit ? 'button' : undefined}
@@ -323,7 +323,10 @@
 		{/if}
 		{#each earlierSections as earlier (earlier.section)}
 			<h3 class="earlier-heading">From {sectionName(earlier.section)}</h3>
-			{@render projectList(earlier.projects)}
+			<p class="small muted earlier-note">
+				These belong to {sectionName(earlier.section)}, so they can only be viewed here.
+			</p>
+			{@render projectList(earlier.projects, false)}
 		{/each}
 		<div class="action-bar">
 			<span class="small muted"
@@ -342,6 +345,16 @@
 				? ` · ${siaStatusDisplay(record)}`
 				: ' · New plan'}
 		</div>
+		{#if editable}
+			<!-- What's recorded here belongs to the open unit's section, and goes to its Unit Council -->
+			<div class="alert alert-warning small section-note" role="note">
+				This {reviewing ? 'review' : 'plan'} is for {app.unitName || 'this unit'}, in {sectionName(
+					section
+				)}: it goes to their Unit Council. Check that's the section {app.isYouth
+					? "you're"
+					: `${chosen?.firstName ?? 'the youth'} is`} in now; for another, switch unit first.
+			</div>
+		{/if}
 		{#if !editable}
 			<div class="alert alert-info small">
 				This plan has been submitted, so it can't be changed here.
@@ -484,8 +497,12 @@
 
 <style>
 	.earlier-heading {
-		margin: 1.25rem 0 0.5rem;
+		margin: 1.25rem 0 0.15rem;
 		font-size: 1rem;
+	}
+
+	.earlier-note {
+		margin-bottom: 0.5rem;
 	}
 
 	.subtitle {

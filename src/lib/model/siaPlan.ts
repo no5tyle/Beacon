@@ -180,6 +180,13 @@ export const isReviewEditable = (record: SIARecord) =>
 export const reviewInputs = (template: SIATemplate): SIAInput[] =>
 	planInputs(template).filter((input) => input.type !== 'file_uploader');
 
+/**
+ * Whether a project belongs to the section being recorded for: one from an earlier section (e.g. as a
+ * Cub, for a Scout) went to that section's Unit Council, and is only viewed from here
+ */
+export const inSection = (record: SIARecord, section: string) =>
+	!record.section || record.section === section;
+
 /** How a project stands, e.g. "Plan waiting for approval" */
 export function siaStatusDisplay(record: SIARecord): string {
 	switch (record.status) {
