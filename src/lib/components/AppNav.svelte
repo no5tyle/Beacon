@@ -141,12 +141,9 @@
 />
 
 <header class="appbar no-print">
-	<!-- The switcher between no5tyle's apps (no5tyle.github.io/shared/app-switcher.js); Beacon's icon
-	     shows until it loads -->
-	<n5-app-switcher current="beacon">
-		<img src={asset('beacon-64.png')} width="36" height="36" alt="" />
-	</n5-app-switcher>
+	<!-- Beacon's icon and name, going home -->
 	<a class="brand" href={pagePath('')}>
+		<img class="app-icon" src={asset('beacon-64.png')} width="36" height="36" alt="" />
 		<span class="brand-text">
 			<span class="brand-title">Beacon</span>
 			<span class="brand-sub">OAS, progress and insights from Terrain</span>
@@ -197,12 +194,12 @@
 	{/if}
 </header>
 
-<!-- Phones in a browser tab get the same bar as no5tyle's other apps, with the app switcher. Opened as the
-     installed app, Beacon looks like a phone app of its own, so the bar is left out -->
+<!-- Phones in a browser tab get a bar with Beacon's icon and name. Opened as the installed app, Beacon
+     looks like a phone app of its own, so the bar is left out -->
 <header class="phone-bar no-print">
-	<n5-app-switcher current="beacon">
-		<img src={asset('beacon-64.png')} width="32" height="32" alt="" />
-	</n5-app-switcher>
+	<a class="phone-home" href={pagePath('')} aria-label="Beacon home">
+		<img class="app-icon" src={asset('beacon-64.png')} width="32" height="32" alt="" />
+	</a>
 	<a class="phone-brand" href={pagePath('')}>
 		<span class="brand-title">Beacon</span>
 		<span class="brand-sub">OAS, progress and insights from Terrain</span>
@@ -336,12 +333,13 @@
 			backdrop-filter: var(--bar-filter);
 		}
 
-		.phone-bar n5-app-switcher {
-			--n5-switch-size: var(--n5-bar-icon-compact);
+		.phone-bar .app-icon {
+			border-radius: 9px;
 		}
 
-		.phone-bar img {
-			border-radius: 9px;
+		.phone-home {
+			display: flex;
+			flex-shrink: 0;
 		}
 	}
 
@@ -520,6 +518,11 @@
 		gap: 0.75rem;
 		color: var(--text);
 		text-decoration: none;
+	}
+
+	.brand .app-icon {
+		flex-shrink: 0;
+		border-radius: 10px;
 	}
 
 	.brand-text {

@@ -199,31 +199,18 @@ test.describe('desktop', () => {
 		await expect(page).toHaveURL(/\/logging\/$/);
 	});
 
-	test('the app switcher at the top left lists no5tyle’s apps', async ({ page }) => {
-		const warnings: string[] = [];
-		page.on('console', (m) => {
-			if (/hydrat/i.test(m.text())) warnings.push(m.text());
-		});
+	test('the top left shows Beacon’s icon and name, going home, with no app switcher', async ({
+		page
+	}) => {
 		await page.goto('login/');
-		const button = page.locator('.appbar .n5-switch-btn');
-		await expect(button).toHaveAccessibleName('Beacon: switch app');
-		await button.click();
-		await expect(page.locator('.appbar .n5-switch-name')).toHaveText([
-			'Beacon',
-			'Program Builder',
-			'Snag Calc',
-			'Pinewood Control',
-			'All apps'
-		]);
-		await expect(page.locator('.appbar .n5-switch-item[aria-current=page]')).toContainText(
-			'Beacon'
+		const brand = page.locator('.appbar a.brand');
+		await expect(brand.locator('img.app-icon')).toBeVisible();
+		await expect(brand).toHaveText(/Beacon/);
+		await expect(page.locator('n5-app-switcher, .n5-switch-btn')).toHaveCount(0);
+		const scripts = await page.evaluate(() =>
+			[...document.scripts].map((s) => s.src).filter(Boolean)
 		);
-		await page.keyboard.press('Escape');
-		await expect(page.locator('.appbar .n5-switch-menu')).toBeHidden();
-		// Beacon's own icon, the stand-in, is hidden once the switcher draws itself
-		await expect(page.locator('.appbar n5-app-switcher > img')).toBeHidden();
-		await expect(page.locator('a.brand')).toHaveText(/Beacon/);
-		expect(warnings).toEqual([]);
+		expect(scripts.some((src) => src.includes('app-switcher'))).toBe(false);
 	});
 
 	test('the profile menu at the top right has Info and Logout', async ({ page }) => {
@@ -332,15 +319,15 @@ test('the look shared with no5tyle’s other apps loads', async ({ page }) => {
 test.describe('phone bar', () => {
 	test.skip(({ isMobile }) => !isMobile, 'phones only');
 
-	test('in a browser tab, phones get the bar with the app switcher', async ({ page }) => {
+	test('in a browser tab, phones get the bar with Beacon’s icon, going home', async ({ page }) => {
 		await page.goto('login/');
 		const bar = page.locator('.phone-bar');
 		await expect(bar).toBeVisible();
 		expect(Math.round((await bar.boundingBox())!.height)).toBe(52);
-		await page.locator('.phone-bar .n5-switch-btn').click();
-		await expect(page.locator('.phone-bar .n5-switch-item[aria-current=page]')).toContainText(
-			'Beacon'
-		);
+		await expect(bar.locator('img.app-icon')).toBeVisible();
+		await expect(bar.locator('n5-app-switcher, .n5-switch-btn')).toHaveCount(0);
+		await bar.locator('.phone-home').click();
+		await expect(page).not.toHaveURL(/\/login\/$/);
 	});
 
 	test('opened as the installed app, there is no bar', async ({ page }) => {

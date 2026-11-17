@@ -17,14 +17,9 @@ const tookOverBlazorApp = new URL(self.registration.scope).pathname === '/Beacon
 const inScope = (path: string) => new URL(path.replace(/^\//, ''), self.registration.scope).href;
 const files = [...immutable, ...assets, ...prerendered].map((file) => inScope(file.path));
 
-// The look and app switcher shared with no5tyle's other apps, served from the same site's root. Kept
-// with Beacon's own files so Beacon still looks right without signal; saved best-effort, so they can't
-// stop an install
-const SHARED_FILES = [
-	'https://no5tyle.github.io/shared/no5tyle.css',
-	'https://no5tyle.github.io/shared/app-switcher.js',
-	'https://no5tyle.github.io/shared/icons/beacon.png'
-];
+// The look shared with no5tyle's other pages, served from the same site's root. Kept with Beacon's own
+// files so Beacon still looks right without signal; saved best-effort, so it can't stop an install
+const SHARED_FILES = ['https://no5tyle.github.io/shared/no5tyle.css'];
 const sharedFilesHere = new URL(SHARED_FILES[0]).origin === self.location.origin;
 
 // Terrain's public OAS templates, kept across releases so a saved Reference stays saved
