@@ -1,0 +1,80 @@
+{
+	"template": "sia/cub/plan",
+	"version": 2,
+	"document": [
+		{
+			"title": "Project Details",
+			"input_groups": [
+				{
+					"title": "What's something new that you would like to learn or do in one of the Special Interest Areas?",
+					"inputs": [
+						{
+							"id": "special_interest_area_selection",
+							"type": "single_tab_selector",
+							"rules": "required",
+							"multi_select": false,
+							"label": "Pick the Special Interest Area*",
+							"selections": [
+								{ "id": "sia_adventure_sport", "title": "Adventure & Sport", "asset": "adventure_sport" },
+								{ "id": "sia_better_world", "title": "Creating a Better World", "asset": "better_world" },
+								{ "id": "sia_growth_development", "title": "Growth & Development", "asset": "growth_development" },
+								{ "id": "sia_art_literature", "title": "Art & Literature", "asset": "art_literature" },
+								{ "id": "sia_environment", "title": "Environment", "asset": "environment" },
+								{ "id": "sia_stem_innovation", "title": "STEM & Innovation", "asset": "stem_innovation" }
+							]
+						}
+					]
+				},
+				{ "inputs": [{ "id": "project_name", "type": "text_input", "rules": "required", "label": "Name your project*" }] }
+			]
+		},
+		{
+			"title": "Goals",
+			"input_groups": [
+				{
+					"title": "Make sure you use Plan>Do>Review> to set and achieve your goals!",
+					"inputs": [
+						{
+							"id": "want_to_achieve",
+							"type": "text_input",
+							"label": "What do I/we want to learn or do?",
+							"alt": "e.g. My Goal is... (This should take you four hours)."
+						}
+					]
+				}
+			]
+		},
+		{
+			"title": "How",
+			"input_groups": [
+				{
+					"title": "What are the steps you'll take to achieve your goal?",
+					"inputs": [{ "id": "step_1", "type": "text_input", "label": "I/We will..." }]
+				},
+				{ "inputs": [{ "id": "step_2", "type": "text_input", "label": "Then I/we will..." }] },
+				{ "inputs": [{ "id": "step_3", "type": "text_input", "label": "Then I/we will..." }] },
+				{ "inputs": [{ "id": "share_with_unit", "type": "text_input", "label": "How will I share my project with my Unit?" }] }
+			]
+		},
+		{
+			"title": "Who",
+			"input_groups": [
+				{
+					"title": "Are there people that can help you achieve your goals? Think about the steps you're taking to achieve your goal and if you might need help along the way.",
+					"inputs": [
+						{
+							"id": "who_is_involved",
+							"type": "radio",
+							"label": "Are you doing this project with others?",
+							"selections": [
+								{ "id": "who_involved_by_myself", "title": "By myself" },
+								{ "id": "who_involved_others", "title": "With others" }
+							]
+						},
+						{ "id": "who_is_helping", "type": "text_input", "label": "Who is helping you?", "alt": "List your team" }
+					]
+				}
+			]
+		}
+	]
+}

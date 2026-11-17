@@ -13,6 +13,7 @@ import { ProgressService } from './progress.js';
 import { RecordingService } from './recording.js';
 import { ReferenceService } from './reference.js';
 import { ReportService } from './reports.js';
+import { SIAService } from './sia.js';
 import { StatementCountsService } from './statementCounts.js';
 import { UnitProgressService } from './unitProgress.js';
 
@@ -30,6 +31,7 @@ export const approvalsBadge = new ApprovalsBadge(approvals);
 export const readyToSubmit = new ReadyToSubmit(unitProgress, recording, oas);
 export const activities = new ActivitiesService(app);
 export const reports = new ReportService(app);
+export const sia = new SIAService(app, unitProgress);
 export const statementCounts = new StatementCountsService(app, members);
 
 // A different leader, or none, mustn't see the last one's youth

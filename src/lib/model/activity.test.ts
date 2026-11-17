@@ -17,7 +17,6 @@ import {
 	withMultiDay
 } from './activity.js';
 import { addDays } from './dates.js';
-import { newSIAPlan, siaAreaName, siaPlanProblems } from './siaPlan.js';
 
 describe('logging an activity', () => {
 	it('starts on today with the last times used, or yesterday if they’re still to come', () => {
@@ -219,20 +218,6 @@ describe('logging an activity', () => {
 		).toBe('4 came, 2 led');
 		expect(attendanceSummary({ a: 'Participant' })).toBe('1 came');
 		expect(attendanceSummary({})).toBe('');
-	});
-});
-
-describe('an SIA plan', () => {
-	it('says what’s missing, and names the areas as Terrain does', () => {
-		expect(siaPlanProblems(newSIAPlan())).toEqual([
-			'Choose the youth whose plan it is.',
-			'Choose the special interest area.',
-			'Give the project a name.'
-		]);
-		expect(
-			siaPlanProblems({ memberId: 'm1', area: 'sia_art_literature', projectName: 'Puppets' })
-		).toEqual([]);
-		expect(siaAreaName('sia_better_world')).toBe('Creating a Better World');
 	});
 });
 

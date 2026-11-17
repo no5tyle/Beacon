@@ -387,6 +387,13 @@ export class Terrain {
 		});
 	}
 
+	/** A special interest area template for a section, e.g. "sia/cub/plan". Public */
+	siaTemplate(section: string, kind: 'plan' | 'review' | 'overview'): Promise<unknown> {
+		return this.get(`${TEMPLATES_ADDRESS}sia/${pathPart(section)}/${kind}/latest.json`, {
+			signedIn: this.isSignedIn
+		});
+	}
+
 	/** A stage's template, from its link in the tree, e.g. "oas/bushwalking/3/latest.json". Public */
 	oasTemplate(templateLink: string): Promise<OASTemplate> {
 		const path = templateLink.replace(/\/latest\.json$/, '');

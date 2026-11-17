@@ -314,16 +314,90 @@ test('says when Terrain won’t take the activity, and keeps it to try again', a
 	await expect(page.getByRole('button', { name: 'Save to Terrain' })).toBeEnabled();
 });
 
-test('the SIA plan page says it is under construction and has nothing to fill in', async ({
+test('starts an SIA plan for a youth and submits it for approval, as Terrain does', async ({
 	page
 }) => {
 	const terrain = await fakeTerrain(page);
 	await logIn(page);
 	await navigate(page, 'record/sia-plan/');
 	await expect(page.locator('h2')).toHaveText('Plan an SIA');
-	await expect(page.locator('.construction')).toContainText('under construction');
-	await expect(page.locator('.sia-plan input, .sia-plan .action-bar')).toHaveCount(0);
-	expect(terrain.writes).toEqual([]);
+	await page.getByLabel('Liam Smith').check();
+	await page.getByRole('button', { name: 'Next: Projects' }).click();
+	await page.getByRole('button', { name: 'New plan' }).click();
+
+	// Terrain's plan questions, the area and name required
+	await expect(page.getByRole('region', { name: 'Project Details' })).toBeVisible();
+	await expect(page.getByRole('region', { name: 'Who' })).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Save and submit' })).toBeDisabled();
+	await page.getByRole('button', { name: 'Save', exact: true }).click();
+	await expect(page.locator('.alert-danger')).toHaveText(
+		'Fill in: Pick the Special Interest Area, Name your project.'
+	);
+	await page.getByRole('button', { name: 'STEM & Innovation' }).click();
+	await page.getByLabel('Name your project*').fill('Build a robot');
+	await page.locator('#sia-step_1').fill('Find a kit');
+	await page.getByLabel('By myself').check();
+	await page.getByRole('button', { name: 'Save and submit' }).click();
+	await expect(page.locator('.alert-success')).toContainText('Submitted.');
+	await expect(page.locator('.subtitle')).toContainText('Plan waiting for approval');
+
+	// Started as Terrain starts one, as Liam, then submitted for approval on his behalf
+	const created = terrain.writes.find(
+		(w) => w.request === 'POST achievements/members/unit-1-m1/achievements'
+	);
+	expect(created?.body).toEqual({
+		achievement_type: 'special_interest_area',
+		template: 'sia/scout/plan',
+		version: 2,
+		section: 'scout',
+		answers: {
+			special_interest_area_selection: 'sia_stem_innovation',
+			project_name: 'Build a robot',
+			step_1: 'Find a kit',
+			who_is_involved: 'who_involved_by_myself'
+		},
+		uploads: []
+	});
+	const submitted = terrain.writes.find((w) => w.request.endsWith('/submit-on-behalf'));
+	expect(submitted?.body).toEqual({
+		type: 'approval',
+		unit_id: 'unit-1',
+		submitted_by: 'leader-1'
+	});
+	expect(terrain.requests).toContain('POST members/members/unit-1-m1/assume-profiles');
+});
+
+test('carries on a saved SIA plan, keeping it unsubmitted', async ({ page }) => {
+	const terrain = await fakeTerrain(page);
+	await logIn(page);
+	await navigate(page, 'record/sia-plan/');
+	await page.getByLabel('Mia Brown').check();
+	await page.getByRole('button', { name: 'Next: Projects' }).click();
+	// Her projects, the plan in progress opening to carry on
+	await expect(page.getByRole('button', { name: 'Food drive' })).toContainText(
+		'Creating a Better World · Plan in progress'
+	);
+	await page.getByRole('button', { name: 'Food drive' }).click();
+	await expect(page.getByLabel('Name your project*')).toHaveValue('Food drive');
+	await page.getByLabel('What do I/we want to learn or do?').fill('Collect 100 tins');
+	await page.getByRole('button', { name: 'Save', exact: true }).click();
+	await expect(page.locator('.alert-success')).toHaveText(
+		'Plan saved to Terrain. It isn’t submitted yet.'
+	);
+	const saved = terrain.writes.find((w) =>
+		w.request.startsWith('PUT achievements/members/unit-1-m2')
+	);
+	expect(saved?.body).toMatchObject({
+		achievement_type: 'special_interest_area',
+		template: 'sia/scout/plan',
+		answers: {
+			special_interest_area_selection: 'sia_better_world',
+			project_name: 'Food drive',
+			want_to_achieve: 'Collect 100 tins'
+		},
+		reset_to_draft: false
+	});
+	expect(terrain.writes.some((w) => w.request.endsWith('/submit-on-behalf'))).toBe(false);
 });
 
 test('youth members can’t log activities, though they have the SIA page', async ({ page }) => {

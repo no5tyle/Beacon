@@ -42,7 +42,11 @@ test('a youth opens at their own progress, with Record, Progress and Reference, 
 	await expect(page).toHaveURL(/\/progress\/unit-1-m0\/record-oas\/$/);
 	await page.getByRole('navigation', { name: 'Record' }).getByRole('link', { name: 'SIA' }).click();
 	await expect(page.locator('h2')).toHaveText('Plan an SIA');
-	await expect(page.locator('.construction')).toContainText('enter them in Terrain');
+	// Their own projects, with a new plan to save; submitting is done in Terrain
+	await expect(page.getByRole('group', { name: 'Rock climbing day' })).toContainText('Complete');
+	await page.getByRole('button', { name: 'New plan' }).click();
+	await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Save and submit' })).toHaveCount(0);
 });
 
 test("a youth can't open the leaders' pages or anyone else's progress", async ({ page }) => {

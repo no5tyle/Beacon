@@ -259,8 +259,9 @@ never headers):
       or profiles while acting as the youth). Until then, an option is to flag records still open under
       another section (a record's `section`).
 - [ ] Youth submit their own OAS stage for review (needs Terrain's request for a youth's own submission)
-- [ ] SIA plans: enter, save and submit (needs Terrain's plan template and its requests); then SIAs on
-      Approvals' Submit tab
+- [x] SIA plans: start, save and submit for approval (Record → SIA), from Terrain's own requests
+- [ ] SIA reviews: the review form and its submit, once a plan is approved (needs Terrain's review
+      template and requests); then SIAs on Approvals' Submit tab
 - [ ] Approvals: "needs improvement" (needs Terrain's request)
 - [ ] Check with real Terrain: a youth on the Unit Council awarding; a leader saving Stage 6 and above;
       NAAF Appendix 1 warnings on Stage 4+ specialist branches (Terrain's branch names against the

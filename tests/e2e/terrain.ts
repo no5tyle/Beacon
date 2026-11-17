@@ -1,5 +1,6 @@
 // A fake Terrain for page tests: a made-up group and unit with made-up youth, answering the requests Beacon makes.
 // Changes Beacon saves are kept, so a page shows them when it reloads
+import { readFileSync } from 'node:fs';
 import type { Page, Route } from '@playwright/test';
 
 export interface FakeOptions {
@@ -268,6 +269,13 @@ function records(unitId: string): Fixture[] {
 	add(0, 'special_interest_area', 'in_progress', {
 		answers: { special_interest_area_selection: 'sia_environment', project_name: 'Creek clean up' }
 	});
+	// Mia has a plan saved but not submitted
+	add(2, 'special_interest_area', 'draft_approval', {
+		template: 'sia/scout/plan',
+		version: 2,
+		section: 'scout',
+		answers: { special_interest_area_selection: 'sia_better_world', project_name: 'Food drive' }
+	});
 	add(0, 'course_reflection', 'awarded');
 	return list;
 }
@@ -389,6 +397,14 @@ function submissions(unitId: string) {
 			'approved'
 		)
 	];
+}
+
+/** A section's SIA plan template, as Terrain's Cub plan (sia/cub/plan version 2) */
+function siaPlanTemplate(section: string) {
+	const plan = JSON.parse(
+		readFileSync(new URL('../fixtures/sia-cub-plan.json', import.meta.url), 'utf8')
+	) as { template: string };
+	return { ...plan, template: `sia/${section}/plan` };
 }
 
 export async function fakeTerrain(page: Page, options: FakeOptions = {}): Promise<FakeTerrain> {
@@ -580,16 +596,19 @@ export async function fakeTerrain(page: Page, options: FakeOptions = {}): Promis
 			}
 			const created = url.pathname.match(/^\/members\/([^/]+)\/achievements$/);
 			if (created) {
-				store.push({
+				const sia = body.achievement_type === 'special_interest_area';
+				const record = {
 					...(body as unknown as Fixture),
 					id: `rec-new-${store.length}`,
 					member_id: created[1],
-					type: 'outdoor_adventure_skill',
-					status: 'in_progress',
+					type: sia ? 'special_interest_area' : 'outdoor_adventure_skill',
+					status: sia ? 'draft_approval' : 'in_progress',
 					status_updated: new Date().toISOString(),
 					last_updated: new Date().toISOString()
-				});
-				return json(route, {});
+				};
+				store.push(record);
+				// Terrain answers a new SIA plan with the record
+				return json(route, sia ? record : {});
 			}
 			// An activity added to the unit's programme
 			if (url.hostname.startsWith('events') && /^\/units\/[^/]+\/events$/.test(url.pathname))
@@ -601,7 +620,7 @@ export async function fakeTerrain(page: Page, options: FakeOptions = {}): Promis
 			if (record && existing?.[2] && options.refuseSubmit)
 				return json(route, { message: options.refuseSubmit }, 400);
 			if (record && existing?.[2]) {
-				record.status = 'pending_review';
+				record.status = body.type === 'approval' ? 'pending_approval' : 'pending_review';
 				return json(route, {}, 204);
 			}
 			if (record) {
@@ -664,6 +683,8 @@ export async function fakeTerrain(page: Page, options: FakeOptions = {}): Promis
 			});
 			return json(route, { title: STREAMS[stream] ?? stream, stream_id: stream, tree: node(1) });
 		}
+		const siaTemplate = url.pathname.match(/^\/sia\/([^/]+)\/plan\/latest\.json$/);
+		if (siaTemplate) return json(route, siaPlanTemplate(siaTemplate[1]));
 		const milestoneTemplate = url.pathname.match(
 			/^\/milestone\/([^/]+)\/review\/(\d)\/latest\.json$/
 		);
