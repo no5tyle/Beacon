@@ -248,25 +248,25 @@
 	{:else if loading}
 		<p class="muted">Loading from Terrain...</p>
 	{:else if step === 'youth'}
-		<p class="small muted">Whose special interest area project is it?</p>
-		{#each youth as member (member.id)}
-			<label class="pick-row">
-				<input
-					type="radio"
-					name="youth"
-					class="form-check-input"
-					value={member.id}
-					bind:group={memberId}
-				/>
-				<span class="grow">{name(member)}</span>
-				{#if member.patrolName}<span class="small muted">{member.patrolName}</span>{/if}
-			</label>
-		{/each}
-		<div class="action-bar">
-			<span class="small muted">{chosen ? name(chosen) : 'No youth chosen'}</span>
-			<button type="button" class="btn btn-primary" disabled={!memberId} onclick={openProjects}
-				>Next: Projects</button
-			>
+		<p class="small muted">Whose special interest area projects? Choose a youth to see them.</p>
+		<!-- A tap opens the youth's projects straight away -->
+		<div class="card list">
+			{#each youth as member (member.id)}
+				<button
+					type="button"
+					class="project youth-row"
+					onclick={() => {
+						memberId = member.id;
+						void openProjects();
+					}}
+				>
+					<span class="grow">
+						<span class="strong">{name(member)}</span>
+						{#if member.patrolName}<span class="small muted">{member.patrolName}</span>{/if}
+					</span>
+					<span class="chevron" aria-hidden="true">&rsaquo;</span>
+				</button>
+			{/each}
 		</div>
 	{:else if step === 'projects'}
 		<p class="small muted">

@@ -321,8 +321,7 @@ test('starts an SIA plan for a youth and submits it for approval, as Terrain doe
 	await logIn(page);
 	await navigate(page, 'record/sia-plan/');
 	await expect(page.locator('h2')).toHaveText('Manage SIAs');
-	await page.getByLabel('Liam Smith').check();
-	await page.getByRole('button', { name: 'Next: Projects' }).click();
+	await page.locator('.youth-row', { hasText: 'Liam Smith' }).click();
 	await page.getByRole('button', { name: 'New plan' }).click();
 
 	// First the questions Terrain requires: the area and the project's name
@@ -383,8 +382,7 @@ test('carries on a saved SIA plan, keeping it unsubmitted', async ({ page }) => 
 	const terrain = await fakeTerrain(page);
 	await logIn(page);
 	await navigate(page, 'record/sia-plan/');
-	await page.getByLabel('Mia Brown').check();
-	await page.getByRole('button', { name: 'Next: Projects' }).click();
+	await page.locator('.youth-row', { hasText: 'Mia Brown' }).click();
 	// Her projects, the plan in progress opening to carry on
 	await expect(page.getByRole('button', { name: 'Food drive' })).toContainText(
 		'Creating a Better World · Plan in progress'
@@ -435,8 +433,7 @@ test('writes the review of an approved SIA plan and submits it for review, as Te
 	const terrain = await fakeTerrain(page);
 	await logIn(page);
 	await navigate(page, 'record/sia-plan/');
-	await page.getByLabel('Liam Smith').check();
-	await page.getByRole('button', { name: 'Next: Projects' }).click();
+	await page.locator('.youth-row', { hasText: 'Liam Smith' }).click();
 	await expect(page.getByRole('button', { name: 'Plant trees' })).toContainText(
 		'Plan approved, review to do'
 	);
