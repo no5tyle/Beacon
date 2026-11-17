@@ -41,7 +41,7 @@ test('a youth opens at their own progress, with Record, Progress and Reference, 
 	await mainLinks(page, isMobile).filter({ hasText: 'Record' }).click();
 	await expect(page).toHaveURL(/\/progress\/unit-1-m0\/record-oas\/$/);
 	await page.getByRole('navigation', { name: 'Record' }).getByRole('link', { name: 'SIA' }).click();
-	await expect(page.locator('h2')).toHaveText('Plan an SIA');
+	await expect(page.locator('h2')).toHaveText('Manage SIAs');
 	// Their own projects, with a new plan to save; submitting is done in Terrain
 	await expect(page.getByRole('group', { name: 'Rock climbing day' })).toContainText('Complete');
 	await page.getByRole('button', { name: 'New plan' }).click();

@@ -224,7 +224,7 @@
 </script>
 
 <svelte:head>
-	<title>Beacon / Plan an SIA</title>
+	<title>Beacon / Manage SIAs</title>
 </svelte:head>
 
 <div class="sia-plan has-action-bar">
@@ -234,7 +234,7 @@
 	{:else}
 		<BackLink label={stepNames[steps[steps.indexOf(step) - 1]]} onclick={back} />
 	{/if}
-	<h2>Plan an SIA</h2>
+	<h2>Manage SIAs</h2>
 	<StepBar steps={steps.map((s) => stepNames[s])} current={steps.indexOf(step)} />
 
 	{#if message}

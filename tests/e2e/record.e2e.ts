@@ -21,7 +21,7 @@ test('Record moves between OAS, Activity and SIA plan, staying the current tab',
 		: page.locator('.side-link.active');
 	await expect(current).toHaveText('Record');
 	await record.getByRole('link', { name: 'SIA', exact: true }).click();
-	await expect(page.locator('h2')).toHaveText('Plan an SIA');
+	await expect(page.locator('h2')).toHaveText('Manage SIAs');
 	await expect(current).toHaveText('Record');
 });
 
@@ -320,7 +320,7 @@ test('starts an SIA plan for a youth and submits it for approval, as Terrain doe
 	const terrain = await fakeTerrain(page);
 	await logIn(page);
 	await navigate(page, 'record/sia-plan/');
-	await expect(page.locator('h2')).toHaveText('Plan an SIA');
+	await expect(page.locator('h2')).toHaveText('Manage SIAs');
 	await page.getByLabel('Liam Smith').check();
 	await page.getByRole('button', { name: 'Next: Projects' }).click();
 	await page.getByRole('button', { name: 'New plan' }).click();
@@ -417,7 +417,7 @@ test('youth members can’t log activities, though they have the SIA page', asyn
 	await fakeTerrain(page, { youth: true });
 	await logIn(page);
 	await navigate(page, 'record/sia-plan/');
-	await expect(page.locator('h2')).toHaveText('Plan an SIA');
+	await expect(page.locator('h2')).toHaveText('Manage SIAs');
 	await page.evaluate(() => {
 		const home = document.querySelector('a.brand')?.getAttribute('href') ?? '/';
 		const link = document.createElement('a');
