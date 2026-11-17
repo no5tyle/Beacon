@@ -269,6 +269,17 @@ function records(unitId: string): Fixture[] {
 	add(0, 'special_interest_area', 'in_progress', {
 		answers: { special_interest_area_selection: 'sia_environment', project_name: 'Creek clean up' }
 	});
+	// Liam's plan is approved, with its review to write
+	add(1, 'special_interest_area', 'draft_review', {
+		template: 'sia/scout/plan',
+		version: 2,
+		section: 'scout',
+		answers: {
+			attach_documentation: [],
+			special_interest_area_selection: 'sia_environment',
+			project_name: 'Plant trees'
+		}
+	});
 	// Mia has a plan saved but not submitted
 	add(2, 'special_interest_area', 'draft_approval', {
 		template: 'sia/scout/plan',
@@ -399,12 +410,12 @@ function submissions(unitId: string) {
 	];
 }
 
-/** A section's SIA plan template, as Terrain's Cub plan (sia/cub/plan version 2) */
-function siaPlanTemplate(section: string) {
-	const plan = JSON.parse(
-		readFileSync(new URL('../fixtures/sia-cub-plan.json', import.meta.url), 'utf8')
+/** A section's SIA plan or review template, as Terrain's Cub ones (sia/cub/plan and review, version 2) */
+function siaFormTemplate(section: string, kind: string) {
+	const form = JSON.parse(
+		readFileSync(new URL(`../fixtures/sia-cub-${kind}.json`, import.meta.url), 'utf8')
 	) as { template: string };
-	return { ...plan, template: `sia/${section}/plan` };
+	return { ...form, template: `sia/${section}/${kind}` };
 }
 
 export async function fakeTerrain(page: Page, options: FakeOptions = {}): Promise<FakeTerrain> {
@@ -683,8 +694,8 @@ export async function fakeTerrain(page: Page, options: FakeOptions = {}): Promis
 			});
 			return json(route, { title: STREAMS[stream] ?? stream, stream_id: stream, tree: node(1) });
 		}
-		const siaTemplate = url.pathname.match(/^\/sia\/([^/]+)\/plan\/latest\.json$/);
-		if (siaTemplate) return json(route, siaPlanTemplate(siaTemplate[1]));
+		const siaTemplate = url.pathname.match(/^\/sia\/([^/]+)\/(plan|review)\/latest\.json$/);
+		if (siaTemplate) return json(route, siaFormTemplate(siaTemplate[1], siaTemplate[2]));
 		const milestoneTemplate = url.pathname.match(
 			/^\/milestone\/([^/]+)\/review\/(\d)\/latest\.json$/
 		);

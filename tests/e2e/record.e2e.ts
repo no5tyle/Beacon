@@ -428,3 +428,44 @@ test('youth members can’t log activities, though they have the SIA page', asyn
 	});
 	await expect(page).not.toHaveURL(/\/record\//);
 });
+
+test('writes the review of an approved SIA plan and submits it for review, as Terrain does', async ({
+	page
+}) => {
+	const terrain = await fakeTerrain(page);
+	await logIn(page);
+	await navigate(page, 'record/sia-plan/');
+	await page.getByLabel('Liam Smith').check();
+	await page.getByRole('button', { name: 'Next: Projects' }).click();
+	await expect(page.getByRole('button', { name: 'Plant trees' })).toContainText(
+		'Plan approved, review to do'
+	);
+	await page.getByRole('button', { name: 'Plant trees' }).click();
+
+	// The review's own questions, all optional; files are attached in Terrain
+	await expect(page.locator('.step-bar')).toContainText('Review');
+	await expect(page.locator('.optional-note')).toContainText('Every question is optional');
+	await expect(page.getByLabel('Name your project*')).toHaveCount(0);
+	await expect(page.getByLabel('Do you have any files to attach here?')).toHaveCount(0);
+	await page.getByLabel('What was the most important thing you learned?').fill('Roots need water');
+	await page.getByRole('button', { name: 'Save and submit' }).click();
+	await expect(page.locator('.alert-success')).toContainText(
+		'The review now waits for the Unit Council'
+	);
+
+	// Saved to the same record, with its plan template and attached documents, then submitted for review
+	const saved = terrain.writes.find((w) =>
+		w.request.startsWith('PUT achievements/members/unit-1-m1')
+	);
+	expect(saved?.body).toMatchObject({
+		template: 'sia/scout/plan',
+		answers: {
+			attach_documentation: [],
+			project_name: 'Plant trees',
+			important_learned: 'Roots need water'
+		},
+		reset_to_draft: false
+	});
+	const submitted = terrain.writes.find((w) => w.request.endsWith('/submit-on-behalf'));
+	expect(submitted?.body).toEqual({ type: 'review', unit_id: 'unit-1', submitted_by: 'leader-1' });
+});

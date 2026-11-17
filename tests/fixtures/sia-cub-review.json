@@ -1,0 +1,35 @@
+{
+	"template": "sia/cub/review",
+	"version": 2,
+	"document": [
+		{
+			"input_groups": [
+				{
+					"inputs": [
+						{ "id": "important_learned", "type": "text_input", "label": "What was the most important thing you learned?" },
+						{ "id": "hardest_part", "type": "text_input", "label": "What was the hardest part of your Special Interest Area?" },
+						{
+							"id": "what_did_you_enjoy_about_your_project",
+							"type": "text_input",
+							"label": "How do you feel about your Special Interest Area project?",
+							"alt": "What parts do you particularly like? Dislike? What did you enjoy about doing your Special Ineterst Area?"
+						},
+						{
+							"id": "what_ways_have_you_developed_by_doing_project",
+							"type": "text_input",
+							"label": "In what ways have you developed by doing this project?",
+							"alt": "What SPICES did you cover and how?"
+						},
+						{ "id": "continue_extend_SIA", "type": "text_input", "label": "How could you continue or extend this Special Interest Area?" },
+						{
+							"id": "attach_documentation",
+							"type": "file_uploader",
+							"label": "Do you have any files to attach here?",
+							"alt": "This could be anything that supports your review, such as photos."
+						}
+					]
+				}
+			]
+		}
+	]
+}

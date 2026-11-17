@@ -6,6 +6,7 @@ import { terrainReason } from '#lib/model/oas/milestoneReview.js';
 import {
 	createPlanBody,
 	isPlanEditable,
+	isReviewEditable,
 	planAnswers,
 	SIA_TYPE,
 	submitPlanBody,
@@ -39,11 +40,21 @@ export class SIAService {
 
 	/** The section's plan template, e.g. sia/cub/plan, read once */
 	planTemplate(section: string): Promise<SIATemplate> {
-		let template = this.templates.get(section);
+		return this.template(section, 'plan');
+	}
+
+	/** The section's review template, e.g. sia/cub/review, read once */
+	reviewTemplate(section: string): Promise<SIATemplate> {
+		return this.template(section, 'review');
+	}
+
+	private template(section: string, kind: 'plan' | 'review'): Promise<SIATemplate> {
+		const key = `${section}/${kind}`;
+		let template = this.templates.get(key);
 		if (!template) {
-			template = this.context.terrain.siaTemplate(section, 'plan') as Promise<SIATemplate>;
-			template.catch(() => this.templates.delete(section));
-			this.templates.set(section, template);
+			template = this.context.terrain.siaTemplate(section, kind) as Promise<SIATemplate>;
+			template.catch(() => this.templates.delete(key));
+			this.templates.set(key, template);
 		}
 		return template;
 	}
@@ -90,7 +101,7 @@ export class SIAService {
 						message:
 							'This plan has changed in Terrain since you opened it. Open it again and retry.'
 					} as const;
-				if (!isPlanEditable(latest))
+				if (!isPlanEditable(latest) && !isReviewEditable(latest))
 					return {
 						ok: false,
 						message: "This plan has been submitted, so it can't be changed here."
@@ -123,15 +134,23 @@ export class SIAService {
 		}
 	}
 
-	/** Submits a saved plan for the Unit Council's approval, on the youth's behalf, in the chosen unit */
+	/**
+	 * Submits a saved plan for the Unit Council's approval, or its review for their review, on the
+	 * youth's behalf, in the chosen unit
+	 */
 	async submitPlan(
 		memberId: string,
 		record: SIARecord,
+		kind: 'plan' | 'review' = 'plan',
 		unitId = this.context.unitId
 	): Promise<SIAOutcome> {
 		try {
 			const outcome = await this.context.terrain.actAsYouth(memberId, (youth) =>
-				youth.submitOnBehalf(memberId, record.id, submitPlanBody(unitId, this.submitterId(unitId)))
+				youth.submitOnBehalf(
+					memberId,
+					record.id,
+					submitPlanBody(unitId, this.submitterId(unitId), kind)
+				)
 			);
 			if (!outcome.acted)
 				return {
@@ -142,7 +161,13 @@ export class SIAService {
 				return { ok: false, message: failureMessage('the submission', outcome.value) };
 			this.unitProgress.clear(unitId);
 			const latest = (await this.projects(memberId)).find((r) => r.id === record.id);
-			return { ok: true, record: latest ?? { ...record, status: 'pending_approval' } };
+			return {
+				ok: true,
+				record: latest ?? {
+					...record,
+					status: kind === 'plan' ? 'pending_approval' : 'pending_review'
+				}
+			};
 		} catch (error) {
 			return { ok: false, message: errorText(error) };
 		}

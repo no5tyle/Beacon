@@ -3,6 +3,8 @@ import {
 	answersOf,
 	createPlanBody,
 	isPlanEditable,
+	isReviewEditable,
+	reviewInputs,
 	missingRequired,
 	planAnswers,
 	planInputs,
@@ -107,5 +109,38 @@ describe('an SIA plan', () => {
 		expect(isPlanEditable(saved)).toBe(true);
 		expect(isPlanEditable({ ...saved, status: 'pending_approval' })).toBe(false);
 		expect(isPlanEditable({ ...saved, status: 'draft_review' })).toBe(false);
+	});
+
+	it('reviews an approved plan on the same record, its questions all optional, and submits it for review', () => {
+		const review = readJson<SIATemplate>('../fixtures/sia-cub-review.json');
+		// Attaching files is left to Terrain
+		expect(reviewInputs(review).map((i) => i.id)).toEqual([
+			'important_learned',
+			'hardest_part',
+			'what_did_you_enjoy_about_your_project',
+			'what_ways_have_you_developed_by_doing_project',
+			'continue_extend_SIA'
+		]);
+		expect(missingRequired(review, {})).toEqual([]);
+		const approved: SIARecord = {
+			...saved,
+			status: 'draft_review',
+			answers: { attach_documentation: [], ...saved.answers }
+		};
+		expect(isReviewEditable(approved)).toBe(true);
+		expect(isPlanEditable(approved)).toBe(false);
+		expect(isReviewEditable({ ...approved, status: 'pending_review' })).toBe(false);
+		// Saved as Terrain saves it: the plan's template, the attached documents kept
+		expect(
+			updatePlanBody(approved, planAnswers(approved.answers, { important_learned: ' ' }))
+		).toMatchObject({
+			template: 'sia/cub/plan',
+			answers: { attach_documentation: [] },
+			reset_to_draft: false
+		});
+		// Terrain's own submit of a review
+		expect(JSON.stringify(submitPlanBody('unit-1', 'leader-1', 'review'))).toBe(
+			'{"type":"review","unit_id":"unit-1","submitted_by":"leader-1"}'
+		);
 	});
 });

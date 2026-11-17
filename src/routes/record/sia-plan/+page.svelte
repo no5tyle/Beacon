@@ -20,6 +20,7 @@
 		siaAreaName,
 		siaStatusDisplay,
 		templatePart,
+		isReviewEditable,
 		type SIAAnswers,
 		type SIARecord,
 		type SIATemplate
@@ -29,14 +30,16 @@
 	import { app, members, sia } from '#lib/services/index.js';
 	import type { MemberSummary } from '#lib/services/members.js';
 
-	// The plan in two steps: its required questions, then the optional ones
-	type Step = 'youth' | 'projects' | 'plan' | 'details';
+	// The plan in two steps: its required questions, then the optional ones. Once the plan is approved,
+	// the review, a step of its own
+	type Step = 'youth' | 'projects' | 'plan' | 'details' | 'review';
 
 	let step = $state<Step>('youth');
 	let youth = $state<MemberSummary[]>([]);
 	let memberId = $state('');
 	let projects = $state<SIARecord[]>([]);
 	let template = $state<SIATemplate | null>(null);
+	let reviewTemplate = $state<SIATemplate | null>(null);
 	// The plan being written: its record once saved, and the form's answers
 	let record = $state<SIARecord | null>(null);
 	let answers = $state<SIAAnswers>({});
@@ -47,19 +50,24 @@
 	const unitId = $derived(app.unitId);
 	const section = $derived(app.section);
 	// Youth plan their own; leaders choose whose
-	const steps = $derived<Step[]>(
-		app.isYouth ? ['projects', 'plan', 'details'] : ['youth', 'projects', 'plan', 'details']
-	);
+	const steps = $derived<Step[]>([
+		...(app.isYouth ? [] : (['youth'] as Step[])),
+		'projects',
+		...(step === 'review' ? (['review'] as Step[]) : (['plan', 'details'] as Step[]))
+	]);
 	const stepNames: Record<Step, string> = {
 		youth: 'Youth',
 		projects: 'Projects',
 		plan: 'Plan',
-		details: 'Details'
+		details: 'Details',
+		review: 'Review'
 	};
+	const reviewing = $derived(step === 'review');
 	const name = (m: MemberSummary | undefined) => (m ? `${m.firstName} ${members.lastName(m)}` : '');
 	const chosen = $derived(youth.find((y) => y.id === memberId));
 	const whose = $derived(app.isYouth ? 'your' : `${chosen?.firstName ?? 'their'}'s`);
-	const missing = $derived(template ? missingRequired(template, answers) : []);
+	// The review asks nothing required; the plan its area and name
+	const missing = $derived(template && step !== 'review' ? missingRequired(template, answers) : []);
 
 	$effect(() => {
 		const id = unitId;
@@ -99,9 +107,14 @@
 		message = null;
 		loading = true;
 		try {
-			const [list, plan] = await Promise.all([sia.projects(memberId), sia.planTemplate(section)]);
+			const [list, plan, review] = await Promise.all([
+				sia.projects(memberId),
+				sia.planTemplate(section),
+				sia.reviewTemplate(section)
+			]);
 			projects = list;
 			template = plan;
+			reviewTemplate = review;
 		} catch {
 			message = { text: "Couldn't load the projects from Terrain.", isError: true };
 		}
@@ -115,9 +128,17 @@
 		step = 'plan';
 	}
 
+	function openReview(existing: SIARecord) {
+		record = existing;
+		answers = answersOf(existing);
+		message = null;
+		step = 'review';
+	}
+
 	function back() {
 		message = null;
 		if (step === 'details') step = 'plan';
+		else if (step === 'review') step = 'projects';
 		else if (step === 'plan') step = 'projects';
 		else if (step === 'projects') {
 			step = 'youth';
@@ -144,10 +165,13 @@
 		answers = answersOf(saved.record);
 		if (!submit) {
 			working = '';
-			message = { text: 'Plan saved to Terrain. It isn’t submitted yet.', isError: false };
+			message = {
+				text: `${reviewing ? 'Review' : 'Plan'} saved to Terrain. It isn’t submitted yet.`,
+				isError: false
+			};
 			return;
 		}
-		const submitted = await sia.submitPlan(memberId, saved.record);
+		const submitted = await sia.submitPlan(memberId, saved.record, reviewing ? 'review' : 'plan');
 		working = '';
 		if (!submitted.ok) {
 			message = { text: `Saved, but not submitted. ${submitted.message}`, isError: true };
@@ -155,17 +179,37 @@
 		}
 		record = submitted.record;
 		message = {
-			text: 'Submitted. It now waits for the Unit Council to approve the plan, on Approvals.',
+			text: reviewing
+				? 'Submitted. The review now waits for the Unit Council, on Approvals.'
+				: 'Submitted. It now waits for the Unit Council to approve the plan, on Approvals.',
 			isError: false
 		};
 		projects = await sia.projects(memberId).catch(() => projects);
 	}
 
-	const editable = $derived(record === null || isPlanEditable(record));
+	const editable = $derived(
+		reviewing
+			? record !== null && isReviewEditable(record)
+			: record === null || isPlanEditable(record)
+	);
 	// The questions for this step: the required ones first, then the optional ones on a page of their own.
-	// A submitted plan shows them all at once, as it can't be changed
+	// A submitted plan shows them all at once, as it can't be changed. The review asks its own questions,
+	// apart from attaching files, which is done in Terrain
 	const shownPages = $derived(
-		!template ? [] : !editable ? template.document : templatePart(template, step === 'plan')
+		reviewing
+			? (reviewTemplate?.document ?? []).map((page) => ({
+					...page,
+					title: page.title ?? 'Review',
+					input_groups: page.input_groups.map((group) => ({
+						...group,
+						inputs: group.inputs.filter((input) => input.type !== 'file_uploader')
+					}))
+				}))
+			: !template
+				? []
+				: !editable
+					? template.document
+					: templatePart(template, step === 'plan')
 	);
 
 	function toDetails() {
@@ -234,7 +278,8 @@
 		{/if}
 		<div class="card list">
 			{#each projects as project (project.id)}
-				{@const canEdit = isPlanEditable(project)}
+				{@const canReview = isReviewEditable(project)}
+				{@const canEdit = isPlanEditable(project) || canReview}
 				<svelte:element
 					this={canEdit ? 'button' : 'div'}
 					type={canEdit ? 'button' : undefined}
@@ -242,7 +287,9 @@
 					class:editable={canEdit}
 					role={canEdit ? undefined : 'group'}
 					aria-label={projectName(project)}
-					onclick={canEdit ? () => openPlan(project) : undefined}
+					onclick={canEdit
+						? () => (canReview ? openReview(project) : openPlan(project))
+						: undefined}
 				>
 					<span class="grow">
 						<span class="strong">{projectName(project)}</span>
@@ -269,13 +316,18 @@
 		</div>
 	{:else if template}
 		<div class="small muted subtitle">
-			{app.isYouth ? 'Your plan' : name(chosen)}{record
+			{app.isYouth ? (reviewing ? 'Your review' : 'Your plan') : name(chosen)}{record
 				? ` · ${siaStatusDisplay(record)}`
 				: ' · New plan'}
 		</div>
 		{#if !editable}
 			<div class="alert alert-info small">
 				This plan has been submitted, so it can't be changed here.
+			</div>
+		{:else if reviewing}
+			<div class="alert alert-info small optional-note">
+				{projectName(record!)}: the plan is approved, so it's time to look back on it. Every
+				question is optional. Photos or other files are attached in Terrain.
 			</div>
 		{:else if step === 'plan' && !record}
 			<div class="alert alert-warning small undo-note" role="note">
@@ -289,9 +341,9 @@
 		{/if}
 		<form class="plan" onsubmit={(e) => e.preventDefault()}>
 			<fieldset disabled={!editable || working !== ''}>
-				{#each shownPages as page (page.title)}
-					<section class="plan-page" aria-label={page.title}>
-						<h3>{page.title}</h3>
+				{#each shownPages as page, p (p)}
+					<section class="plan-page" aria-label={page.title ?? 'Review'}>
+						{#if page.title}<h3>{page.title}</h3>{/if}
 						{#each page.input_groups as group, g (g)}
 							{#if group.title}<p class="small muted group-title">{group.title}</p>{/if}
 							{#each group.inputs as input (input.id)}
@@ -370,8 +422,9 @@
 				Saved to {whose} record in Terrain{app.isYouth
 					? ''
 					: ', switching to their profile and back'}.
-				{#if app.isYouth}Submit it for approval in Terrain once it's ready.{:else}Submitting sends
-					it to the Unit Council to approve before the project starts.{/if}
+				{#if app.isYouth}Submit it in Terrain once it's ready.{:else if reviewing}Submitting sends
+					the review to the Unit Council, to complete the project.{:else}Submitting sends it to the
+					Unit Council to approve before the project starts.{/if}
 			</p>
 			{#if !app.isYouth}
 				<div class="alert alert-warning small undo-note" role="note">

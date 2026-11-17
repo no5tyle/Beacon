@@ -264,8 +264,9 @@ never headers):
       Beacon: archiving one (records carry `can_archive`), putting a submitted plan back to draft (the
       save's `reset_to_draft`), or withdrawing a submission. Until then Beacon warns that starting and
       submitting a plan can't be undone
-- [ ] SIA reviews: the review form and its submit, once a plan is approved (needs Terrain's review
-      template and requests); then SIAs on Approvals' Submit tab
+- [x] SIA reviews: write and submit the review of an approved plan (Record → SIA), from Terrain's own
+      requests; files are still attached in Terrain
+- [ ] SIAs on Approvals' Submit tab: plans and reviews saved but not submitted
 - [ ] Approvals: "needs improvement" (needs Terrain's request)
 - [ ] Check with real Terrain: a youth on the Unit Council awarding; a leader saving Stage 6 and above;
       NAAF Appendix 1 warnings on Stage 4+ specialist branches (Terrain's branch names against the

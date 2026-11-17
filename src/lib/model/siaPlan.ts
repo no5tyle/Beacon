@@ -39,7 +39,8 @@ export interface SIAInputGroup {
 export interface SIATemplate {
 	template: string;
 	version: number;
-	document: { title: string; input_groups: SIAInputGroup[] }[];
+	/** Pages of questions; the review's one page has no title */
+	document: { title?: string; input_groups: SIAInputGroup[] }[];
 }
 
 /** A youth's SIA record as Terrain returns it */
@@ -148,9 +149,16 @@ export function updatePlanBody(record: SIARecord, answers: Record<string, unknow
 	};
 }
 
-/** Body for POST .../submit-on-behalf, submitting a plan for the Unit Council's approval */
-export const submitPlanBody = (unitId: string, submittedBy: string) => ({
-	type: 'approval',
+/**
+ * Body for POST .../submit-on-behalf, as Terrain sends it: a plan goes for the Unit Council's approval
+ * ("approval"), and once done, its review for their review ("review")
+ */
+export const submitPlanBody = (
+	unitId: string,
+	submittedBy: string,
+	kind: 'plan' | 'review' = 'plan'
+) => ({
+	type: kind === 'plan' ? 'approval' : 'review',
 	unit_id: unitId,
 	submitted_by: submittedBy
 });
@@ -159,6 +167,18 @@ export const submitPlanBody = (unitId: string, submittedBy: string) => ({
 export const isPlanEditable = (record: SIARecord) =>
 	/\/plan$/.test(record.template ?? '') &&
 	['draft_approval', 'feedback_approval'].includes(record.status);
+
+/**
+ * A project whose plan is approved and whose review is still being written, or was sent back. The review's
+ * answers are saved to the same record, which keeps its plan template, as Terrain's page does
+ */
+export const isReviewEditable = (record: SIARecord) =>
+	/\/plan$/.test(record.template ?? '') &&
+	['draft_review', 'feedback_review', 'in_progress'].includes(record.status);
+
+/** The review's questions Beacon asks: not file attachments, which are added in Terrain */
+export const reviewInputs = (template: SIATemplate): SIAInput[] =>
+	planInputs(template).filter((input) => input.type !== 'file_uploader');
 
 /** How a project stands, e.g. "Plan waiting for approval" */
 export function siaStatusDisplay(record: SIARecord): string {
