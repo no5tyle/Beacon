@@ -3,7 +3,7 @@
 	import '#lib/styles/base.css';
 	import { untrack } from 'svelte';
 	import { asset } from '$app/paths';
-	import { goto } from '$app/navigation';
+	import { afterNavigate, goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import AppNav from '#lib/components/AppNav.svelte';
 	import InstallHint from '#lib/components/InstallHint.svelte';
@@ -51,9 +51,16 @@
 		YOUTH_PAGES.some((p) => at.startsWith(p)) ||
 		at.startsWith(`/progress/${app.memberId}/`) ||
 		(app.onUnitCouncil && at.startsWith('/approvals/'));
-	$effect(() => {
-		if (app.isSignedIn && app.isYouth && app.memberId && !youthMayView(path))
+	const keepYouthToTheirPages = (at: string) => {
+		if (app.isSignedIn && app.isYouth && app.memberId && !youthMayView(at))
 			goto(pagePath(`progress/${app.memberId}/`), { replaceState: true });
+	};
+	$effect(() => keepYouthToTheirPages(path));
+	// Checked again once each navigation lands: one already under way when the unit changed (e.g. a tap on
+	// Insights) can overtake the move to their progress and land on the same address, which wouldn't run
+	// the check above again
+	afterNavigate(({ to }) => {
+		if (to) keepYouthToTheirPages(to.url.pathname.slice(pagePath('').length - 1));
 	});
 
 	// Beacon Reference installs as its own app from /reference/, with its own name and icon
