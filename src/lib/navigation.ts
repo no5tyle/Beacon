@@ -64,7 +64,7 @@ export function mainPages({
 			// Youth record their own OAS, and their SIAs from Record's switch
 			{
 				href: memberId ? `${own}record-oas/` : 'record/sia-plan/',
-				icon: 'check',
+				icon: 'pencil',
 				title: 'Record',
 				shortTitle: 'Record',
 				alsoActive: ['record/']
@@ -84,7 +84,7 @@ export function mainPages({
 		{ href: 'insights/', icon: 'graph', title: 'Insights', shortTitle: 'Insights' },
 		{
 			href: 'oas/sign-off/',
-			icon: 'check',
+			icon: 'pencil',
 			title: 'Record',
 			shortTitle: 'Record',
 			alsoActive: ['record/']
