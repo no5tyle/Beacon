@@ -79,8 +79,8 @@
 		return () => removeEventListener('beforeprint', before);
 	});
 
-	// The printed page's height, A4 less the 12mm margins set below, in CSS pixels; less a little for what keeping headings and stages together pushes over to the next page
-	const PAGE_HEIGHT = (273 / 25.4) * 96 - 40;
+	// The printed page's height, A4's 297mm less the 0.2in margins set below, in CSS pixels; less a little for what keeping headings and stages together pushes over to the next page
+	const PAGE_HEIGHT = ((297 - 2 * 5.08) / 25.4) * 96 - 40;
 	const pagesFor = (height: number) => Math.max(1, Math.ceil((height - 2) / PAGE_HEIGHT));
 
 	/**
@@ -1012,7 +1012,8 @@
 
 	/* Laid out as printed, to count each report's pages; the same as the print rules below */
 	:global(.measuring) .report {
-		width: 186mm;
+		/* A4's 210mm less the 0.2in margins */
+		width: calc(210mm - 0.4in);
 		margin: 0;
 		padding: 0;
 		font-size: 0.94rem;
@@ -1045,7 +1046,8 @@
 	}
 
 	@page {
-		margin: 12mm;
+		/* Narrow, so each page holds more: 0.2in all round */
+		margin: 0.2in;
 	}
 
 	/*
