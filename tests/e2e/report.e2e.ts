@@ -154,3 +154,48 @@ test('the option cards side by side line up, the same height', async ({ page, is
 	);
 	expect(b).toEqual(a);
 });
+
+test('each milestone a youth is working on shows what it still needs', async ({ page }) => {
+	await fakeTerrain(page);
+	await logIn(page);
+	await navigate(page, 'progress/report/');
+	// Liam is logging towards Milestone 2 before Milestone 1 is awarded
+	const liam = page.locator('.report').filter({ hasText: 'Liam Smith' });
+	const milestones = liam.locator('.part', {
+		has: page.getByRole('heading', { name: 'Milestones' })
+	});
+	await expect(milestones.locator('li')).toHaveText([
+		/Milestone 1 in progress\s*Community 0 of \d · Outdoors 1 of \d/,
+		/Milestone 2 in progress\s*Community 2 of \d · Outdoors 0 of \d/
+	]);
+	// With two on the go, the summary counts milestones rather than one milestone's activities
+	await expect(liam.locator('.tile').nth(1)).toHaveText(/Milestones\s*0 done/);
+});
+
+test('the section logo is offered only to the members trying it out', async ({ page }) => {
+	await fakeTerrain(page);
+	await logIn(page);
+	await navigate(page, 'progress/report/');
+	await expect(page.locator('.report').first()).toBeVisible();
+	await expect(page.getByLabel('Section logo')).toHaveCount(0);
+	await expect(page.locator('.section-logo')).toHaveCount(0);
+});
+
+test('for a member trying it out, the report has the section logo, which can be left off', async ({
+	page
+}) => {
+	await fakeTerrain(page, { memberNumber: '256412' });
+	await logIn(page);
+	await navigate(page, 'progress/report/');
+	const ava = page.locator('.report').filter({ hasText: 'Ava Nguyen' });
+	// Reversed on the navy band in colour, black in black and white
+	const logo = ava.getByRole('img', { name: 'Scouts' });
+	await expect(logo).toHaveAttribute('src', /section-logos\/scout-colour\.png$/);
+	expect(
+		await logo.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth)
+	).toBeGreaterThan(0);
+	await page.getByRole('radio', { name: 'Black and white' }).check();
+	await expect(logo).toHaveAttribute('src', /section-logos\/scout-black\.png$/);
+	await page.getByLabel('Section logo').uncheck();
+	await expect(ava.locator('.section-logo')).toHaveCount(0);
+});

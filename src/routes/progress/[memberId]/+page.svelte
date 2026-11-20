@@ -17,16 +17,17 @@
 		type ChallengeAreaNeed,
 		type MemberInsightsReport
 	} from '#lib/model/insights/memberModels.js';
-	import { milestoneNeeds } from '#lib/model/insights/memberInsightsCalculator.js';
 	import { readInsightsSettings } from '#lib/stores/storage.js';
 	import { asc, desc, sortBy } from '#lib/model/util.js';
 	import { pagePath } from '#lib/paths.js';
 	import { app, insights, members, progress } from '#lib/services/index.js';
-	import type {
-		MilestoneLog,
-		MilestoneSummary,
-		OASSummary,
-		ProgressDetails
+	import {
+		milestoneInProgress,
+		milestoneNeedsOf,
+		type MilestoneLog,
+		type MilestoneSummary,
+		type OASSummary,
+		type ProgressDetails
 	} from '#lib/services/progress.js';
 
 	type Tab = 'next' | 'awards' | 'records';
@@ -218,14 +219,12 @@
 	const activityCount = (m: MilestoneSummary) => m.participateLogs.length + m.leadLogs.length;
 	// Every milestone being worked on shows what it still needs, not only the lowest: a youth can log
 	// towards Milestone 2 before Milestone 1 is awarded
-	const AREA_KEYS = ['community', 'outdoors', 'creative', 'personal_growth'];
-	const inProgress = (m: MilestoneSummary) => !m.awarded && m.status !== 'Not Required';
-	const needsOf = (m: MilestoneSummary) =>
-		milestoneNeeds(
-			m.milestone,
-			AREA_KEYS.map((area) => byArea(m.participateLogs, area).length),
-			m.leadLogs.length + m.assistLogs.length
-		);
+	const inProgress = milestoneInProgress;
+	const needsOf = milestoneNeedsOf;
+	// Working on more than one, the summary counts milestones done rather than one milestone's activities
+	const severalMilestones = $derived(
+		(details?.milestones.filter(milestoneInProgress).length ?? 0) > 1
+	);
 </script>
 
 <svelte:head>
@@ -300,12 +299,14 @@
 		</div>
 		<div class="summary-tile">
 			<div class="summary-label">
-				{report?.milestone ? `Milestone ${report.milestone.number}` : 'Milestones'}
+				{report?.milestone && !severalMilestones
+					? `Milestone ${report.milestone.number}`
+					: 'Milestones'}
 			</div>
 			<div class="summary-value">
 				{#if milestonesComplete}
 					Completed
-				{:else if report?.milestone}
+				{:else if report?.milestone && !severalMilestones}
 					{milestoneTotal(report.milestone) - milestoneRemaining(report.milestone)}<span
 						class="summary-of">/{milestoneTotal(report.milestone)}</span
 					>

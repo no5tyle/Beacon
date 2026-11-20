@@ -114,6 +114,11 @@ export class AppState implements BeaconContext {
 		return onUnitCouncil(this.profileFor(this.unitId));
 	}
 
+	/** The signed in member's member number, from their Terrain login, e.g. "1234567" for "sa-1234567" */
+	get memberNumber(): string {
+		return /-(\d+)$/.exec(this.user?.Username ?? '')?.[1] ?? '';
+	}
+
 	/** The signed in member's id in the chosen unit (or their first profile's) */
 	get memberId(): string {
 		return (this.profileFor(this.unitId) ?? this.profiles?.profiles[0])?.member.id ?? '';

@@ -29,6 +29,8 @@ export interface FakeOptions {
 	staleReads?: number;
 	/** Turn submitting an achievement for review away with a 400 and this message */
 	refuseSubmit?: string;
+	/** The member number logged in with, in Terrain's username (e.g. "sa-1234567") */
+	memberNumber?: string;
 }
 
 export interface FakeTerrain {
@@ -504,7 +506,7 @@ export async function fakeTerrain(page: Page, options: FakeOptions = {}): Promis
 			const target = request.headers()['x-amz-target'] ?? '';
 			if (target.endsWith('GetUser'))
 				return json(route, {
-					Username: 'sa-1234567',
+					Username: `sa-${options.memberNumber ?? '1234567'}`,
 					UserAttributes: [{ Name: 'email', Value: 'sam@example.com' }]
 				});
 			if (options.refuseRefresh && (request.postData() ?? '').includes('REFRESH_TOKEN_AUTH'))

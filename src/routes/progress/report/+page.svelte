@@ -4,6 +4,7 @@
 -->
 <script lang="ts">
 	import { flushSync, onMount } from 'svelte';
+	import { asset } from '$app/paths';
 	import { page } from '$app/state';
 	import ChooseUnit from '#lib/components/ChooseUnit.svelte';
 	import BackLink from '#lib/components/BackLink.svelte';
@@ -17,12 +18,16 @@
 		type MemberInsightsReport
 	} from '#lib/model/insights/memberModels.js';
 	import type { PriorityTask } from '#lib/model/insights/models.js';
-	import type { ReportOptions } from '#lib/model/report.js';
+	import { offersSectionLogos, type ReportOptions } from '#lib/model/report.js';
 	import { asc, groupBy, sortBy } from '#lib/model/util.js';
 	import { pagePath } from '#lib/paths.js';
 	import { app, insights, members, progress, reports } from '#lib/services/index.js';
 	import type { MemberSummary } from '#lib/services/members.js';
-	import type { ProgressDetails } from '#lib/services/progress.js';
+	import {
+		milestoneInProgress,
+		milestoneNeedsOf,
+		type ProgressDetails
+	} from '#lib/services/progress.js';
 	import type { ReportStage } from '#lib/services/reports.js';
 	import {
 		readInsightsSettings,
@@ -101,6 +106,43 @@
 	const settings = readInsightsSettings();
 	// In colour, the unit's section colours with Scouts Australia's navy, as in the Brand Book
 	const colours = $derived(sectionColours(app.section));
+	// The section's logo from the Brand Centre, reversed on the navy band or black; for now only offered
+	// to the members trying it out
+	const SECTION_LOGOS: Record<string, { colour: string; black: string }> = {
+		joey: {
+			colour: asset('section-logos/joey-colour.png'),
+			black: asset('section-logos/joey-black.png')
+		},
+		cub: {
+			colour: asset('section-logos/cub-colour.png'),
+			black: asset('section-logos/cub-black.png')
+		},
+		scout: {
+			colour: asset('section-logos/scout-colour.png'),
+			black: asset('section-logos/scout-black.png')
+		},
+		venturer: {
+			colour: asset('section-logos/venturer-colour.png'),
+			black: asset('section-logos/venturer-black.png')
+		},
+		rover: {
+			colour: asset('section-logos/rover-colour.png'),
+			black: asset('section-logos/rover-black.png')
+		}
+	};
+	const logosOffered = $derived(offersSectionLogos(app.memberNumber));
+	const logo = $derived.by(() => {
+		const logos = SECTION_LOGOS[app.section];
+		if (!logosOffered || !options.logos || !logos) return '';
+		return options.colour ? logos.colour : logos.black;
+	});
+	const SECTION_NAMES: Record<string, string> = {
+		joey: 'Joey Scouts',
+		cub: 'Cub Scouts',
+		scout: 'Scouts',
+		venturer: 'Venturer Scouts',
+		rover: 'Rover Scouts'
+	};
 	const printedOn = shortDate(today());
 
 	// The unit's youth, with those named in the address (or everyone) ticked
@@ -226,6 +268,10 @@
 		}
 	}
 
+	// Working on more than one, the summary counts milestones done rather than one milestone's activities
+	const severalMilestones = (details: ProgressDetails) =>
+		details.milestones.filter(milestoneInProgress).length > 1;
+
 	const milestonesComplete = (details: ProgressDetails) =>
 		details.milestones.filter((m) => m.awarded).length >= 3;
 </script>
@@ -298,6 +344,12 @@
 					Black and white
 				</label>
 			</div>
+			{#if logosOffered}
+				<label class="check">
+					<input type="checkbox" class="form-check-input" bind:checked={options.logos} />
+					Section logo
+				</label>
+			{/if}
 		</section>
 
 		{#if youth.length > 0}
@@ -359,7 +411,12 @@
 								.join(' · ')}
 						</div>
 					</div>
-					<div class="report-date muted">{printedOn}</div>
+					<div class="report-side">
+						{#if logo}
+							<img class="section-logo" src={logo} alt={SECTION_NAMES[app.section]} />
+						{/if}
+						<div class="report-date muted">{printedOn}</div>
+					</div>
 				</header>
 
 				{#if options.summary}
@@ -372,14 +429,14 @@
 						{/if}
 						<div class="tile">
 							<div class="tile-label">
-								{report?.milestone && !milestonesComplete(details)
+								{report?.milestone && !milestonesComplete(details) && !severalMilestones(details)
 									? `Milestone ${report.milestone.number}`
 									: 'Milestones'}
 							</div>
 							<div class="tile-value">
 								{#if milestonesComplete(details)}
 									Completed
-								{:else if report?.milestone}
+								{:else if report?.milestone && !severalMilestones(details)}
 									{milestoneTotal(report.milestone) - milestoneRemaining(report.milestone)} of {milestoneTotal(
 										report.milestone
 									)}
@@ -418,26 +475,30 @@
 						{#if milestonesComplete(details)}
 							<p>All three milestones completed.</p>
 						{:else}
+							<!-- What each milestone being worked on still needs: a youth can work on more than one -->
 							<ul class="plain">
 								{#each details.milestones as milestone (milestone.milestone)}
+									{@const needs = milestoneInProgress(milestone)
+										? milestoneNeedsOf(milestone)
+										: null}
 									<li>
 										<strong>Milestone {milestone.milestone}</strong>
 										{milestone.awarded
 											? `awarded ${shortDate(milestone.awarded)}`
 											: milestone.status.toLowerCase()}
+										{#if needs}
+											<div class="needs muted">
+												{[...needs.participates, needs.leads]
+													.map(
+														(need) =>
+															`${AREAS[need.challengeArea] ?? need.challengeArea} ${Math.min(need.have, need.need)} of ${need.need}`
+													)
+													.join(' · ')}
+											</div>
+										{/if}
 									</li>
 								{/each}
 							</ul>
-							{#if report?.milestone}
-								<div class="needs muted">
-									{[...report.milestone.participates, report.milestone.leads]
-										.map(
-											(need) =>
-												`${AREAS[need.challengeArea] ?? need.challengeArea} ${Math.min(need.have, need.need)} of ${need.need}`
-										)
-										.join(' · ')}
-								</div>
-							{/if}
 						{/if}
 					</section>
 				{/if}
@@ -717,6 +778,23 @@
 	.report-date {
 		font-size: 0.85rem;
 		white-space: nowrap;
+	}
+
+	/* The section's logo, above the date at the top right */
+	.report-side {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-end;
+		gap: 0.35rem;
+	}
+
+	.section-logo {
+		display: block;
+		width: auto;
+		height: 2.6rem;
+		max-width: 11rem;
+		object-fit: contain;
+		object-position: right;
 	}
 
 	.summary {

@@ -4,6 +4,8 @@
 import { today, toCalendarDate, type CalendarDate } from '#lib/model/dates.js';
 import { emptyProgress, type YouthProgress } from '#lib/model/insights/progress.js';
 import { STREAMS } from '#lib/model/insights/insightsCalculator.js';
+import { milestoneNeeds } from '#lib/model/insights/memberInsightsCalculator.js';
+import type { MilestoneProgress } from '#lib/model/insights/memberModels.js';
 import { asc, compareText, groupBy, sortBy, titleCase } from '#lib/model/util.js';
 import type { TerrainAchievement } from '#lib/terrain/types.js';
 import type { BeaconContext } from './context.js';
@@ -226,6 +228,23 @@ export function siaSummaries(records: TerrainAchievement[], section: string): SI
 }
 
 /** Shapes the youth's progress like a unit progress row, so the unit level Insights can be reused */
+/**
+ * A milestone being worked on: not awarded or marked not required. A youth can log towards Milestone 2
+ * before Milestone 1 is awarded, so more than one can be
+ */
+export const milestoneInProgress = (m: MilestoneSummary) =>
+	!m.awarded && m.status !== 'Not Required';
+
+const MILESTONE_AREAS = ['community', 'outdoors', 'creative', 'personal_growth'];
+
+/** What a milestone still needs, from its own activities */
+export const milestoneNeedsOf = (m: MilestoneSummary): MilestoneProgress =>
+	milestoneNeeds(
+		m.milestone,
+		MILESTONE_AREAS.map((area) => m.participateLogs.filter((l) => l.challengeArea === area).length),
+		m.leadLogs.length + m.assistLogs.length
+	);
+
 export function progressFromDetails(details: ProgressDetails, section: string): YouthProgress {
 	const member = details.member;
 	const item = {
