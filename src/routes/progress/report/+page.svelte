@@ -3,6 +3,8 @@
 	Reached from Progress (every youth) or a youth's details (just them), with ?ids= naming who's ticked.
 -->
 <script lang="ts">
+	// Scouts Australia's typeface, from the Brand Book, served with Beacon rather than from a font service
+	import '@fontsource-variable/nunito-sans';
 	import { flushSync, onMount } from 'svelte';
 	import { asset } from '$app/paths';
 	import { page } from '$app/state';
@@ -718,6 +720,8 @@
 		border-radius: var(--radius-lg);
 		background: #fff;
 		color: var(--text);
+		/* Nunito Sans, Scouts Australia's typeface */
+		font-family: 'Nunito Sans Variable', 'Nunito Sans', system-ui, sans-serif;
 		print-color-adjust: exact;
 		-webkit-print-color-adjust: exact;
 	}
@@ -758,6 +762,7 @@
 
 	.note {
 		border-color: var(--border);
+		font-family: inherit;
 		background: #fff;
 		color: var(--text);
 	}
