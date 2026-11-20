@@ -124,13 +124,22 @@ test('printed double-sided, each report starts on a new sheet', async ({ page })
 	// A blank page after Ava's, the only one with an odd number before the last; Noah's comes last, so
 	// nothing follows it
 	await page.getByLabel('Double-sided: each report starts on a new sheet').check();
+	// In place before printing starts, for browsers that don't say they're about to print
+	await expect(page.locator('.blank-page')).toHaveCount(1);
+	expect(pages(await page.pdf({ format: 'A4', preferCSSPageSize: true }))).toBe(9);
 	expect(await print()).toBe(9);
 	await expect(page.locator('.blank-page')).toHaveCount(1);
 	await expect(page.locator('.report').first().locator('+ .blank-page')).toHaveCount(1);
 
 	// Just the front pages: a blank after each but the last
 	await page.getByLabel('Outdoor Adventure Skills').uncheck();
+	await expect(page.locator('.blank-page')).toHaveCount(3);
 	expect(await print()).toBe(7);
+
+	// Single-sided again, none
+	await page.getByLabel('Double-sided: each report starts on a new sheet').uncheck();
+	await expect(page.locator('.blank-page')).toHaveCount(0);
+	expect(await print()).toBe(4);
 });
 
 test('the front page fits on one page when a phone lays the print out narrower', async ({

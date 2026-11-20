@@ -72,12 +72,28 @@
 	let blankAfter = $state<string[]>([]);
 	let reportsElement = $state<HTMLElement>();
 
-	// Ctrl+P as well as the Print button: the blank pages go in just before the browser lays out the print
+	/*
+		The blank pages are worked out whenever the reports change, a moment after, so they're in place
+		however printing starts: not every browser says it's about to print (Safari on an iPhone doesn't
+		when printing from the share sheet). They're worked out again just before printing where the
+		browser does say, and by the Print button
+	*/
+	const placeBlankPages = () => (blankAfter = options.doubleSided ? oddReports() : []);
+	$effect(() => {
+		// What changes a report's length: the parts included, who's included and their data, and notes
+		JSON.stringify([options, chosen, Object.keys(prepared), notes]);
+		const timer = setTimeout(() => void document.fonts.ready.then(placeBlankPages), 300);
+		return () => clearTimeout(timer);
+	});
 	onMount(() => {
-		const before = () => flushSync(() => (blankAfter = options.doubleSided ? oddReports() : []));
+		const before = () => flushSync(placeBlankPages);
 		addEventListener('beforeprint', before);
 		return () => removeEventListener('beforeprint', before);
 	});
+	function print() {
+		flushSync(placeBlankPages);
+		window.print();
+	}
 
 	// The printed page's height, A4's 297mm less the 0.2in margins set below, in CSS pixels; less a little for what keeping headings and stages together pushes over to the next page
 	const PAGE_HEIGHT = ((297 - 2 * 5.08) / 25.4) * 96 - 40;
@@ -286,11 +302,8 @@
 	<BackLink href={pagePath('progress/')} label="Youth" />
 	<div class="head">
 		<h2>Progress reports</h2>
-		<button
-			type="button"
-			class="btn btn-primary"
-			disabled={ready === 0}
-			onclick={() => window.print()}><Icon name="print" /> Print</button
+		<button type="button" class="btn btn-primary" disabled={ready === 0} onclick={print}
+			><Icon name="print" /> Print</button
 		>
 	</div>
 	<p class="muted">
@@ -660,7 +673,7 @@
 				{/if}
 			</article>
 			{#if blankAfter.includes(member.id)}
-				<div class="blank-page" aria-hidden="true"></div>
+				<div class="blank-page" aria-hidden="true">&nbsp;</div>
 			{/if}
 		{/if}
 	{/each}
@@ -1046,6 +1059,8 @@
 	}
 
 	@page {
+		/* A4, which the pages are counted for when printing double-sided */
+		size: A4;
 		/* Narrow, so each page holds more: 0.2in all round */
 		margin: 0.2in;
 	}
@@ -1068,10 +1083,13 @@
 	}
 
 	@media print {
+		/* A page on its own, kept by browsers that skip an empty one; page-break-* for older Safari */
 		.blank-page {
 			display: block;
 			height: 1px;
+			overflow: hidden;
 			break-after: page;
+			page-break-after: always;
 		}
 
 		.report {
@@ -1082,6 +1100,7 @@
 			border: 0;
 			border-radius: 0;
 			break-after: page;
+			page-break-after: always;
 		}
 
 		/* The band runs the width of the printed area, rounded a little */
@@ -1093,6 +1112,7 @@
 
 		.report:last-of-type {
 			break-after: auto;
+			page-break-after: auto;
 		}
 
 		/* The page's margins are enough on paper, and the room for the phone's tab bar isn't needed */
@@ -1109,6 +1129,7 @@
 			padding-top: 0;
 			border-top: 0;
 			break-before: page;
+			page-break-before: always;
 		}
 
 		.note-print {
