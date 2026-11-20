@@ -25,6 +25,8 @@ export interface ReportOptions {
 	signatures: boolean;
 	/** Printing on both sides: a blank page after a report with an odd number of pages, so each starts a new sheet */
 	doubleSided: boolean;
+	/** In the section's and Scouts Australia's colours; off, in black and white for a mono printer */
+	colour: boolean;
 }
 
 export const DEFAULT_REPORT_OPTIONS: ReportOptions = {
@@ -40,7 +42,8 @@ export const DEFAULT_REPORT_OPTIONS: ReportOptions = {
 	logbook: true,
 	note: true,
 	signatures: false,
-	doubleSided: false
+	doubleSided: false,
+	colour: true
 };
 
 /** Saved options, with anything missing or not a yes/no taken from the defaults */

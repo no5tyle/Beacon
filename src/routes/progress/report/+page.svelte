@@ -8,6 +8,7 @@
 	import ChooseUnit from '#lib/components/ChooseUnit.svelte';
 	import BackLink from '#lib/components/BackLink.svelte';
 	import Icon from '#lib/components/Icon.svelte';
+	import { SCOUTS_DARK_GREY, SCOUTS_NAVY, sectionColours } from '#lib/model/brandColours.js';
 	import { shortDate, today, toCalendarDate } from '#lib/model/dates.js';
 	import {
 		milestoneRemaining,
@@ -98,6 +99,8 @@
 		return odd;
 	}
 	const settings = readInsightsSettings();
+	// In colour, the unit's section colours with Scouts Australia's navy, as in the Brand Book
+	const colours = $derived(sectionColours(app.section));
 	const printedOn = shortDate(today());
 
 	// The unit's youth, with those named in the address (or everyone) ticked
@@ -273,6 +276,28 @@
 				<input type="checkbox" class="form-check-input" bind:checked={options.doubleSided} />
 				Double-sided: each report starts on a new sheet
 			</label>
+			<div class="colour-choice" role="radiogroup" aria-label="Print in">
+				<label class="check">
+					<input
+						type="radio"
+						class="form-check-input"
+						name="report-colour"
+						checked={options.colour}
+						onchange={() => (options.colour = true)}
+					/>
+					Colour
+				</label>
+				<label class="check">
+					<input
+						type="radio"
+						class="form-check-input"
+						name="report-colour"
+						checked={!options.colour}
+						onchange={() => (options.colour = false)}
+					/>
+					Black and white
+				</label>
+			</div>
 		</section>
 
 		{#if youth.length > 0}
@@ -315,7 +340,15 @@
 			</div>
 		{:else if data}
 			{@const { details, report, stages } = data}
-			<article class="report" data-member={member.id}>
+			<article
+				class="report"
+				class:colour={options.colour}
+				data-member={member.id}
+				style:--section={colours.primary}
+				style:--section-dark={colours.dark}
+				style:--navy={SCOUTS_NAVY}
+				style:--ink={SCOUTS_DARK_GREY}
+			>
 				<header class="report-head">
 					<div>
 						<div class="report-kicker">{app.unitName} · Progress report</div>
@@ -604,13 +637,39 @@
 		padding-left: 1.6rem;
 	}
 
-	/* The report: on screen a card per youth, printed a page each */
+	/*
+		The report: on screen a card per youth, printed a page each. It's paper, white in dark mode too, so
+		what's on screen is what prints: in black and white, or in colour, with the unit's section colour and
+		Scouts Australia's navy and dark grey (brandColours.ts). Its own colours stand in for the app's here
+	*/
 	.report {
+		--text: #000;
+		--muted: #555;
+		--border: #bbb;
+		--success: #000;
+		/* Bars and rules; ticks and stream names; headings */
+		--accent: #000;
+		--accent-text: #000;
+		--heading: #000;
 		margin: 1rem 0;
 		padding: 1.25rem 1.25rem 1rem;
+		border: 1px solid #d6d6d4;
 		border-radius: var(--radius-lg);
-		background: var(--surface);
+		background: #fff;
 		color: var(--text);
+		print-color-adjust: exact;
+		-webkit-print-color-adjust: exact;
+	}
+
+	.report.colour {
+		--text: var(--ink);
+		--muted: #6f6f6e;
+		--border: #d6d6d4;
+		--success: var(--section-dark);
+		--accent: var(--section);
+		--accent-text: var(--section-dark);
+		--heading: var(--navy);
+		overflow: hidden;
 	}
 
 	.report-head {
@@ -619,7 +678,27 @@
 		justify-content: space-between;
 		gap: 1rem;
 		padding-bottom: 0.6rem;
-		border-bottom: 2px solid var(--brand);
+		border-bottom: 2px solid var(--heading);
+	}
+
+	/* In colour, a navy band across the top, edged in the section's colour */
+	.colour .report-head {
+		margin: -1.25rem -1.25rem 0;
+		padding: 1rem 1.25rem 0.8rem;
+		border-bottom: 6px solid var(--accent);
+		background: var(--heading);
+		color: #fff;
+	}
+
+	.colour .report-head .muted,
+	.colour .report-kicker {
+		color: rgb(255 255 255 / 0.82);
+	}
+
+	.note {
+		border-color: var(--border);
+		background: #fff;
+		color: var(--text);
 	}
 
 	.report-kicker {
@@ -653,6 +732,14 @@
 		border-radius: 0.6rem;
 	}
 
+	.colour .tile {
+		border-top: 4px solid var(--accent);
+	}
+
+	.colour .tile-value {
+		color: var(--heading);
+	}
+
 	.tile-label {
 		color: var(--muted);
 		font-size: 0.72rem;
@@ -676,7 +763,13 @@
 
 	.part h3 {
 		margin: 0 0 0.3rem;
+		color: var(--heading);
 		font-size: 1.05rem;
+	}
+
+	.colour .part h3 {
+		padding-left: 0.45rem;
+		border-left: 4px solid var(--accent);
 	}
 
 	.part p,
@@ -743,6 +836,7 @@
 
 	.stream h4 {
 		margin: 0;
+		color: var(--accent-text);
 		font-size: 0.95rem;
 	}
 
@@ -789,12 +883,13 @@
 	.statements-head {
 		margin-bottom: 0.6rem;
 		padding-bottom: 0.4rem;
-		border-bottom: 2px solid var(--brand);
+		border-bottom: 2px solid var(--accent);
 		break-after: avoid;
 	}
 
 	.statements-head h3 {
 		margin: 0;
+		color: var(--heading);
 		font-size: 1.15rem;
 	}
 
@@ -822,6 +917,12 @@
 		margin-top: 0.75rem;
 	}
 
+	.colour-choice {
+		display: flex;
+		flex-wrap: wrap;
+		column-gap: 1.25rem;
+	}
+
 	.blank-page {
 		display: none;
 	}
@@ -832,6 +933,17 @@
 		margin: 0;
 		padding: 0;
 		font-size: 0.94rem;
+	}
+
+	:global(.measuring) .colour .report-head,
+	:global(.measuring) .report {
+		border: 0;
+	}
+
+	:global(.measuring) .colour .report-head {
+		margin: 0;
+		padding: 0.8rem 1rem 0.7rem;
+		border-bottom: 6px solid var(--accent);
 	}
 
 	:global(.measuring) .statements-page {
@@ -882,7 +994,16 @@
 			padding: 0;
 			/* A touch smaller on paper, so the front page holds everything */
 			font-size: 0.94rem;
+			border: 0;
+			border-radius: 0;
 			break-after: page;
+		}
+
+		/* The band runs the width of the printed area, rounded a little */
+		.colour .report-head {
+			margin: 0;
+			padding: 0.8rem 1rem 0.7rem;
+			border-radius: 0.4rem 0.4rem 0 0;
 		}
 
 		.report:last-of-type {

@@ -54,6 +54,18 @@ test('progress reports for the unit, with the parts the leader ticks', async ({ 
 		'"sia":false'
 	);
 
+	// In colour by default: the Scouts section's green, under a navy band; or in black and white
+	await expect(ava).toHaveClass(/\bcolour\b/);
+	await expect(ava.locator('.report-head')).toHaveCSS('background-color', 'rgb(40, 38, 92)');
+	await expect(ava.locator('.report-head')).toHaveCSS('border-bottom-color', 'rgb(12, 174, 75)');
+	await page.getByRole('radio', { name: 'Black and white' }).check();
+	await expect(ava).not.toHaveClass(/\bcolour\b/);
+	await expect(ava.locator('.report-head')).toHaveCSS('border-bottom-color', 'rgb(0, 0, 0)');
+	await expect(ava.getByRole('heading', { name: 'Milestones' })).toHaveCSS('color', 'rgb(0, 0, 0)');
+	expect(await page.evaluate(() => localStorage.getItem('beacon-report-options'))).toContain(
+		'"colour":false'
+	);
+
 	// Fewer youth
 	await page.locator('.check', { hasText: 'Liam Smith' }).getByRole('checkbox').uncheck();
 	await expect(reports).toHaveCount(3);
