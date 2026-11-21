@@ -38,6 +38,22 @@ const awardedOn = (record: TerrainAchievement) =>
 		''
 	).slice(0, 10);
 
+/**
+ * In each core stream, every stage up to the one the award requires (e.g. Stage 5 for Scouts) that the
+ * youth has no record for, including any below one they've completed, lowest first
+ */
+export function missingCoreStages(
+	have: Pick<ReportStage, 'stream' | 'stage'>[],
+	required: number
+): { stream: string; stage: number }[] {
+	const missing: { stream: string; stage: number }[] = [];
+	for (const stream of STREAMS.filter((s) => s.isCore))
+		for (let stage = 1; stage <= required; stage++)
+			if (!have.some((s) => s.stream === stream.key && s.stage === stage))
+				missing.push({ stream: stream.key, stage });
+	return missing;
+}
+
 export class ReportService {
 	private readonly templates = new Map<string, Promise<OASTemplate>>();
 
@@ -102,22 +118,12 @@ export class ReportService {
 	}
 
 	/**
-	 * The core stages the section's award needs that the youth hasn't started: in each core stream, those
-	 * above the highest they've completed, up to the stage required (e.g. Stage 5 for Scouts), with every
-	 * statement still to do
+	 * The core stages the section's award needs that the youth hasn't started: in each core stream, every
+	 * stage up to the one required (e.g. Stage 5 for Scouts) they have no record for, including any below
+	 * one they've completed, with every statement still to do
 	 */
 	private async neededStages(have: ReportStage[], required: number): Promise<ReportStage[]> {
-		if (required < 1) return [];
-		const wanted: { stream: string; stage: number }[] = [];
-		for (const stream of STREAMS.filter((s) => s.isCore)) {
-			const own = have.filter((s) => s.stream === stream.key);
-			const completed = Math.max(
-				0,
-				...own.filter((s) => s.status !== 'started').map((s) => s.stage)
-			);
-			for (let stage = completed + 1; stage <= required; stage++)
-				if (!own.some((s) => s.stage === stage)) wanted.push({ stream: stream.key, stage });
-		}
+		const wanted = missingCoreStages(have, required);
 		if (wanted.length === 0) return [];
 		const list = await this.oas.stageList();
 		const stages = await Promise.all(

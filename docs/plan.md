@@ -272,4 +272,8 @@ never headers):
       NAAF Appendix 1 warnings on Stage 4+ specialist branches (Terrain's branch names against the
       appendix's)
 - [ ] Ready to submit: use Terrain's `milestone_requirement_status` for milestones
+- [ ] OAS stage order: check whether Terrain takes a stage submitted for review (e.g. Stage 4) before
+      the one below it (Stage 3) is approved. Progress reports list every core stage the award needs
+      with no record as still to do, including ones below a stage completed; if Terrain needs them in
+      order, say so on the report
 - [ ] Anything noted as an intended change during the side-by-side run
