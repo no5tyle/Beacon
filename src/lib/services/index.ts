@@ -30,7 +30,7 @@ export const approvals = new ApprovalsService(app);
 export const approvalsBadge = new ApprovalsBadge(approvals);
 export const readyToSubmit = new ReadyToSubmit(unitProgress, recording, oas);
 export const activities = new ActivitiesService(app);
-export const reports = new ReportService(app);
+export const reports = new ReportService(app, oas);
 export const sia = new SIAService(app, unitProgress);
 export const statementCounts = new StatementCountsService(app, members);
 

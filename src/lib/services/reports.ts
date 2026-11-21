@@ -1,13 +1,15 @@
 // What a youth's printed progress report needs beyond their progress details: each OAS stage they have a
-// record for, with its "I" statements and which they've achieved.
+// record for, with its "I" statements and which they've achieved, and each core stage they still need
+// for their section's award.
 
-import { isCoreStream, streamDisplay } from '#lib/model/insights/insightsCalculator.js';
+import { isCoreStream, STREAMS, streamDisplay } from '#lib/model/insights/insightsCalculator.js';
 import type { Answers } from '#lib/model/oas/answers.js';
 import { statements } from '#lib/model/oas/recording.js';
 import type { OASTemplate } from '#lib/model/oas/templates.js';
 import { asc, sortBy } from '#lib/model/util.js';
 import type { TerrainAchievement } from '#lib/terrain/types.js';
 import type { BeaconContext } from './context.js';
+import { OASService } from './oas.js';
 
 export interface ReportStatement {
 	group: string;
@@ -19,7 +21,8 @@ export interface ReportStage {
 	stream: string;
 	streamDisplay: string;
 	stage: number;
-	status: 'awarded' | 'approved' | 'started';
+	/** "needed": not started, but needed for the section's award */
+	status: 'awarded' | 'approved' | 'started' | 'needed';
 	/** When it was awarded, as Terrain gives it, e.g. "2026-04-15" */
 	awarded: string;
 	statements: ReportStatement[];
@@ -38,14 +41,21 @@ const awardedOn = (record: TerrainAchievement) =>
 export class ReportService {
 	private readonly templates = new Map<string, Promise<OASTemplate>>();
 
-	constructor(private readonly context: BeaconContext) {}
+	constructor(
+		private readonly context: BeaconContext,
+		private readonly oas: OASService
+	) {}
 
 	/**
 	 * Every OAS stage the youth has a record for, lowest first within each stream, with its statements.
 	 * A completed stage counts every statement as achieved, as one awarded before Terrain recorded
 	 * statements has none ticked.
 	 */
-	async oasStages(memberId: string, includeNonCore: boolean): Promise<ReportStage[]> {
+	async oasStages(
+		memberId: string,
+		includeNonCore: boolean,
+		coreStageRequired = 0
+	): Promise<ReportStage[]> {
 		const records = await this.context.terrain.memberAchievements(
 			memberId,
 			'outdoor_adventure_skill'
@@ -82,11 +92,57 @@ export class ReportService {
 				}
 			})
 		);
+		const found = stages.filter((s): s is ReportStage => s !== null);
+		const needed = await this.neededStages(found, coreStageRequired);
 		return sortBy(
-			stages.filter((s): s is ReportStage => s !== null),
+			[...found, ...needed],
 			asc((s) => s.streamDisplay),
 			asc((s) => s.stage)
 		);
+	}
+
+	/**
+	 * The core stages the section's award needs that the youth hasn't started: in each core stream, those
+	 * above the highest they've completed, up to the stage required (e.g. Stage 5 for Scouts), with every
+	 * statement still to do
+	 */
+	private async neededStages(have: ReportStage[], required: number): Promise<ReportStage[]> {
+		if (required < 1) return [];
+		const wanted: { stream: string; stage: number }[] = [];
+		for (const stream of STREAMS.filter((s) => s.isCore)) {
+			const own = have.filter((s) => s.stream === stream.key);
+			const completed = Math.max(
+				0,
+				...own.filter((s) => s.status !== 'started').map((s) => s.stage)
+			);
+			for (let stage = completed + 1; stage <= required; stage++)
+				if (!own.some((s) => s.stage === stage)) wanted.push({ stream: stream.key, stage });
+		}
+		if (wanted.length === 0) return [];
+		const list = await this.oas.stageList();
+		const stages = await Promise.all(
+			wanted.map(async ({ stream, stage }): Promise<ReportStage | null> => {
+				const found = OASService.findStage(list, stream, stage);
+				if (!found) return null;
+				try {
+					const template = await this.template(found.templateLink.replace(/\/latest\.json$/, ''));
+					return {
+						stream,
+						streamDisplay: streamDisplay(stream),
+						stage,
+						status: 'needed',
+						awarded: '',
+						statements: statements(template, null)
+							.filter((s) => !s.isLogbook)
+							.map((s) => ({ group: s.group, label: s.label, achieved: false }))
+					};
+				} catch (error) {
+					console.warn('Report: no template for', stream, stage, error);
+					return null;
+				}
+			})
+		);
+		return stages.filter((s): s is ReportStage => s !== null);
 	}
 
 	/** Templates are the same for everyone, so each is fetched once */

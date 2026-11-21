@@ -35,12 +35,30 @@ test('progress reports for the unit, with the parts the leader ticks', async ({ 
 	await expect(statements.locator('.statements-head')).toContainText(
 		'Ava Nguyen · Outdoor Adventure Skills'
 	);
-	await expect(statements.locator('.stage', { hasText: 'Stage 4' }).locator('li')).toHaveText([
+	const bushwalking = statements.locator('.stream', { hasText: 'Bushwalking' });
+	await expect(bushwalking.locator('.stage', { hasText: 'Stage 4' }).locator('li')).toHaveText([
 		/I can tie a reef knot and a clove hitch\./,
 		/I can talk about what went well/
 	]);
+	// And every statement of the core stages the Australian Scout Award (Stage 5) still needs, though
+	// not started: above the highest completed in each stream
+	await expect(bushwalking.locator('.stage-line')).toHaveText([
+		/Stage 4\s*In progress/,
+		/Stage 5\s*Not started, needed for the award/
+	]);
+	await expect(bushwalking.locator('.stage', { hasText: 'Stage 5' }).locator('li')).toHaveCount(6);
+	await expect(
+		statements.locator('.stream', { hasText: 'Bushcraft' }).locator('.stage-line')
+	).toHaveText([/Stage 3/, /Stage 4/, /Stage 5/]);
+	await expect(
+		statements.locator('.stream', { hasText: 'Camping' }).locator('.stage-line')
+	).toHaveText([/Stage 4/, /Stage 5/]);
+	// The front page still sums up only the stages they've a record for
+	await expect(ava.locator('table.oas tr', { hasText: 'Bushcraft' })).toHaveText(
+		/Bushcraft\s*Stage 2 \d\d\/\d\d\/\d\d\s*–/
+	);
 	await page.getByLabel('Achieved "I" statements').check();
-	await expect(statements.locator('.stage', { hasText: 'Stage 4' }).locator('li')).toHaveCount(6);
+	await expect(bushwalking.locator('.stage', { hasText: 'Stage 4' }).locator('li')).toHaveCount(6);
 	// Printed, the statements start a new page and run on over as many as they need
 	await page.emulateMedia({ media: 'print' });
 	await expect(statements).toHaveCSS('break-before', 'page');
@@ -112,24 +130,31 @@ test('printed double-sided, each report starts on a new sheet', async ({ page })
 	await navigate(page, 'progress/report/');
 	await expect(page.locator('.report')).toHaveCount(4);
 	await expect(page.locator('.report table.oas').first()).toBeVisible();
-	// Ava's report takes 3 pages, Liam's and Mia's 2 each, and Noah's 1
+	// Each report takes 3 pages: the front page and the statements, with every core stage the award
+	// still needs, over two
 	await page.getByLabel('Achieved "I" statements').check();
 	await page.getByLabel('"I" statements still to do').check();
 	await page.getByLabel('Non-core streams').check();
 	// Non-core streams load the reports again
 	await expect(page.getByText('Preparing reports')).toHaveCount(0);
-	await expect(page.locator('.statements-page')).toHaveCount(3);
-	expect(await print()).toBe(8);
+	await expect(page.locator('.statements-page')).toHaveCount(4);
+	expect(await print()).toBe(12);
 
-	// A blank page after Ava's, the only one with an odd number before the last; Noah's comes last, so
-	// nothing follows it
+	// A blank page after each but the last, Noah's, as nothing follows it
 	await page.getByLabel('Double-sided: each report starts on a new sheet').check();
 	// In place before printing starts, for browsers that don't say they're about to print
-	await expect(page.locator('.blank-page')).toHaveCount(1);
-	expect(pages(await page.pdf({ format: 'A4', preferCSSPageSize: true }))).toBe(9);
-	expect(await print()).toBe(9);
+	await expect(page.locator('.blank-page')).toHaveCount(3);
+	expect(pages(await page.pdf({ format: 'A4', preferCSSPageSize: true }))).toBe(15);
+	expect(await print()).toBe(15);
+	await expect(page.locator('.blank-page')).toHaveCount(3);
+	await expect(page.locator('.report').first().locator('+ .blank-page')).toHaveCount(1);
+
+	// With only the achieved statements, Ava's report takes 3 pages, Liam's and Mia's 2 and Noah's 1: a
+	// blank page after Ava's alone
+	await page.getByLabel('"I" statements still to do').uncheck();
 	await expect(page.locator('.blank-page')).toHaveCount(1);
 	await expect(page.locator('.report').first().locator('+ .blank-page')).toHaveCount(1);
+	expect(await print()).toBe(9);
 
 	// Just the front pages: a blank after each but the last
 	await page.getByLabel('Outdoor Adventure Skills').uncheck();

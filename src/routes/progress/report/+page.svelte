@@ -20,6 +20,7 @@
 		type MemberInsightsReport
 	} from '#lib/model/insights/memberModels.js';
 	import type { PriorityTask } from '#lib/model/insights/models.js';
+	import { rulesFor } from '#lib/model/insights/settings.js';
 	import { offersSectionLogos, type ReportOptions } from '#lib/model/report.js';
 	import { asc, groupBy, sortBy } from '#lib/model/util.js';
 	import { pagePath } from '#lib/paths.js';
@@ -212,7 +213,10 @@
 				insights
 					.memberReport(unitId, details, { ...settings, includeNonCoreOAS: nonCore })
 					.catch(() => null),
-				reports.oasStages(memberId, nonCore).catch(() => [])
+				// With the core stages the award still needs, for the "I" statements still to do
+				reports
+					.oasStages(memberId, nonCore, rulesFor(settings, app.sectionOf(unitId)).coreStageRequired)
+					.catch(() => [])
 			]);
 			if (unitId === app.unitId && nonCore === options.nonCoreOAS)
 				prepared[memberId] = { details, report, stages };
@@ -238,7 +242,14 @@
 		personal_growth: 'Personal Growth'
 	};
 	const dateText = (value: string) => (value ? shortDate(toCalendarDate(value)) : '');
-	const STATUS_TEXT = { awarded: 'Awarded', approved: 'Approved', started: 'In progress' };
+	const STATUS_TEXT = {
+		awarded: 'Awarded',
+		approved: 'Approved',
+		started: 'In progress',
+		needed: 'Not started, needed for the award'
+	};
+	// The stages they have a record for, on the front page; the ones only needed are with the statements
+	const recordedStages = (stages: ReportStage[]) => stages.filter((s) => s.status !== 'needed');
 	const shownStatements = (stage: ReportStage) =>
 		stage.statements.filter((s) =>
 			s.achieved ? options.achievedStatements : options.notYetStatements
@@ -539,7 +550,7 @@
 				{#if options.oas}
 					<section class="part">
 						<h3>Outdoor Adventure Skills</h3>
-						{#if stages.length === 0}
+						{#if recordedStages(stages).length === 0}
 							<p class="muted">No stages started yet.</p>
 						{:else}
 							<table class="oas">
@@ -547,8 +558,10 @@
 									<tr><th>Stream</th><th>Completed</th><th>Working on</th></tr>
 								</thead>
 								<tbody>
-									{#each groupBy(stages, (s) => s.streamDisplay) as group (group.key)}
-										{@const done = group.items.filter((s) => s.status !== 'started').at(-1)}
+									{#each groupBy(recordedStages(stages), (s) => s.streamDisplay) as group (group.key)}
+										{@const done = group.items
+											.filter((s) => s.status === 'awarded' || s.status === 'approved')
+											.at(-1)}
 										<tr>
 											<td>{group.key}</td>
 											<td>
